@@ -1,6 +1,6 @@
 <h1 align="center">LR2021-SDR</h1>
 
-<p align="center"><code>&gt;&lt;((((' &nbsp; Raw I/Q from the LR2021 &nbsp; '))))&gt;&lt;</code></p>
+<p align="center">Raw I/Q from the LR2021</p>
 
 <p align="center">
   <a href="#start-here">Start here</a> |
@@ -27,7 +27,7 @@ portable radio interface and native host tools.
 3. **Capture a window:** supply the board hooks, configure LoRa RX, then use the
    capture API or a compatible console. See [capture.c](examples/capture.c).
 
-## ><(((> Capture and analysis
+## Capture and analysis
 
 - 256-pair SRAM capture with verified memory restoration.
 - Bounded FIFO capture, up to 250 ms at a nominal 125 ksample/s.
@@ -44,7 +44,7 @@ flowchart LR
     C --> IQ[IQ16 / host analysis]
 ```
 
-## ><(((> Hardware
+## Hardware
 
 LR2021 with ROM firmware **1.24**, SPI, BUSY and reset access. Configure LoRa
 RX before capture. The original implementation was tested with an ESP32-P4
@@ -103,7 +103,7 @@ firmware interface and signal-level trigger.
   captures in the original integration. Live P25, audio quality and Phase 2
   are not established. A P25 decoder is not included.
 
-## ><(((> Take it handheld
+## Take it handheld
 
 <p align="center">
   <a href="https://github.com/SAMS0N1TE/LakeShark">
@@ -124,7 +124,7 @@ supported boards, see it running, and find the setup guides.
   <a href="https://terminalbay.com/?m=wiki"><b>Setup guides</b></a>
 </p>
 
-## ><(((> Standing on
+## Standing on
 
 | Project | Credit |
 | --- | --- |
