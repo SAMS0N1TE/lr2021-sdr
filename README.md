@@ -46,6 +46,15 @@ flowchart LR
 
 ### Captured signals
 
+![Fresh LR2021 VHF antenna capture showing I/Q samples, mean spectrum and waterfall](docs/images/vhf-reception.png)
+
+Over-the-air reception at **154.7850 MHz** with a VHF antenna. This 12,490-pair
+window passed export CRC, FIFO continuity and radio recovery checks. Time and
+frequency axes use the nominal 125 ksample/s rate; amplitude is uncalibrated.
+The plot shows received RF activity, not verified P25 voice decoding.
+
+### Known-tone checks
+
 ![LR2021 I/Q samples and spectra of two known RF test tones](docs/images/tone-capture.png)
 
 Real source-2 captures at 910.525 MHz, SF7, BW62.5 kHz. The left panel shows
