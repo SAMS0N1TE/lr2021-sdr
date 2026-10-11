@@ -52,7 +52,7 @@ cb = fig.colorbar(im, cax=cax, ticks=[-50,-25,0]); cb.set_label("Relative power 
 cb.outline.set_visible(False)
 fig.text(.075,.036,"LIVE VOICE CAPTURE  /  IQ16  /  HANN FFT",color=accent,fontsize=10)
 fig.text(.9,.036,f'{d["pairs"]:,} complex samples',ha="right",color=muted,fontsize=10)
-fig.savefig(root / "docs/images/voice-iq-hero.png", dpi=180)
+fig.savefig(root / "docs/images/voice-iq-hero-white.png", dpi=180)
 
 fig2, ax = plt.subplots(figsize=(15,7), facecolor=bg)
 fig2.subplots_adjust(left=.08,right=.9,top=.84,bottom=.16)
@@ -65,4 +65,4 @@ fig2.text(.08,.92,"LR2021  /  P25 VOICE-CALL WATERFALL",fontsize=22,weight="bold
 fig2.text(.08,.87,"154.7850 MHz  |  Raw IQ16  |  Nominal 125 ksample/s",color=muted,fontsize=12)
 cb=fig2.colorbar(im,ax=ax,pad=.025,fraction=.025); cb.set_label("Relative power (dB)")
 cb.outline.set_visible(False)
-fig2.savefig(root / "docs/images/voice-waterfall.png",dpi=180)
+fig2.savefig(root / "docs/images/voice-waterfall-white.png",dpi=180)

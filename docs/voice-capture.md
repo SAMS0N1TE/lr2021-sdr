@@ -1,6 +1,6 @@
 # Raw I/Q to P25 voice
 
-![Voice-call spectrum and waterfall](images/voice-iq-hero.png)
+![Voice-call spectrum and waterfall](images/voice-iq-hero-white.png)
 
 An LR2021 with ROM 1.24 received a P25 Phase 1 C4FM call at 154.7850 MHz through
 an external VHF antenna. LakeShark decoded audible voice using its continuous
