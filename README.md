@@ -103,6 +103,27 @@ firmware interface and signal-level trigger.
   captures in the original integration. Live P25, audio quality and Phase 2
   are not established. A P25 decoder is not included.
 
+## ><(((> Take it handheld
+
+<p align="center">
+  <a href="https://github.com/SAMS0N1TE/LakeShark">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/657f79dc-afd4-4943-89b3-d9b215a7cb09">
+      <img alt="LakeShark handheld SDR scanner" src="https://github.com/user-attachments/assets/34b12b2c-fd64-4fdc-850c-e9c93d7aede7" width="900">
+    </picture>
+  </a>
+</p>
+
+**LakeShark puts the radio workbench in your hand.** P25, aircraft tracking,
+pagers, LoRa tools and offline maps on the LilyGO T-Display P4. Explore the
+supported boards, see it running, and find the setup guides.
+
+<p align="center">
+  <a href="https://github.com/SAMS0N1TE/LakeShark"><b>Get LakeShark</b></a> |
+  <a href="https://terminalbay.com/?m=lakeshark-showcase"><b>See it in action</b></a> |
+  <a href="https://terminalbay.com/?m=wiki"><b>Setup guides</b></a>
+</p>
+
 ## ><(((> Standing on
 
 | Project | Credit |
