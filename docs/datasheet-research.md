@@ -1,8 +1,10 @@
 # Datasheet and continuity research
 
-Original offline review: 2026-10-11. Subsequent [hardware validation](extended-fifo.md)
-confirms the extended FIFO can serve raw I/Q on the tested ROM. The research
-questions below record what was unknown before those tests.
+The extended RX FIFO identified here is implemented and
+[hardware tested](extended-fifo.md) on ROM 1.24. LakeShark now uses it for
+[continuous capture and live P25 voice](live-streaming.md), with a
+[recorded call replayed to audio](voice-capture.md). The source review and
+implementation checklist below document the work behind that result.
 
 ## Correct chip reference
 
@@ -21,7 +23,7 @@ The v2.2 FIFO table was also checked visually. Vendor PDFs are not included in
 this repository. These document revisions do not establish the firmware version
 or feature behavior of a particular board.
 
-## Highest-value lead: extended RX FIFO
+## Extended RX FIFO
 
 Rev. 2.2 section 5.3.3, pages 80-81, documents moving each FIFO from 256 to
 1024 bytes. Configure before reception. CalibFE overwrites the extended FIFO
@@ -40,10 +42,10 @@ The [workaround implementation](https://github.com/Lora-net/usp/blob/master/smtc
 first configures ordinary IRQs with zero low thresholds, then writes the full
 RX/TX threshold registers. Retention helpers also cover those registers.
 
-This corrects any interpretation of our earlier 256-byte budget as a silicon
-maximum. It is the configuration assumed by our current capture code. Packet
-FIFO support does not prove that undocumented source-2 I/Q uses the relocated
-storage correctly, or that this works on our tested ROM 1.24 without a patch.
+The earlier 256-byte budget described the original configuration, not a
+silicon maximum. Hardware tests confirmed that source-2 I/Q uses the relocated
+FIFO on ROM 1.24 without a custom patch. LakeShark uses 1024 bytes; the portable
+library retains 256 bytes for its legacy APIs and offers explicit 1024-byte selection.
 
 ### Calculated service budget
 
@@ -52,7 +54,7 @@ These are capacity calculations, not simulated or measured hardware results.
 
 | Capacity assumption | Empty-to-full time | Remaining time at 128-byte occupancy |
 | --- | --- | --- |
-| Current 256 bytes | 512 us | 256 us |
+| Legacy 256 bytes | 512 us | 256 us |
 | Conservative 1000 bytes | 2000 us | 1744 us |
 | Documented nominal 1024 bytes | 2048 us | 1792 us |
 
@@ -61,7 +63,12 @@ At 16 MHz SPI, a 128-byte payload alone takes 64 us; the radio produces another
 command, BUSY, flag-check and scheduling costs. A bigger FIFO absorbs brief
 stalls; it cannot repair sustained under-service or samples already lost.
 
-### Required implementation and target checks
+### Implementation checklist
+
+The mapping readback, capacity selection, bounded drainage, recovery and
+256/1024-byte comparison were implemented and tested in the
+[extended FIFO work](extended-fifo.md). Known-sequence sample-order testing is
+an additional diagnostic in this checklist.
 
 1. Record ROM/patch version and current FIFO registers. Establish exclusive
    ownership of the extended region before changing it. RX at 0x804400 overlaps
@@ -71,9 +78,9 @@ stalls; it cannot repair sustained under-service or samples already lost.
    starting RX. This detects a route or patch restoring default registers.
    Inspection of helper 0x10CBC found no direct writes to the two relocation
    registers; its callees and the complete setup path are not yet ruled out.
-3. Make effective FIFO capacity explicit in the C capture API. The current
-   `level >= 256` rejection must not be mistaken for hardware failure after
-   relocation. Preserve bounded read chunks; enlargement does not require a
+3. Make effective FIFO capacity explicit in the C capture API. The original
+   `level >= 256` rejection must use the selected capacity after relocation.
+   Preserve bounded read chunks; enlargement does not require a
    single 1024-byte SPI transaction. Audit counter widths and IRQ thresholds.
 4. With a known nonrepeating RF test sequence, measure FIFO level, wrap behavior,
    sample ordering and overflow flags. Verify recovery and restoration after
@@ -82,8 +89,8 @@ stalls; it cannot repair sustained under-service or samples already lost.
    load. Record maximum service interval, BUSY duration, occupancy and missing
    samples, not just average throughput. Repeat across warm/cold initialization.
 
-Do this before attempting a custom ARC capture scheduler: it is a documented,
-smaller change with a plausible fourfold improvement in stall tolerance.
+The resulting implementation uses the documented relocation and P4 scheduling
+without a custom ARC capture scheduler.
 
 ## Useful findings outside the LR2021 documentation
 
@@ -134,8 +141,11 @@ preserve all the information needed for a general complex-signal receiver.
 
 ## Current conclusion
 
-The extended FIFO is the next practical continuity experiment. P4 scheduling
-and a bounded producer queue remain necessary. A coherent overlapping SRAM
-ring or on-radio decimator remains a second path if FIFO servicing still
-fails. No result here establishes gap-free capture, better P25 voice than the
-FSK path, or a working continuous custom firmware image.
+The extended FIFO and bounded P4 producer queue are implemented. Live sessions
+ran up to 391 seconds without reported FIFO loss or queue rejection, and the
+continuous I/Q receiver decoded audible P25 Phase 1 C4FM voice. A saved call
+also replayed to 27 IMBE frames with none muted. See
+[live results](live-streaming.md) and [voice capture](voice-capture.md).
+
+An overlapping SRAM ring or on-radio decimator would be a separate extension
+for buffering or reducing SPI traffic. Neither is required by the tested path.

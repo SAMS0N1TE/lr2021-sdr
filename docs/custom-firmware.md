@@ -1,8 +1,10 @@
 # Custom LR2021 firmware research
 
 Custom RAM code execution is established on our tested LR2021 ROM 1.24.
-A continuously running I/Q capture extension is still research. The practical
-target is a small RAM-resident extension to the ROM, with the host reloading it
+LakeShark already runs continuous raw-I/Q reception and decodes
+[P25 voice](voice-capture.md) using the existing ROM route and P4 scheduling.
+A custom on-radio capture extension is a separate research path for buffering
+or decimation. Its target is a small RAM-resident extension to the ROM, with the host reloading it
 after reset. A full replacement of the radio firmware is unnecessary for this
 goal and would require substantially more reverse engineering.
 
@@ -138,6 +140,7 @@ or simulator result cannot validate Semtech-specific peripherals.
    sample counts and explicit overrun detection before calling it continuous.
    Only then evaluate on-chip decimation and paired P25 reception quality.
 
-I found no ready-to-use public LR2021 continuous-I/Q firmware or on-chip
-application SDK in the sources examined. Public host drivers and packet-radio
-applications are useful references, but they do not supply this capture engine.
+The sources examined supplied no on-chip application SDK or ready-to-use
+custom ARC capture extension. The working [LakeShark FIFO integration](live-streaming.md)
+does not require that extension. The included [ESP32-P4 capture firmware](../firmware/esp32p4/README.md)
+provides a standalone console for bounded capture tests.

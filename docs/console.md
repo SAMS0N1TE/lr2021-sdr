@@ -2,6 +2,10 @@
 
 The host tool accepts the original capture console format. A board adapter
 must implement these commands; the portable library does not install a shell.
+These are finite-capture export commands. LakeShark's
+[continuous P25 receiver](live-streaming.md) uses a separate live task path.
+The included [ESP32-P4 console firmware](../firmware/esp32p4/README.md) uses
+`capture` and `dump` for its FIFO exports.
 
 ## SRAM burst
 

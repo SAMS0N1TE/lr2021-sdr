@@ -31,8 +31,11 @@ restore bus speed, reset and restore the radio. No data is delivered after
 the final flags check.
 
 RX flags: empty `0x01`, low `0x02`, high `0x04`, full `0x08`, overflow `0x10`,
-underflow `0x20`. Error bits `0x30` invalidate continuity. A level of 256 bytes
-is rejected conservatively even before reading flags.
+underflow `0x20`. Error bits `0x30` invalidate continuity. Levels at or above
+the selected FIFO capacity are rejected conservatively: 256 bytes for the
+legacy APIs, 1024 bytes for extended-FIFO capture. The extended configuration
+uses RX base `0x804400` and size encoding `0x3E8`; ROM 1.24 reads the base back
+as `0x4400`. See [extended FIFO results](extended-fifo.md).
 
 Nominal source-2 rates measured with known tones:
 

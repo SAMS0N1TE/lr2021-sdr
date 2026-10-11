@@ -2,8 +2,10 @@
 
 The saved ROM contains a larger SRAM capture path, but no automatic ping-pong
 buffer switch was found in the routines examined. SRAM is a useful investigation
-target; continuous FIFO reception remains the existing streaming candidate.
-Nothing in this investigation was executed on a radio.
+target for future on-radio buffering. The implemented streaming path uses the
+1024-byte FIFO and P4 producer/consumer tasks; it has decoded
+[live P25 voice](voice-capture.md). The SRAM findings below are static ROM
+analysis, separate from that tested FIFO implementation.
 
 Evidence is from ROM SHA256
 `2bf5736c9b15719598096d077c090d2c39a53e2b27800cb2caab0c48d405d3dc`,
@@ -134,15 +136,15 @@ cycle about 73.4%. A hypothetical overlapping design has 10.438 ms of margin
 under those assumptions. Positive margin proves only sufficient transport
 budget; the required simultaneous access and atomic switch are unverified.
 
-## Next discriminating experiments
+## Further SRAM experiments
 
-The newer [datasheet research](datasheet-research.md) identifies a documented
-1024-byte FIFO relocation. Evaluate its raw-I/Q compatibility before attempting
-a custom ring. Its memory region overlaps some inferred SRAM banks listed above.
+The documented 1024-byte FIFO relocation has been
+[validated with raw I/Q](extended-fifo.md) and is used by the live receiver.
+Its memory region overlaps some inferred SRAM banks listed above. The following
+experiments concern an alternative SRAM capture engine, not the working FIFO path.
 
-1. First run the checked FIFO diagnostic with the existing known route and
-   measure BUSY/service intervals under UI/audio load. It avoids periodic
-   software restart and is the least speculative continuity candidate.
+1. Use the [measured FIFO implementation](live-streaming.md) as the baseline
+   when comparing service intervals and capture load for an SRAM alternative.
 2. Before increasing SRAM length, establish ownership of the full candidate
    region and mapping state, including the active patch. Require full-range
    restoration checks, not only the previously tested 1 KiB.
@@ -153,6 +155,5 @@ a custom ring. Its memory region overlaps some inferred SRAM banks listed above.
 4. Establish whether base/limit can change while running without reset or loss.
    If no supported mechanism exists, an ARC-side patch might be necessary;
    that remains a separate experiment with no working implementation.
-5. Accept continuity only after long sequence/count checks show no missing,
-   repeated or reordered samples under realistic load. Larger finite captures
-   and convincing waveforms alone do not meet that criterion.
+5. Validate an SRAM alternative with long sequence/count checks for missing,
+   repeated or reordered samples under realistic load.

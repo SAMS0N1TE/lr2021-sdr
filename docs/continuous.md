@@ -1,8 +1,10 @@
 # Checked capture sessions
 
 LakeShark's separate live task integration has run for 391 seconds without
-reported FIFO loss or queue rejection. See [live measurements](live-streaming.md).
-The portable API below retains its 60-second session limit.
+reported FIFO loss or queue rejection and has decoded live P25 Phase 1 C4FM
+voice. See [live measurements](live-streaming.md) and
+[recorded voice replay](voice-capture.md). The portable API below retains its
+60-second session limit.
 
 `lr2021_iq_stream_checked()` keeps one receive session open for up to 60 seconds.
 It checks FIFO flags before publishing each block, then resets and restores the
@@ -26,8 +28,9 @@ Give each capture session a new generation number. Reset the downstream decoder
 when generation changes or sample indices stop being consecutive. A restart is
 a gap; joining samples across it produces a false timeline.
 
-At 125000 IQ16 pairs/s the radio produces 500000 bytes/s. The currently assumed 256-byte FIFO fills
-from empty in 512 us. A host queue decouples decoding, but cannot protect against
+At 125000 IQ16 pairs/s the radio produces 500000 bytes/s. The legacy 256-byte
+FIFO fills from empty in 512 us; LakeShark uses the nominal 1024-byte FIFO,
+which provides 2048 us from empty at that rate. A host queue decouples decoding, but cannot protect against
 a stalled SPI producer. Measure worst-case BUSY, SPI and scheduling latency,
 including the extra flag checks. Check task watchdog behavior before long runs.
 

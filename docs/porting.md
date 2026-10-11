@@ -28,7 +28,9 @@ resumes. Check the function return and all three result errors.
 FIFO capture requires LoRa BW31.25 kHz. The default 256-byte FIFO fills in roughly
 512 us at the nominal rate. Use internal RAM, adequate task priority and a
 sink that copies immediately. Avoid logging, allocation, scheduler delays and
-other radio calls in the sink. Separate windows have gaps.
+other radio calls in the sink. Separate finite windows have gaps; the
+[LakeShark live integration](live-streaming.md) keeps reception running and
+processes samples in a separate consumer task.
 
 `lr2021_iq_stream_checked_fifo(..., 1024, ...)` explicitly selects the extended
 RX FIFO. Reserve 0x804400..0x8047FF for its whole session; exclude CalibFE and

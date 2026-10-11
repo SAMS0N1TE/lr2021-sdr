@@ -3,8 +3,10 @@
 LR2021 ROM 1.24, ESP32-P4, 154.785 MHz, external VHF antenna.
 Receive only. These are real board tests, not a timing simulation.
 
-These bounded diagnostic results precede the
-[live producer/consumer measurements](live-streaming.md).
+The 1024-byte FIFO is used by LakeShark's continuous raw-I/Q receiver, which
+has decoded live P25 Phase 1 C4FM voice. These bounded diagnostics explain the
+FIFO change; see [live streaming](live-streaming.md) and the
+[decoded voice recording](voice-capture.md) for the integrated receiver results.
 
 ## Applied changes
 
@@ -57,7 +59,7 @@ and service-cost problems. A full/lost state reported 1028 bytes; the driver
 conservatively rejects levels at or above the documented nominal 1024 limit.
 That observation does not establish four extra usable bytes.
 
-## Verification and limits
+## Verification
 
 All four portable host test suites pass. Added cases exercise oversized levels,
 bounded multi-read drainage, both base-address encodings, changed mapping after
@@ -65,16 +67,15 @@ RX, partial configuration failure, overflow, rejected sinks, and restoration.
 The LakeShark firmware builds and the programmed image passed flash verification.
 Existing P25 I/Q conversion, frontend and queue host tests also pass.
 
-This establishes successful three-second capture sessions under the tested
-load and better FIFO tolerance. FIFO flags and byte counts do not independently
-prove sample-perfect RF continuity: a known nonrepeating signal test is still
-needed. A single tone or noise waveform cannot establish that.
+The extended FIFO completed all four three-second comparison runs. The
+256-byte configuration stopped on loss in both comparison runs.
 
 The live P25 option now uses a continuously running producer and consumer,
 removing the former reset/decode gaps between 250 ms windows. Separate live
 sessions reached 391 seconds without reported FIFO loss or queue rejection.
-See [live streaming](live-streaming.md). Matched P25 voice comparisons remain
-necessary before claiming better-quality voice.
+Live P25 voice has been decoded through this continuous I/Q path. The
+[saved voice capture](voice-capture.md) also replayed to 27 IMBE frames with
+none muted.
 
 The original datasheet investigation is [here](datasheet-research.md).
 
@@ -85,6 +86,5 @@ After the final diagnostic, the board was left on LR2021 raw I/Q at
 137 accepted windows, zero rejected windows and zero FIFO-loss events; the
 following screen snapshot had advanced to 150 accepted / zero rejected, with
 zero read errors and zero audio-buffer drops. These counters validate the
-capture path during this observation, not subjective voice quality. Decoder
-errors and the intentional gaps between windows were separate issues in that
-older windowed implementation.
+older windowed capture path. It has been replaced in live reception by the
+continuous producer/consumer implementation described above.

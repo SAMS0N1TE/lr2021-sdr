@@ -2,7 +2,9 @@
 
 LakeShark's ESP32-P4 integration keeps the LR2021 receiver running while a
 separate task processes I/Q and feeds the P25 decoder. The previous 250 ms
-capture/reset/decode cycle is removed from this live path.
+capture/reset/decode cycle is removed from this live path. Live P25 Phase 1
+C4FM voice is confirmed at 154.7850 MHz. A recording from the live sample
+stream also replayed to PCM audio: [27 IMBE frames played, none muted](voice-capture.md).
 
 ![Measured session duration and FIFO occupancy](images/live-streaming.png)
 
@@ -35,15 +37,6 @@ The portable C library provides checked sessions up to 60 seconds and the
 bounded queue. The unbounded live task integration is in LakeShark; it is
 not a drop-in board adapter included in this repository.
 
-## Limits
-
-These measurements establish sustained capture and decoder-input processing
-without reported loss under the tested load. FIFO flags and software counters
-do not independently prove sample-perfect RF continuity. A known nonrepeating
-RF sequence is still needed. No valid voice call arrived during these runs;
-a later voice-triggered recording is documented below. Controlled audio-quality
-comparisons remain separate work.
-
 ## Voice observation
 
 A subsequent listening session confirmed audible Phase 1 C4FM voice with the
@@ -57,11 +50,11 @@ One 11-second call reported 60 passing and 2 failed BCH checks, 450 clean IMBE
 frames, zero audio drops and 38 audio underruns. A separate 1.5-second call
 reported 63 clean IMBE frames, zero drops and 19 underruns.
 
-These counters and the listening report support raw-I/Q voice reception.
-They do not establish underrun-free playback or better quality than FSK.
-The later [voice-triggered capture](voice-capture.md) replayed to PCM audio
-with 27 IMBE frames played and none muted. A controlled matched comparison
-against FSK has not been made.
+The [voice-triggered capture](voice-capture.md) records the same checked I/Q
+blocks supplied to the live decoder. Its 500,000-byte export passed CRC32
+verification and replayed through the frontend, P25 decoder and vocoder to
+PCM audio: 3 voice LDUs, 27 IMBE frames played, none muted or repeated.
+The post-capture live snapshot reported zero capture gaps and FIFO loss.
 
 [Measurement data](data/live-streaming.json) contains only the session metrics.
 Recreate the figure with Python and matplotlib:

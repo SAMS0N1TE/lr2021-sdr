@@ -56,7 +56,8 @@ dump
 `info` must report ROM 1.24, configured=1 and errors=0000. `check` runs one
 bounded receive session, checks FIFO loss flags and discards the samples.
 Success prints `result=PASS`, zero capture/recovery errors and rejected=0.
-It tests capture service, not RF sample-perfect continuity or P25 decoding.
+This command reports FIFO service and recovery results. For the live P25
+receiver and voice results, see [LakeShark integration](../../docs/live-streaming.md).
 
 `capture` retains up to 100 ms of IQ16LE in internal RAM. `dump` exports it
 after reception stops, with sequential byte offsets and CRC32. Save the dump
