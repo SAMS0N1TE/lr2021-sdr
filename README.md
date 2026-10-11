@@ -19,7 +19,7 @@ portable radio interface and native host tools.
 > Live P25 Phase 1 C4FM voice has been decoded from LR2021 raw I/Q in LakeShark.
 > A LilyGO ESP32-P4 adapter is included; other boards need porting.
 
-![LR2021 raw I/Q spectrum and waterfall from a decoded P25 voice call](docs/images/voice-iq-hero-white.png)
+![LR2021 raw I/Q spectrum and waterfall from a decoded P25 voice call](docs/images/voice-iq-hero-purple.png)
 
 ## Start here
 
@@ -86,7 +86,7 @@ zero FIFO loss and zero audio drops at the observed snapshot.
 
 ### Captured voice
 
-![LR2021 P25 voice-call waterfall at 154.7850 MHz](docs/images/voice-waterfall-white.png)
+![LR2021 P25 voice-call waterfall at 154.7850 MHz](docs/images/voice-waterfall-purple.png)
 
 **These are the samples from a decoded voice call.** The live decoder triggered
 an I/Q recorder at **154.7850 MHz** with a VHF antenna. The one-second recording
