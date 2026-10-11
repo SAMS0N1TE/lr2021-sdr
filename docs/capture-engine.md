@@ -136,6 +136,10 @@ budget; the required simultaneous access and atomic switch are unverified.
 
 ## Next discriminating experiments
 
+The newer [datasheet research](datasheet-research.md) identifies a documented
+1024-byte FIFO relocation. Evaluate its raw-I/Q compatibility before attempting
+a custom ring. Its memory region overlaps some inferred SRAM banks listed above.
+
 1. First run the checked FIFO diagnostic with the existing known route and
    measure BUSY/service intervals under UI/audio load. It avoids periodic
    software restart and is the least speculative continuity candidate.

@@ -21,10 +21,14 @@ Give each capture session a new generation number. Reset the downstream decoder
 when generation changes or sample indices stop being consecutive. A restart is
 a gap; joining samples across it produces a false timeline.
 
-At 125000 IQ16 pairs/s the radio produces 500000 bytes/s. Its 256-byte FIFO fills
+At 125000 IQ16 pairs/s the radio produces 500000 bytes/s. The currently assumed 256-byte FIFO fills
 from empty in 512 us. A host queue decouples decoding, but cannot protect against
 a stalled SPI producer. Measure worst-case BUSY, SPI and scheduling latency,
 including the extra flag checks. Check task watchdog behavior before long runs.
+
+Semtech documents a nominal 1024-byte extended FIFO. It is not yet enabled or
+validated with this raw-I/Q API. See [datasheet research](datasheet-research.md)
+for the relocation, calibration restrictions and required capacity audit.
 
 ## Offline tools
 
