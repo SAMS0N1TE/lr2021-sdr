@@ -1,4 +1,8 @@
-# Continuous capture candidate
+# Checked capture sessions
+
+LakeShark's separate live task integration has run for 391 seconds without
+reported FIFO loss or queue rejection. See [live measurements](live-streaming.md).
+The portable API below retains its 60-second session limit.
 
 `lr2021_iq_stream_checked()` keeps one receive session open for up to 60 seconds.
 It checks FIFO flags before publishing each block, then resets and restores the

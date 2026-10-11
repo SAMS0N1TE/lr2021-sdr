@@ -10,13 +10,14 @@
 </p>
 
 Experimental raw I/Q capture for the Semtech LR2021, written in C11.
-Captures short receiver windows through an undocumented ROM path, with a
+Captures receiver I/Q through an undocumented ROM path, with a
 portable radio interface and native host tools.
 
 > [!IMPORTANT]
 > **Experimental, receive-only.** LR2021 ROM **1.24** is the supported target.
-> Short captures work in the original board integration; this portable library
-> has host tests and needs a board adapter. FIFO continuity remains experimental.
+> LakeShark's live integration has sustained capture without reported FIFO loss.
+> This portable library has host tests and needs a board adapter. Independent
+> RF continuity and raw-I/Q voice quality remain unverified.
 
 ## Start here
 
@@ -33,11 +34,11 @@ portable radio interface and native host tools.
 - Bounded FIFO capture, up to 250 ms at a nominal 125 ksample/s.
 - IQ16 decoding, capture validation, tone measurement and sample-rate estimation.
 - Windows serial burst capture and portable log conversion.
-- Continuous-session API, bounded queue and offline ROM tools.
-  The matching LakeShark driver passed four three-second hardware captures
-  using the extended RX FIFO. See [test results](docs/extended-fifo.md) and
-  [Continuous capture](docs/continuous.md). Continuous live voice remains work
-  in progress.
+- Checked-session API, bounded queue and offline ROM tools.
+- LakeShark live I/Q capture and decoder-input processing ran for 391 seconds
+  without reported FIFO loss or queue rejection. See
+  [live streaming results](docs/live-streaming.md) and
+  [portable capture API](docs/continuous.md).
 
 ```mermaid
 flowchart LR
@@ -48,6 +49,17 @@ flowchart LR
     FIFO --> C
     C --> IQ[IQ16 / host analysis]
 ```
+
+### Sustained live capture
+
+![Measured LR2021 live I/Q session durations and FIFO headroom](docs/images/live-streaming.png)
+
+Three separate live sessions ran for 227, 192 and 391 seconds with no reported
+FIFO loss or queue rejection. LakeShark now captures and processes I/Q in
+parallel, removing the former pauses between 250 ms windows. The graph shows
+driver measurements, not a simulation or an RF waveform. Independent
+sample-continuity and voice-quality tests remain open.
+[Results and reproducible graph](docs/live-streaming.md).
 
 ### Live P25 reception
 
@@ -98,6 +110,10 @@ described in [Porting](docs/porting.md). No board firmware binary is provided.
 | --- | --- | --- |
 | SRAM | 256 complex int16 pairs | Profile dependent |
 | FIFO | 1..250 ms, with gaps between sessions | Nominal 125 ksample/s at BW31.25 kHz |
+| Checked FIFO | 1..60000 ms per portable API session | Nominal 125 ksample/s at BW31.25 kHz |
+
+LakeShark's live task integration runs until stopped; it is separate from the
+portable API's duration limit.
 
 Known-tone tests at 910.525 MHz, SF7 measured rates near 4 times LoRa bandwidth
 for 31.25, 62.5, 125 and 250 kHz bandwidths. I occupies the low signed halfword,

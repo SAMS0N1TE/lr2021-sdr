@@ -1,7 +1,10 @@
 # Extended FIFO hardware results
 
-2026-10-11, LR2021 ROM 1.24, ESP32-P4, 154.785 MHz, external VHF antenna.
+LR2021 ROM 1.24, ESP32-P4, 154.785 MHz, external VHF antenna.
 Receive only. These are real board tests, not a timing simulation.
+
+These bounded diagnostic results precede the
+[live producer/consumer measurements](live-streaming.md).
 
 ## Applied changes
 
@@ -62,24 +65,20 @@ RX, partial configuration failure, overflow, rejected sinks, and restoration.
 The LakeShark firmware builds and the programmed image passed flash verification.
 Existing P25 I/Q conversion, frontend and queue host tests also pass.
 
-The first hardware attempt exposed a console stack overflow; the crash dump
-was preserved and buffer allocation corrected. A subsequent conservative
-readback failure exposed the address-alias behavior above. Failed attempts were
-not counted as successful captures.
-
 This establishes successful three-second capture sessions under the tested
 load and better FIFO tolerance. FIFO flags and byte counts do not independently
 prove sample-perfect RF continuity: a known nonrepeating signal test is still
 needed. A single tone or noise waveform cannot establish that.
 
-The live P25 option still captures and decodes bounded 250 ms windows. Its
-intentional reset/decode gaps remain. A continuously running producer/consumer
-integration, longer watchdog-aware runs, and matched P25 voice comparisons
-remain necessary before claiming continuous or better-quality voice.
+The live P25 option now uses a continuously running producer and consumer,
+removing the former reset/decode gaps between 250 ms windows. Separate live
+sessions reached 391 seconds without reported FIFO loss or queue rejection.
+See [live streaming](live-streaming.md). Matched P25 voice comparisons remain
+necessary before claiming better-quality voice.
 
 The original datasheet investigation is [here](datasheet-research.md).
 
-## Live P25 follow-up
+## Earlier windowed P25 check
 
 After the final diagnostic, the board was left on LR2021 raw I/Q at
 154.785 MHz, external MMCX1 antenna, volume 70, unmuted. The console reported
@@ -87,4 +86,5 @@ After the final diagnostic, the board was left on LR2021 raw I/Q at
 following screen snapshot had advanced to 150 accepted / zero rejected, with
 zero read errors and zero audio-buffer drops. These counters validate the
 capture path during this observation, not subjective voice quality. Decoder
-errors and the intentional gaps between windows remain separate issues.
+errors and the intentional gaps between windows were separate issues in that
+older windowed implementation.

@@ -1,0 +1,12 @@
+{
+  "hardware": "LR2021 ROM 1.24, ESP32-P4, external VHF antenna",
+  "frequency_hz": 154785000,
+  "nominal_sample_rate": 125000,
+  "fifo_bytes": 1024,
+  "measurement": "Driver session summaries; accepted KiB rounded down. Separate sessions. No independent RF sequence reference.",
+  "sessions": [
+    {"name": "Run A", "elapsed_ms": 226956, "accepted_kib": 110816, "max_fifo_bytes": 820, "max_service_gap_us": 1628, "flags_hex": "04", "queue_rejections": 0, "consumer_errors": 0},
+    {"name": "Run B", "elapsed_ms": 192214, "accepted_kib": 93852, "max_fifo_bytes": 792, "max_service_gap_us": 1527, "flags_hex": "04", "queue_rejections": 0, "consumer_errors": 0},
+    {"name": "Run C", "elapsed_ms": 391148, "accepted_kib": 190987, "max_fifo_bytes": 808, "max_service_gap_us": 1537, "flags_hex": "04", "queue_rejections": 0, "consumer_errors": 0}
+  ]
+}
