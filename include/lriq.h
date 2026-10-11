@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 /* Portable C11 capture decoder and tone measurement. No allocation, OS, ESP-IDF
- * or Python dependency. Source 2 is experimental; no assumed sample clock. */
+ * or Python dependency. Sample rate is supplied in capture metadata. */
 #define LRIQ_PAIRS 256
 #define LRIQ_BYTES (LRIQ_PAIRS * 4)
 typedef struct {

@@ -66,7 +66,7 @@ int lr2021_iq_capture(const lr2021_iq_hal *, uint32_t *words, uint32_t *scratch,
 typedef bool (*lr2021_iq_sink)(void *, const uint8_t *, size_t, uint64_t first_pair);
 int lr2021_iq_stream(const lr2021_iq_hal *, unsigned duration_ms,
                     lr2021_iq_sink, void *sink_context, lr2021_iq_result *);
-/* Continuous-session candidate, 1..60000 ms, one setup and one final recovery.
+/* Checked receive session, 1..60000 ms, one setup and one final recovery.
  * No periodic standby/reset. Publishes approximately 1 KiB blocks only after
  * checking sticky FIFO error flags. On loss, aborts and discards the pending
  * tail. Already published blocks keep their continuity qualification even if
@@ -75,9 +75,8 @@ int lr2021_iq_stream(const lr2021_iq_hal *, unsigned duration_ms,
  * copy to a bounded queue and return false if it cannot accept more data.
  * Unlike the legacy sink contract, false rejects this block and stops; only
  * blocks accepted with true contribute to validated_bytes.
- * Synchronous, holds the radio lock throughout. Host-tested, not RF validated.
- * A hardware adapter must meet the FIFO service deadline; this cannot repair
- * scheduling stalls, and does not claim 60 seconds of lossless hardware data. */
+ * Synchronous, holds the radio lock throughout. The adapter must meet the
+ * selected FIFO service deadline. See docs/extended-fifo.md for board results. */
 int lr2021_iq_stream_checked(const lr2021_iq_hal *, unsigned duration_ms,
                             lr2021_iq_sink, void *, lr2021_iq_result *);
 /* Explicit FIFO selection: 256 (legacy) or nominal 1024 bytes. Extended mode

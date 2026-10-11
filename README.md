@@ -58,7 +58,7 @@ flowchart LR
 
 ### Sustained live capture
 
-![Measured LR2021 live I/Q session durations and FIFO headroom](docs/images/live-streaming.png)
+![Measured LR2021 live I/Q session durations and FIFO headroom](docs/images/live-streaming-results.png)
 
 Three separate live sessions ran for 227, 192 and 391 seconds with no reported
 FIFO loss or queue rejection. LakeShark now captures and processes I/Q in

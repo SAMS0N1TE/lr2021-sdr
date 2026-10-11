@@ -6,7 +6,7 @@ capture/reset/decode cycle is removed from this live path. Live P25 Phase 1
 C4FM voice is confirmed at 154.7850 MHz. A recording from the live sample
 stream also replayed to PCM audio: [27 IMBE frames played, none muted](voice-capture.md).
 
-![Measured session duration and FIFO occupancy](images/live-streaming.png)
+![Measured session duration and FIFO occupancy](images/live-streaming-results.png)
 
 LR2021 ROM 1.24, 154.785 MHz, external VHF antenna, nominal 125 ksample/s,
 1024-byte FIFO. UI and wireless services remained enabled. Receive only.

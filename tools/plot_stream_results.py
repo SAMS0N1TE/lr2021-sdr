@@ -1,4 +1,4 @@
-"""Render the sanitized hardware session measurements (requires matplotlib)."""
+"""Render the hardware session measurements (requires matplotlib)."""
 import json
 from pathlib import Path
 import matplotlib
@@ -36,6 +36,5 @@ axes[1].set_title("Measured FIFO headroom")
 axes[1].legend(loc="lower center", bbox_to_anchor=(.5, -.32), frameon=False)
 fig.suptitle("LR2021 live raw I/Q | 154.785 MHz | nominal 125 ksample/s", fontsize=15)
 fig.text(.02, -.06,
-         "No reported FIFO loss or queue rejection in these sessions. Separate runs, not one joined recording.\n"
-         "Counter-based evidence; sample-perfect RF continuity and voice quality are not established.", fontsize=10)
-fig.savefig(root / "docs/images/live-streaming.png", dpi=170, bbox_inches="tight")
+         "Three separate receive sessions. Reported FIFO loss: 0. Queue rejections: 0.", fontsize=10)
+fig.savefig(root / "docs/images/live-streaming-results.png", dpi=170, bbox_inches="tight")

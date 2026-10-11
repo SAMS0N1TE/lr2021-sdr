@@ -35,7 +35,7 @@ static int known_rom(const uint8_t *p,size_t n)
 }
 static int commands(const uint8_t *p,size_t n)
 {
-    if(!known_rom(p,n)){fputs("Unsupported/truncated ROM table layout; refusing to label it ROM 1.24.\n",stderr);return 2;}
+    if(!known_rom(p,n)){fputs("Unsupported or truncated ROM 1.24 table layout.\n",stderr);return 2;}
     puts("opcode,handler,shared_handlers,classification");
     const unsigned bases[]={0x13bec,0x13cd0},counts[]={0x37,0xa8},prefix[]={0x100,0x200};
     for(unsigned bank=0;bank<2;bank++)for(unsigned k=0;k<counts[bank];k++) {
@@ -57,7 +57,7 @@ static int refs(const uint8_t *p,size_t n,uint32_t value)
         if(arc32(p+k)==value && matches++<4096)printf("0x%06zx,ARC-halfword-order,0x%08lx\n",k,(unsigned long)value);
     }
     fprintf(stderr,"Pattern matches: %zu (listing capped at 4096).\n",matches);
-    /* Matches are byte patterns, not proven instruction operands or xrefs. */
+    /* Byte-pattern search; no instruction decoding. */
     return 0;
 }
 static int diff(const char *a,const char *b,uint32_t base)
@@ -73,13 +73,12 @@ static int diff(const char *a,const char *b,uint32_t base)
             (unsigned long)(le32(pa+k)^le32(pb+k)));
         changed++;
     }
-    fprintf(stderr,"Changed words: %zu (listing capped at 256). Changes do not establish register semantics.\n",changed);
+    fprintf(stderr,"Changed words: %zu (listing capped at 256). Register meanings are not decoded.\n",changed);
     free(pa);free(pb);return 0;
 }
 /* Optimistic FIFO model: instantaneous drain every service_us; a single
  * scheduling stall at 5 ms. Omits BUSY, SPI wire time and command overhead.
- * Failure even in this model rules out that schedule; success proves no board
- * performance. Loss invalidates the current 1024-byte validation block. */
+ * Loss invalidates the current 1024-byte validation block. */
 static unsigned simulate(unsigned service_us,unsigned stall_us,unsigned capacity,
                          unsigned *accepted,unsigned *rejected)
 {
@@ -103,7 +102,7 @@ static unsigned simulate(unsigned service_us,unsigned stall_us,unsigned capacity
 }
 static int model(void)
 {
-    puts("Optimistic model: 125000 IQ16 pairs/s, 256-byte FIFO, 10 ms, instantaneous drains.");
+    puts("Model: 125000 IQ16 pairs/s, legacy 256-byte FIFO, 10 ms, instantaneous drains.");
     puts("service_us,stall_us,lost_bytes,qualified_bytes,rejected_bytes");
     const unsigned waits[]={0,200,400,600,1000};
     for(unsigned k=0;k<sizeof(waits)/sizeof(waits[0]);k++) {
@@ -112,7 +111,7 @@ static int model(void)
     }
     puts("occupancy_bytes,remaining_time_us");
     for(unsigned k=0;k<=256;k+=64)printf("%u,%u\n",k,2*(256-k));
-    puts("A host RAM queue cannot extend this chip-FIFO deadline. A 16 MHz SPI data-only ceiling is 2 MB/s;");
+    puts("16 MHz SPI payload ceiling: 2 MB/s. Host queues do not change FIFO capacity;");
     puts("actual service includes BUSY, status commands, validation and host scheduling.");
     return 0;
 }
@@ -161,8 +160,8 @@ static int banks(unsigned payload_rate,unsigned overhead_us,unsigned rearm_us)
                b,base,base+bytes,bank_masks[b],bank_maps[b],bytes,fill/1000,read/1000,
                100*fill/(fill+read+rearm_us),(fill-read-rearm_us)/1000);
     }
-    puts("Positive overlap margin is only a transport budget: simultaneous capture/read and bank switching are unproven.");
-    puts("Stop/read/rearm always leaves a gap. AUX mapping and patch ownership must be resolved before hardware use.");
+    puts("Overlap model excludes hardware bank-switch and simultaneous-access constraints.");
+    puts("Stop/read/rearm includes capture gaps. Check AUX mapping and patch memory ownership before use.");
     return 0;
 }
 static int route(const char *hex)
@@ -173,12 +172,12 @@ static int route(const char *hex)
     puts("Static interpretation of ROM 1.24 handler 0x00f9a0 -> 0x00cf7c. No commands sent.");
     printf("source=%u mode=%u bank=%u delay_field=%u limit_index=%u last_byte=%u\n",
         source,mode,bank,(unsigned)p[6]*256+p[7],count,p[10]);
-    if(mode==1)puts("FIFO branch. Source 2 IQ16 is the measured route; other source meanings are unverified.");
+    if(mode==1)puts("FIFO branch. Source 2: measured IQ16. Other source formats: unknown.");
     else if(mode==2 && bank>=1 && bank<=6) {
         unsigned chosen=selected_limit(bank,count);
         printf("SRAM branch: inferred base=0x%06x maximum_index=%u selected_index=%u\n",
             0x800000+bank_offsets[bank],bank_limits[bank],chosen);
-        puts("This does not prove circular buffering or safe SRAM ownership. Banks may overlap firmware/patch memory.");
+        puts("Finite SRAM configuration. Bank ranges can overlap firmware/patch memory.");
     } else puts("Other/disabled/unsupported branch; interpretation incomplete.");
     return 0;
 }
@@ -214,7 +213,7 @@ static int continuity(const char *path,const char *rate_arg,const char *tone_arg
     double worst;size_t tested;unsigned bad=phase_steps(p,n,rate,tone,30,&worst,&tested);
     printf("pairs=%zu tested_steps=%zu phase_outliers=%u max_error_deg=%.3f threshold_deg=30\n",n/4,tested,bad,worst);
     puts("Known single CW tone only; skips near-zero amplitude after DC removal. Noise, fading, clipping and");
-    puts("wrong rate/frequency can create outliers. Whole-tone-cycle losses are invisible. Not proof of continuity.");
+    puts("wrong rate/frequency can create outliers. Losses spanning whole tone cycles are undetectable.");
     free(p);return tested?0:1;
 }
 static int selftest(void)
@@ -280,6 +279,6 @@ int main(int argc,char **argv)
           "lr2021_lab diff before.bin after.bin 0xBASE\nlr2021_lab route 22_HEX_DIGITS\n"
           "lr2021_lab continuity iq16.bin rate_hz known_tone_hz\nlr2021_lab model|selftest\n"
           "lr2021_lab banks [payload_bytes_per_second overhead_us_per_read rearm_us]\n"
-          "Offline only. Pattern matches are candidates, never permission to execute unknown commands.\n",stderr);
+          "Offline analysis only; pattern matches require disassembly.\n",stderr);
     return 2;
 }
