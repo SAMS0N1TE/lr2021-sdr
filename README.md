@@ -84,7 +84,7 @@ zero FIFO loss and zero audio drops at the observed snapshot.
 
 ### Captured voice
 
-![LR2021 P25 voice-call waterfall at 154.7850 MHz](docs/images/voice-waterfall-purple.png)
+![LR2021 P25 voice capture: I/Q waveform, envelope, spectrum and waterfall](docs/images/voice-four-panel-purple.png)
 
 **These are the samples from a decoded voice call.** The live decoder triggered
 an I/Q recorder at **154.7850 MHz** with a VHF antenna. The one-second recording

@@ -1,6 +1,6 @@
 # Raw I/Q to P25 voice
 
-![Voice-call spectrum and waterfall](images/voice-iq-hero-purple.png)
+![Voice-call I/Q waveform, envelope, spectrum and waterfall](images/voice-four-panel-purple.png)
 
 An LR2021 with ROM 1.24 received a P25 Phase 1 C4FM call at 154.7850 MHz through
 an external VHF antenna. LakeShark decoded audible voice using its continuous
@@ -29,7 +29,10 @@ The figures use this recording.
 ## Reproduce the figures
 
 [voice-spectrum.json](data/voice-spectrum.json) contains the measured FFT bins,
-recording checksum and source SHA-256. Raw radio payloads are not included.
+recording checksum and source SHA-256.
+[voice-waveform.json](data/voice-waveform.json) contains the 700..701 ms I/Q
+excerpt and the full recording's envelope, computed as complex RMS in 1 ms
+bins. The complete I/Q recording is not included.
 
 ```sh
 python -m pip install numpy matplotlib
