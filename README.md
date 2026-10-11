@@ -1,10 +1,33 @@
-# LR2021-SDR
+<h1 align="center">LR2021-SDR</h1>
+
+<p align="center"><code>&gt;&lt;((((' &nbsp; Raw I/Q from the LR2021 &nbsp; '))))&gt;&lt;</code></p>
+
+<p align="center">
+  <a href="#start-here">Start here</a> |
+  <a href="docs/porting.md">Porting</a> |
+  <a href="docs/protocol.md">Protocol</a> |
+  <a href="https://github.com/SAMS0N1TE/LakeShark">LakeShark</a>
+</p>
 
 Experimental raw I/Q capture for the Semtech LR2021, written in C11.
 Captures short receiver windows through an undocumented ROM path, with a
 portable radio interface and native host tools.
 
-## Features
+> [!IMPORTANT]
+> **Experimental, receive-only.** LR2021 ROM **1.24** is the supported target.
+> Short captures work in the original board integration; this portable library
+> has host tests and needs a board adapter. FIFO continuity remains experimental.
+
+## Start here
+
+**[Build the C tools](#build)** | **[Connect your driver](docs/porting.md)** | **[Console format](docs/console.md)**
+
+1. **Check the radio:** LR2021, ROM 1.24, with SPI, BUSY and reset access.
+2. **Build the library and tools:** CMake and a C11 compiler; MinGW-w64 on Windows.
+3. **Capture a window:** supply the board hooks, configure LoRa RX, then use the
+   capture API or a compatible console. See [capture.c](examples/capture.c).
+
+## ><(((> Capture and analysis
 
 - 256-pair SRAM capture with verified memory restoration.
 - Bounded FIFO capture, up to 250 ms at a nominal 125 ksample/s.
@@ -21,7 +44,7 @@ flowchart LR
     C --> IQ[IQ16 / host analysis]
 ```
 
-## Hardware
+## ><(((> Hardware
 
 LR2021 with ROM firmware **1.24**, SPI, BUSY and reset access. Configure LoRa
 RX before capture. The original implementation was tested with an ESP32-P4
@@ -80,9 +103,12 @@ firmware interface and signal-level trigger.
   captures in the original integration. Live P25, audio quality and Phase 2
   are not established. A P25 decoder is not included.
 
-## Credits and license
+## ><(((> Standing on
 
-Developed from the LR2021 capture work in
-[LakeShark](https://github.com/SAMS0N1TE/LakeShark).
-[ESP-SDR](https://github.com/ESPARGOS/esp-sdr) inspired the raw-radio investigation.
-No ESP-SDR code is included. GPL-3.0; see [LICENSE](LICENSE).
+| Project | Credit |
+| --- | --- |
+| [ESP-SDR](https://github.com/ESPARGOS/esp-sdr) | The ESPARGOS team's work exposing undocumented raw I/Q capture on ESP32 radios inspired this LR2021 investigation. Their project was the starting point for exploring a similar path on the LR2021. |
+| [LakeShark](https://github.com/SAMS0N1TE/LakeShark) | Original LR2021 capture implementation and ESP32-P4 hardware integration. |
+
+ESP-SDR is credited for the inspiration and published work; no ESP-SDR code is
+included here. LR2021-SDR is [GPL-3.0](LICENSE).
