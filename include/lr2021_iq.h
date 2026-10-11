@@ -50,6 +50,10 @@ typedef struct {
     uint8_t fifo_flags;
     bool stopped_by_sink;
     int capture_error, restore_error, recovery_error;
+    /* Checked stream only: bytes published after a successful FIFO flag check.
+     * A later failure invalidates the unpublished tail, not these earlier blocks. */
+    size_t validated_bytes;
+    uint64_t max_service_gap_us;
 } lr2021_iq_result;
 
 /* Two separate buffers of >=256 words. Host-order words contain I low/Q high.
@@ -61,6 +65,20 @@ int lr2021_iq_capture(const lr2021_iq_hal *, uint32_t *words, uint32_t *scratch,
 typedef bool (*lr2021_iq_sink)(void *, const uint8_t *, size_t, uint64_t first_pair);
 int lr2021_iq_stream(const lr2021_iq_hal *, unsigned duration_ms,
                     lr2021_iq_sink, void *sink_context, lr2021_iq_result *);
+/* Continuous-session candidate, 1..60000 ms, one setup and one final recovery.
+ * No periodic standby/reset. Publishes approximately 1 KiB blocks only after
+ * checking sticky FIFO error flags. On loss, aborts and discards the pending
+ * tail. Already published blocks keep their continuity qualification even if
+ * a later block or final recovery fails. Never append a restarted session to
+ * them without a downstream gap/reset. No radio calls/DSP/waits in the sink;
+ * copy to a bounded queue and return false if it cannot accept more data.
+ * Unlike the legacy sink contract, false rejects this block and stops; only
+ * blocks accepted with true contribute to validated_bytes.
+ * Synchronous, holds the radio lock throughout. Host-tested, not RF validated.
+ * A hardware adapter must meet the FIFO service deadline; this cannot repair
+ * scheduling stalls, and does not claim 60 seconds of lossless hardware data. */
+int lr2021_iq_stream_checked(const lr2021_iq_hal *, unsigned duration_ms,
+                            lr2021_iq_sink, void *, lr2021_iq_result *);
 #ifdef __cplusplus
 }
 #endif

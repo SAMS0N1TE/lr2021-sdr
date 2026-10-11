@@ -79,13 +79,13 @@ int lr2021_iq_capture(const lr2021_iq_hal *h, uint32_t *words, uint32_t *scratch
     r->elapsed_us=h->now_us(c)-start; r->capture_error=e;
     h->unlock(c); return outcome(r);
 }
-int lr2021_iq_stream(const lr2021_iq_hal *h, unsigned duration,
-                    lr2021_iq_sink sink, void *context, lr2021_iq_result *r)
+static int stream(const lr2021_iq_hal *h, unsigned duration,
+                  lr2021_iq_sink sink, void *context, lr2021_iq_result *r, bool checked)
 {
     if(!r)return LR2021_IQ_ARGUMENT;
     memset(r,0,sizeof(*r)); r->capture_error=LR2021_IQ_ARGUMENT;
     if(!valid_hal(h) || !h->fast || !h->clear_fifo || !h->read_fifo ||
-       !sink || !duration || duration>250)return LR2021_IQ_ARGUMENT;
+       !sink || !duration || duration>(checked?60000u:250u))return LR2021_IQ_ARGUMENT;
     void *c=h->context;
     h->lock(c);
     lr2021_iq_profile p={0}; int e=preflight(h,&p);
@@ -101,7 +101,12 @@ int lr2021_iq_stream(const lr2021_iq_hal *h, unsigned duration,
     if(!e)e=h->clear_fifo(c);
     if(!e)e=h->write(c,0x0114,clear,2);
     uint64_t start=h->now_us(c);
+    uint64_t previous_poll=start;
+    uint8_t pending[1280]; size_t pending_bytes=0;
     while(!e && h->now_us(c)-start<(uint64_t)duration*1000) {
+        uint64_t poll_time=h->now_us(c), gap=poll_time-previous_poll;
+        if(gap>r->max_service_gap_us)r->max_service_gap_us=gap;
+        previous_poll=poll_time;
         uint8_t level_bytes[2]={0};
         e=h->read(c,0x011C,level_bytes,2); r->polls++;
         unsigned level=((unsigned)level_bytes[0]<<8)|level_bytes[1];
@@ -112,14 +117,33 @@ int lr2021_iq_stream(const lr2021_iq_hal *h, unsigned duration,
             uint8_t data[256]; e=h->read_fifo(c,data,n);
             if(!e) {
                 uint64_t first=r->bytes/4; r->bytes+=n;
-                if(!sink(context,data,n,first)){r->stopped_by_sink=true;break;}
+                if(checked) {
+                    memcpy(pending+pending_bytes,data,n); pending_bytes+=n;
+                    if(pending_bytes>=1024) {
+                        uint8_t flags[2]={0}; e=h->read(c,0x011B,flags,2);
+                        r->fifo_flags|=flags[0];
+                        if(!e && (flags[0]&0x30))e=LR2021_IQ_DATA;
+                        if(!e) {
+                            bool more=sink(context,pending,pending_bytes,r->validated_bytes/4);
+                            if(more)r->validated_bytes+=pending_bytes;
+                            pending_bytes=0;
+                            if(!more){r->stopped_by_sink=true;break;}
+                        }
+                    }
+                } else if(!sink(context,data,n,first)){r->stopped_by_sink=true;break;}
             }
         }
     }
     r->elapsed_us=h->now_us(c)-start;
     if(touched) {
         uint8_t flags[2]={0}; int f=h->read(c,0x011B,flags,2);
-        r->fifo_flags=flags[0];
+        r->fifo_flags|=flags[0];
+        /* Validate and publish the final tail before stopping the producer.
+         * Do not clear flags during a session: a failure must stay visible. */
+        if(checked && !e && !f && !(flags[0]&0x30) && pending_bytes) {
+            if(!sink(context,pending,pending_bytes,r->validated_bytes/4))r->stopped_by_sink=true;
+            else r->validated_bytes+=pending_bytes;
+        }
         int stop=h->standby(c);
         if(!e)e=stop?stop:f;
         if(!e && (flags[0]&0x30))e=LR2021_IQ_DATA;
@@ -132,3 +156,11 @@ int lr2021_iq_stream(const lr2021_iq_hal *h, unsigned duration,
     r->capture_error=e; r->nominal_rate_hz=125000;
     h->unlock(c); return outcome(r);
 }
+
+int lr2021_iq_stream(const lr2021_iq_hal *h, unsigned duration,
+                    lr2021_iq_sink sink, void *context, lr2021_iq_result *r)
+{ return stream(h,duration,sink,context,r,false); }
+
+int lr2021_iq_stream_checked(const lr2021_iq_hal *h, unsigned duration,
+                            lr2021_iq_sink sink, void *context, lr2021_iq_result *r)
+{ return stream(h,duration,sink,context,r,true); }

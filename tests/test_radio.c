@@ -11,6 +11,7 @@ typedef struct {
     bool active, fast, timeout, bad_length, corrupt_restore, patched;
     uint8_t flags, stop_flags;
     unsigned level;
+    unsigned flag_reads, fail_flags_at, overflow_at, receives, routes, delivered;
 } fake;
 static void lock(void *c){((fake *)c)->locked++;}
 static void unlock(void *c){((fake *)c)->locked--;}
@@ -36,6 +37,7 @@ static int write_cmd(void *c,uint16_t op,const uint8_t *p,size_t n)
     fake *f=c;
     if(op==0x0290 && n==11) {
         f->mode=p[5];
+        f->routes++;
         if(p[0]!=0xFF || (p[5]!=0x92 && p[5]!=0x0A))return -92;
         if(p[5]==0x92 && (p[9]!=0xFF || p[10]))return -93;
         if(p[5]==0x0A && (p[9] || p[10]!=1))return -94;
@@ -48,13 +50,18 @@ static int read_cmd(void *c,uint16_t op,uint8_t *p,size_t n)
     fake *f=c;if(n!=2)return -96;
     if(op==0x0291){p[0]=f->bad_length?3:4;p[1]=0;return 0;}
     if(op==0x011C){p[0]=(uint8_t)(f->level>>8);p[1]=(uint8_t)f->level;return 0;}
-    if(op==0x011B){p[0]=f->flags;p[1]=0;return 0;}
+    if(op==0x011B){
+        f->flag_reads++;
+        if(f->fail_flags_at && f->flag_reads>=f->fail_flags_at)return -98;
+        if(f->overflow_at && f->flag_reads>=f->overflow_at)f->flags|=0x10;
+        p[0]=f->flags;p[1]=0;return 0;
+    }
     return -97;
 }
 static int standby(void *c){fake *f=c;if(f->active)f->flags|=f->stop_flags;f->active=false;return 0;}
 static int receive(void *c)
 {
-    fake *f=c;f->active=true;
+    fake *f=c;f->active=true;f->receives++;
     if(f->mode==0x92)for(unsigned i=0;i<256;i++)f->ram[i]=0x12340000+i;
     return 0;
 }
@@ -71,6 +78,14 @@ static bool sink(void *c,const uint8_t *p,size_t n,uint64_t first)
 }
 static bool cancel(void *c,const uint8_t *p,size_t n,uint64_t first)
 {(void)c;(void)p;(void)n;(void)first;return false;}
+static bool checked_sink(void *c,const uint8_t *p,size_t n,uint64_t first)
+{
+    fake *f=c;
+    /* Stop/restart inside the session or publication before flags is a failure. */
+    if(!f->active || f->reset_count || f->routes!=1 || f->receives!=1 ||
+       !f->flag_reads || (f->flags&0x30) || first!=f->delivered/4 || p[0]!=0x42)return false;
+    f->delivered+=(unsigned)n;return true;
+}
 static lr2021_iq_hal init(fake *f)
 {
     memset(f,0,sizeof(*f));
@@ -119,6 +134,30 @@ int main(void)
     h=init(&f); f.profile.exclusive_lora=false;
     CHECK(lr2021_iq_stream(&h,10,cancel,NULL,&r)==LR2021_IQ_STATE && !f.reset_count);
     CHECK(lr2021_iq_stream(&h,251,cancel,NULL,&r)==LR2021_IQ_ARGUMENT);
+    h=init(&f);
+    CHECK(!lr2021_iq_stream_checked(&h,1000,checked_sink,&f,&r));
+    CHECK(!r.stopped_by_sink && r.validated_bytes==r.bytes && r.validated_bytes==f.delivered);
+    CHECK(r.validated_bytes>100000 && f.flag_reads>100 && f.reset_count==1 && f.restored==1);
+    CHECK(f.routes==1 && f.receives==1 && !f.fast && !f.locked);
+    h=init(&f);f.overflow_at=3;
+    CHECK(lr2021_iq_stream_checked(&h,1000,checked_sink,&f,&r)==LR2021_IQ_DATA);
+    CHECK(r.validated_bytes==2048 && f.delivered==2048 && r.bytes==3072 && f.reset_count==1);
+    h=init(&f);f.fail_flags_at=2;
+    CHECK(lr2021_iq_stream_checked(&h,1000,checked_sink,&f,&r)==-98);
+    CHECK(r.validated_bytes==1024 && f.delivered==1024 && r.bytes==2048);
+    h=init(&f);
+    CHECK(!lr2021_iq_stream_checked(&h,1000,cancel,NULL,&r));
+    CHECK(r.stopped_by_sink && !r.validated_bytes && r.bytes==1024 && f.reset_count==1);
+    h=init(&f);f.level=256;
+    CHECK(lr2021_iq_stream_checked(&h,1000,checked_sink,&f,&r)==LR2021_IQ_DATA);
+    CHECK(!r.validated_bytes && !f.delivered && !f.blocks);
+    h=init(&f);f.restore_failure=-42;
+    CHECK(lr2021_iq_stream_checked(&h,10,checked_sink,&f,&r)==-42);
+    CHECK(r.validated_bytes==r.bytes && r.validated_bytes>0 && !f.fast && !f.locked);
+    h=init(&f);f.profile.fw_minor=25;
+    CHECK(lr2021_iq_stream_checked(&h,1000,checked_sink,&f,&r)==LR2021_IQ_STATE);
+    CHECK(!f.routes && !f.reset_count && !f.locked);
+    CHECK(lr2021_iq_stream_checked(&h,60001,checked_sink,&f,&r)==LR2021_IQ_ARGUMENT);
     puts("capture rollback, firmware guards, timeout and FIFO failures passed");
     return 0;
 }

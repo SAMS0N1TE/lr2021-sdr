@@ -33,6 +33,9 @@ portable radio interface and native host tools.
 - Bounded FIFO capture, up to 250 ms at a nominal 125 ksample/s.
 - IQ16 decoding, capture validation, tone measurement and sample-rate estimation.
 - Windows serial burst capture and portable log conversion.
+- Host-tested continuous-session API, bounded queue and offline ROM tools.
+  See [Continuous capture](docs/continuous.md). Sustained hardware capture is
+  still unverified.
 
 ```mermaid
 flowchart LR
