@@ -3,7 +3,8 @@
 `lr2021_iq_stream_checked()` keeps one receive session open for up to 60 seconds.
 It checks FIFO flags before publishing each block, then resets and restores the
 radio once at exit. It stops on FIFO loss, an I/O error, or a rejected block.
-This API has host tests only. Sustained operation on hardware is unverified.
+The portable API has host tests; the matching LakeShark adapter has also run
+on ROM 1.24. See [extended FIFO results](extended-fifo.md) for measured limits.
 
 The original `lr2021_iq_stream()` retains its 250 ms limit and provisional-data
 contract. The checked API has a different contract: returning `false` from its
@@ -26,9 +27,11 @@ from empty in 512 us. A host queue decouples decoding, but cannot protect agains
 a stalled SPI producer. Measure worst-case BUSY, SPI and scheduling latency,
 including the extra flag checks. Check task watchdog behavior before long runs.
 
-Semtech documents a nominal 1024-byte extended FIFO. It is not yet enabled or
-validated with this raw-I/Q API. See [datasheet research](datasheet-research.md)
-for the relocation, calibration restrictions and required capacity audit.
+`lr2021_iq_stream_checked_fifo(..., 1024, ...)` selects Semtech's nominal
+1024-byte extended FIFO. Ordinary APIs keep their original 256-byte default.
+Reads remain at most 256 bytes; the observed backlog is drained before another
+level query. See [datasheet research](datasheet-research.md) for calibration
+restrictions and [extended FIFO results](extended-fifo.md) for hardware evidence.
 
 ## Offline tools
 

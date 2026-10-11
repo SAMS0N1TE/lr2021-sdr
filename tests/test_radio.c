@@ -4,7 +4,8 @@
 #define CHECK(x) do {if(!(x)){fprintf(stderr,"line %d: %s\n",__LINE__,#x);return 1;}}while(0)
 typedef struct {
     lr2021_iq_profile profile;
-    uint32_t ram[256];
+    uint32_t ram[256], fifo_base, fifo_size;
+    unsigned max_read; bool bad_mapping, clobber_mapping, fail_fifo_size, offset_mapping;
     uint64_t time;
     unsigned reset_count, restored, locked, blocks, mode;
     int failure, reset_failure, restore_failure;
@@ -21,6 +22,8 @@ static int snapshot(void *c,lr2021_iq_profile *p){*p=((fake *)c)->profile;return
 static int read32(void *c,uint32_t a,uint32_t *v)
 {
     fake *f=c;
+    if(a==0xF30028){*v=f->bad_mapping?0:(f->fifo_base & (f->offset_mapping?0x7FFFFF:0xFFFFFFFF));return 0;}
+    if(a==0xF30030){*v=f->fifo_size;return 0;}
     if(a==0x800FF8){*v=f->patched?0x600DB002:0;return 0;}
     if(a==0xF30054){*v=f->timeout?0:0x03000000;return 0;}
     if(a<0x802000 || a>=0x802400 || a%4)return -90;
@@ -29,6 +32,8 @@ static int read32(void *c,uint32_t a,uint32_t *v)
 static int write32(void *c,uint32_t a,uint32_t v)
 {
     fake *f=c;
+    if(a==0xF30028){f->fifo_base=v;return 0;}
+    if(a==0xF30030){if(f->fail_fifo_size)return -101;f->fifo_size=v;return 0;}
     if(a<0x802000 || a>=0x802400 || a%4)return -91;
     f->ram[(a-0x802000)/4]=v+(f->corrupt_restore?1u:0u);return 0;
 }
@@ -62,14 +67,15 @@ static int standby(void *c){fake *f=c;if(f->active)f->flags|=f->stop_flags;f->ac
 static int receive(void *c)
 {
     fake *f=c;f->active=true;f->receives++;
+    if(f->clobber_mapping)f->fifo_base=0;
     if(f->mode==0x92)for(unsigned i=0;i<256;i++)f->ram[i]=0x12340000+i;
     return 0;
 }
-static int reset(void *c){fake *f=c;f->reset_count++;f->active=false;memset(f->ram,0,sizeof(f->ram));return f->reset_failure;}
+static int reset(void *c){fake *f=c;f->reset_count++;f->active=false;f->fifo_base=f->fifo_size=0;memset(f->ram,0,sizeof(f->ram));return f->reset_failure;}
 static int restore(void *c,const lr2021_iq_profile *p){fake *f=c;f->restored++;f->active=p->receiving;return f->restore_failure;}
 static int fast_mode(void *c,bool on){((fake *)c)->fast=on;return 0;}
 static int clear(void *c){(void)c;return 0;}
-static int fifo(void *c,uint8_t *p,size_t n){fake *f=c;f->blocks++;memset(p,0x42,n);return 0;}
+static int fifo(void *c,uint8_t *p,size_t n){fake *f=c;if(n>256)return -99;if(n>f->max_read)f->max_read=(unsigned)n;f->blocks++;memset(p,0x42,n);return 0;}
 static bool sink(void *c,const uint8_t *p,size_t n,uint64_t first)
 {
     size_t *bytes=c;
@@ -158,6 +164,35 @@ int main(void)
     CHECK(lr2021_iq_stream_checked(&h,1000,checked_sink,&f,&r)==LR2021_IQ_STATE);
     CHECK(!f.routes && !f.reset_count && !f.locked);
     CHECK(lr2021_iq_stream_checked(&h,60001,checked_sink,&f,&r)==LR2021_IQ_ARGUMENT);
+    h=init(&f);f.level=768;
+    CHECK(!lr2021_iq_stream_checked_fifo(&h,10,1024,checked_sink,&f,&r));
+    CHECK(r.fifo_capacity==1024 && r.max_fifo_level==768 && f.max_read==256);
+    CHECK(f.blocks==3*r.polls); /* Drain all observed bytes before querying again. */
+    CHECK(r.validated_bytes==r.bytes && r.bytes>0 && !f.fifo_base && !f.locked);
+    h=init(&f);f.level=768;f.offset_mapping=true;
+    CHECK(!lr2021_iq_stream_checked_fifo(&h,10,1024,checked_sink,&f,&r));
+    CHECK(r.validated_bytes>0 && f.reset_count==1 && f.restored==1);
+    h=init(&f);f.level=768;
+    CHECK(!lr2021_iq_stream_checked_fifo(&h,10,1024,cancel,NULL,&r));
+    CHECK(r.stopped_by_sink && !r.validated_bytes && f.blocks==4 && f.reset_count==1);
+    h=init(&f);f.level=1024;
+    CHECK(lr2021_iq_stream_checked_fifo(&h,10,1024,checked_sink,&f,&r)==LR2021_IQ_DATA);
+    CHECK(!f.blocks && f.reset_count==1);
+    h=init(&f);f.bad_mapping=true;
+    CHECK(lr2021_iq_stream_checked_fifo(&h,10,1024,checked_sink,&f,&r)==LR2021_IQ_DATA);
+    CHECK(!f.receives && f.reset_count==1 && f.restored==1);
+    h=init(&f);f.clobber_mapping=true;
+    CHECK(lr2021_iq_stream_checked_fifo(&h,10,1024,checked_sink,&f,&r)==LR2021_IQ_DATA);
+    CHECK(f.receives==1 && !f.blocks && f.reset_count==1);
+    h=init(&f);f.fail_fifo_size=true;
+    CHECK(lr2021_iq_stream_checked_fifo(&h,10,1024,checked_sink,&f,&r)==-101);
+    CHECK(!f.receives && !f.blocks && f.reset_count==1 && !f.fifo_base && f.restored==1);
+    h=init(&f);f.level=768;f.overflow_at=2;
+    CHECK(lr2021_iq_stream_checked_fifo(&h,10,1024,checked_sink,&f,&r)==LR2021_IQ_DATA);
+    CHECK(r.validated_bytes==1024 && r.bytes==2048 && f.reset_count==1);
+    h=init(&f);
+    CHECK(lr2021_iq_stream_checked_fifo(&h,10,512,checked_sink,&f,&r)==LR2021_IQ_ARGUMENT);
+    CHECK(!f.locked && !f.routes && !f.reset_count);
     puts("capture rollback, firmware guards, timeout and FIFO failures passed");
     return 0;
 }

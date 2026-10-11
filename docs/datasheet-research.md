@@ -1,6 +1,8 @@
 # Datasheet and continuity research
 
-Reviewed 2026-10-11. Offline findings; no new hardware validation.
+Original offline review: 2026-10-11. Subsequent [hardware validation](extended-fifo.md)
+confirms the extended FIFO can serve raw I/Q on the tested ROM. The research
+questions below record what was unknown before those tests.
 
 ## Correct chip reference
 

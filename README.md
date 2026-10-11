@@ -33,9 +33,11 @@ portable radio interface and native host tools.
 - Bounded FIFO capture, up to 250 ms at a nominal 125 ksample/s.
 - IQ16 decoding, capture validation, tone measurement and sample-rate estimation.
 - Windows serial burst capture and portable log conversion.
-- Host-tested continuous-session API, bounded queue and offline ROM tools.
-  See [Continuous capture](docs/continuous.md). Sustained hardware capture is
-  still unverified.
+- Continuous-session API, bounded queue and offline ROM tools.
+  The matching LakeShark driver passed four three-second hardware captures
+  using the extended RX FIFO. See [test results](docs/extended-fifo.md) and
+  [Continuous capture](docs/continuous.md). Continuous live voice remains work
+  in progress.
 
 ```mermaid
 flowchart LR

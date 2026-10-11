@@ -52,6 +52,7 @@ typedef struct {
     int capture_error, restore_error, recovery_error;
     /* Checked stream only: bytes published after a successful FIFO flag check.
      * A later failure invalidates the unpublished tail, not these earlier blocks. */
+    unsigned fifo_capacity;
     size_t validated_bytes;
     uint64_t max_service_gap_us;
 } lr2021_iq_result;
@@ -79,6 +80,15 @@ int lr2021_iq_stream(const lr2021_iq_hal *, unsigned duration_ms,
  * scheduling stalls, and does not claim 60 seconds of lossless hardware data. */
 int lr2021_iq_stream_checked(const lr2021_iq_hal *, unsigned duration_ms,
                             lr2021_iq_sink, void *, lr2021_iq_result *);
+/* Explicit FIFO selection: 256 (legacy) or nominal 1024 bytes. Extended mode
+ * uses 0x804400..0x8047FF exclusively; exclude SRAM capture and CalibFE until
+ * final reset/restore. Read chunks remain <=256 bytes. Mapping is verified
+ * before/after RX. On failure the session aborts and recovers, never silently
+ * falls back. reset must restore default mapping and restore must recalibrate
+ * as required by the saved radio profile. No warm-sleep retention is used. */
+int lr2021_iq_stream_checked_fifo(const lr2021_iq_hal *, unsigned duration_ms,
+                                 unsigned fifo_capacity, lr2021_iq_sink,
+                                 void *, lr2021_iq_result *);
 #ifdef __cplusplus
 }
 #endif

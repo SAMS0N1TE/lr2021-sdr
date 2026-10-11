@@ -25,13 +25,29 @@ Finite capture needs two non-overlapping 256-word buffers. Reset does not
 reliably preserve SRAM, so restoration is verified after reset and before RX
 resumes. Check the function return and all three result errors.
 
-FIFO capture requires LoRa BW31.25 kHz. Its 256-byte FIFO fills in roughly
+FIFO capture requires LoRa BW31.25 kHz. The default 256-byte FIFO fills in roughly
 512 us at the nominal rate. Use internal RAM, adequate task priority and a
 sink that copies immediately. Avoid logging, allocation, scheduler delays and
 other radio calls in the sink. Separate windows have gaps.
 
+`lr2021_iq_stream_checked_fifo(..., 1024, ...)` explicitly selects the extended
+RX FIFO. Reserve 0x804400..0x8047FF for its whole session; exclude CalibFE and
+SRAM capture. The library verifies the mapping before and after RX starts and
+still limits individual reads to 256 bytes. Reset/restore must restore default
+FIFO configuration and radio calibration. The ordinary APIs retain 256 bytes.
+See [datasheet research](datasheet-research.md) for the memory constraints.
+ROM 1.24 reads the relocated base back as 0x4400; verification accepts that
+offset or 0x804400, with the exact 0x3E8 size encoding. The portable stream
+needs roughly 1.5 KiB of local buffer space plus normal call/HAL stack space.
+Provision the caller accordingly. LakeShark uses internal-heap buffers to
+avoid overflowing its smaller console task stack.
+
 The sink receives little-endian I/Q int16 pairs plus the first pair index.
-Returning false ends acquisition normally. Treat all delivered blocks as
+For the legacy stream, returning false ends acquisition normally. Treat its delivered blocks as
 provisional until the function returns 0. Full FIFO, sticky error flags and
 failed recovery reject the complete window. Never clear an error merely to
 make a recording appear continuous.
+
+The checked APIs instead reject a block when the sink returns false and count
+only accepted blocks in `validated_bytes`. Earlier qualified blocks survive a
+later failure; the failed tail does not. See [continuous capture](continuous.md).
