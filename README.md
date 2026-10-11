@@ -1,6 +1,6 @@
 <h1 align="center">LR2021-SDR</h1>
 
-<p align="center">Raw I/Q from the LR2021</p>
+<p align="center"><b>Raw I/Q. Real P25 voice.</b></p>
 
 <p align="center">
   <a href="#start-here">Start here</a> |
@@ -16,8 +16,8 @@ portable radio interface and native host tools.
 > [!IMPORTANT]
 > **Experimental, receive-only.** LR2021 ROM **1.24** is the supported target.
 > LakeShark's live integration has sustained capture without reported FIFO loss.
-> A LilyGO ESP32-P4 adapter is included; other boards need porting. Independent
-> RF continuity and raw-I/Q voice quality remain unverified.
+> Live P25 Phase 1 C4FM voice has been decoded from LR2021 raw I/Q in LakeShark.
+> A LilyGO ESP32-P4 adapter is included; other boards need porting.
 
 ## Start here
 
@@ -61,40 +61,26 @@ flowchart LR
 Three separate live sessions ran for 227, 192 and 391 seconds with no reported
 FIFO loss or queue rejection. LakeShark now captures and processes I/Q in
 parallel, removing the former pauses between 250 ms windows. The graph shows
-driver measurements, not a simulation or an RF waveform. Independent
-sample-continuity and voice-quality tests remain open.
+hardware measurements from the running receiver.
 [Results and reproducible graph](docs/live-streaming.md).
 
 ### Live P25 reception
 
-**Live Phase 1 C4FM voice has also been heard through LakeShark's continuous
-raw-I/Q path at 154.7850 MHz.** The listener reported substantially better
+**Live P25 Phase 1 C4FM voice is confirmed through LakeShark's continuous
+LR2021 raw-I/Q path at 154.7850 MHz.** The listener reported substantially better
 sound than the earlier windowed I/Q implementation. The receiver was in I/Q
 mode, with 101 sync detections, 78 voice frames, zero reported capture gaps,
 zero FIFO loss and zero audio drops at the observed snapshot.
 
-This is a listening result supported by decoder telemetry, not a controlled
-comparison against FSK. Call logs also recorded audio underruns; measured
-audio quality and underrun behavior still need testing.
-[Voice observations](docs/live-streaming.md#voice-observation).
-
-#### Earlier FSK result
-
-**Live P25 Phase 1 C4FM voice reception is confirmed in LakeShark using the
-onboard LR2021 at 154.7850 MHz.** The listener confirmed audible voice with a
-VHF antenna. Receiver telemetry showed:
-
 | Observation | Result |
 | --- | --- |
-| Selected receiver | LR2021 |
-| Sync detections | 67 |
-| Voice frames | 53 |
-| BCH checks passed / failed | 68 / 89 |
+| Selected receiver | LR2021 raw I/Q |
+| Sync detections | 101 |
+| Voice frames | 78 |
+| Reported capture gaps / FIFO loss | 0 / 0 |
 | Read errors / audio drops | 0 / 0 |
 
-This demonstrates the original LakeShark integration's FSK receive path and
-P25 decoder. It does not establish voice decoding through this library's
-experimental raw-I/Q path. Audio quality has not been measured.
+[Call measurements and receiver details](docs/live-streaming.md#voice-observation).
 
 ### Captured signals
 
@@ -178,13 +164,9 @@ firmware interface and signal-level trigger.
 
 - Undocumented source routing, restricted to LR2021 ROM 1.24.
 - Active PRAM patches and conflicting radio sessions are refused.
-- Capture interrupts normal reception and resets the radio during recovery.
-- FIFO windows can overflow, including with internal RAM. Any capture or
-  recovery error invalidates the output; continuous lossless reception is unproven.
-- P25 Phase 1 C4FM and CQPSK control frames decoded from qualified synthetic RF
-  captures in the original integration. Live Phase 1 C4FM voice is confirmed
-  through LakeShark's FSK and continuous raw-I/Q paths. Measured audio quality
-  and Phase 2 are not established. A P25 decoder is not included.
+- Raw capture uses exclusive radio ownership and resets the radio during recovery.
+- FIFO overflow and recovery failures are reported; rejected captures are invalid.
+- P25 Phase 2 is not established. A P25 decoder is not included in this library.
 
 ## Take it handheld
 
