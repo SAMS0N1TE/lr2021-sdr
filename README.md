@@ -44,6 +44,15 @@ flowchart LR
     C --> IQ[IQ16 / host analysis]
 ```
 
+### Captured signals
+
+![LR2021 I/Q samples and spectra of two known RF test tones](docs/images/tone-capture.png)
+
+Real source-2 captures at 910.525 MHz, SF7, BW62.5 kHz. The left panel shows
+80 I/Q pairs from a +25 kHz tone; the right compares separate 256-pair captures
+at +25 and -15 kHz. Spectra use a Hann window, DC removal and separate peak
+normalization. Amplitude is uncalibrated.
+
 ## Hardware
 
 LR2021 with ROM firmware **1.24**, SPI, BUSY and reset access. Configure LoRa
@@ -60,6 +69,12 @@ Known-tone tests at 910.525 MHz, SF7 measured rates near 4 times LoRa bandwidth
 for 31.25, 62.5, 125 and 250 kHz bandwidths. I occupies the low signed halfword,
 Q the high halfword; positive RF offset produces positive frequency for I+jQ.
 Other profiles need measurement. See [Protocol](docs/protocol.md).
+
+![Measured LR2021 complex sample rate versus LoRa bandwidth](docs/images/sample-rates.png)
+
+Known-tone estimates follow 4 times the configured bandwidth within about
+0.5% for the tested profiles. These are short-window rate measurements, not
+a measure of continuous FIFO throughput.
 
 ## Build
 
