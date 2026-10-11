@@ -41,7 +41,8 @@ These measurements establish sustained capture and decoder-input processing
 without reported loss under the tested load. FIFO flags and software counters
 do not independently prove sample-perfect RF continuity. A known nonrepeating
 RF sequence is still needed. No valid voice call arrived during these runs;
-matched P25 recordings and audio-quality comparisons remain unverified.
+a later voice-triggered recording is documented below. Controlled audio-quality
+comparisons remain separate work.
 
 ## Voice observation
 
@@ -58,7 +59,9 @@ reported 63 clean IMBE frames, zero drops and 19 underruns.
 
 These counters and the listening report support raw-I/Q voice reception.
 They do not establish underrun-free playback or better quality than FSK.
-No audio recording or controlled matched comparison was made.
+The later [voice-triggered capture](voice-capture.md) replayed to PCM audio
+with 27 IMBE frames played and none muted. A controlled matched comparison
+against FSK has not been made.
 
 [Measurement data](data/live-streaming.json) contains only the session metrics.
 Recreate the figure with Python and matplotlib:

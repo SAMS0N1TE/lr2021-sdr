@@ -19,6 +19,8 @@ portable radio interface and native host tools.
 > Live P25 Phase 1 C4FM voice has been decoded from LR2021 raw I/Q in LakeShark.
 > A LilyGO ESP32-P4 adapter is included; other boards need porting.
 
+![LR2021 raw I/Q spectrum and waterfall from a decoded P25 voice call](docs/images/voice-iq-hero.png)
+
 ## Start here
 
 **[ESP32-P4 firmware](firmware/esp32p4/README.md)** | **[Build the C tools](#build)** | **[Connect your driver](docs/porting.md)** | **[Console format](docs/console.md)**
@@ -82,16 +84,20 @@ zero FIFO loss and zero audio drops at the observed snapshot.
 
 [Call measurements and receiver details](docs/live-streaming.md#voice-observation).
 
-### Captured signals
+### Captured voice
 
-![LR2021 VHF antenna capture showing I/Q detail, signal envelope, channel spectrum and waterfall](docs/images/vhf-reception.png)
+![LR2021 P25 voice-call waterfall at 154.7850 MHz](docs/images/voice-waterfall.png)
 
-Over-the-air reception at **154.7850 MHz** with a VHF antenna. This 12,490-pair
-window passed export CRC, FIFO continuity and radio recovery checks. Time and
-frequency axes use the nominal 125 ksample/s rate; amplitude is uncalibrated.
-The figure shows the validated RF recording with a closer I/Q view, full-window
-envelope and channel detail. It is a separate capture from the live voice
-confirmation above; no audio was decoded from this plotted window.
+**These are the samples from a decoded voice call.** The live decoder triggered
+an I/Q recorder at **154.7850 MHz** with a VHF antenna. The one-second recording
+contains **125,000 complex samples**, passed export CRC verification, and
+replayed through LakeShark's P25 decoder: **3 voice LDUs, 27 IMBE frames played,
+zero muted frames**. The live receiver reported zero capture gaps and FIFO loss
+at the post-capture snapshot.
+
+The waterfall shows the call arriving halfway through the recording. Time and
+frequency use the nominal 125 ksample/s rate; power is relative.
+[Capture details and plotting data](docs/voice-capture.md).
 
 ### Known-tone checks
 
