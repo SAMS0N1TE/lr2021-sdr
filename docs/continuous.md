@@ -30,6 +30,7 @@ including the extra flag checks. Check task watchdog behavior before long runs.
 
 ```sh
 build/lr2021_lab model
+build/lr2021_lab banks
 build/lr2021_lab commands rom.bin
 build/lr2021_lab refs rom.bin 0xF30044
 build/lr2021_lab diff before.bin after.bin 0x800560
@@ -56,3 +57,8 @@ Failure rules out that schedule; success does not establish hardware throughput.
 [examples](https://github.com/TheClams/lr2021-apps) provide useful FIFO and IRQ
 references. Their packet receiver examples do not establish continuous raw I/Q.
 No code from those projects is included here.
+
+See [Capture engine investigation](capture-engine.md) for the SRAM bank map,
+patch-loader mapping evidence, start/stop lifecycle, and transport budgets.
+`banks` models inferred finite-buffer sizes; it does not establish circular
+capture or safe bank ownership.

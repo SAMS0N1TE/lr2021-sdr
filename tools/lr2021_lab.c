@@ -133,6 +133,38 @@ static int parse_route(const char *hex,uint8_t bytes[11])
     }
     return 1;
 }
+/* ROM 1.24 branches d02e..d0ae. Capacities below assume source 2's
+ * observed four-byte sample stride; they are not hardware-validated maxima. */
+static const unsigned bank_offsets[]={0,0x1000,0x1000,0x1000,0x2000,0x2000,0x4000};
+static const unsigned bank_limits[]={0,1023,3071,5119,2047,4095,2047};
+static const unsigned bank_masks[]={0,0x38,0x1f8,0xff8,0x1c0,0xfc0,0xe00};
+static const unsigned bank_maps[]={0,0x10,0x90,0x490,0x80,0x480,0x400};
+static unsigned selected_limit(unsigned bank,unsigned requested)
+{ return requested && requested<bank_limits[bank]?requested:bank_limits[bank]; }
+static double bank_read_us(unsigned bytes,unsigned payload_rate,unsigned overhead_us)
+{
+    /* 252 payload bytes keeps IQ16 pairs intact within the 8-bit read length.
+     * overhead_us includes command/status wire time, BUSY and host cost per read. */
+    return 1000000.0*bytes/payload_rate + ((bytes+251)/252)*(double)overhead_us;
+}
+static int banks(unsigned payload_rate,unsigned overhead_us,unsigned rearm_us)
+{
+    if(!payload_rate)return 2;
+    puts("ROM-inferred source-2 capacities at 125000 IQ16 pairs/s. No board access.");
+    printf("Model payload_bytes_per_second=%u overhead_us_per_252_byte_read=%u rearm_us=%u\n",
+           payload_rate,overhead_us,rearm_us);
+    puts("bank,base,end_exclusive,aux_mask,aux_map,bytes,fill_ms,read_ms,stop_read_rearm_duty_percent,hypothetical_overlap_margin_ms");
+    for(unsigned b=1;b<=6;b++) {
+        unsigned bytes=4*(bank_limits[b]+1),base=0x800000+bank_offsets[b];
+        double fill=2.0*bytes,read=bank_read_us(bytes,payload_rate,overhead_us);
+        printf("%u,0x%06x,0x%06x,0x%03x,0x%03x,%u,%.3f,%.3f,%.3f,%.3f\n",
+               b,base,base+bytes,bank_masks[b],bank_maps[b],bytes,fill/1000,read/1000,
+               100*fill/(fill+read+rearm_us),(fill-read-rearm_us)/1000);
+    }
+    puts("Positive overlap margin is only a transport budget: simultaneous capture/read and bank switching are unproven.");
+    puts("Stop/read/rearm always leaves a gap. AUX mapping and patch ownership must be resolved before hardware use.");
+    return 0;
+}
 static int route(const char *hex)
 {
     uint8_t p[11];if(!parse_route(hex,p))return 2;
@@ -143,11 +175,9 @@ static int route(const char *hex)
         source,mode,bank,(unsigned)p[6]*256+p[7],count,p[10]);
     if(mode==1)puts("FIFO branch. Source 2 IQ16 is the measured route; other source meanings are unverified.");
     else if(mode==2 && bank>=1 && bank<=6) {
-        const unsigned offsets[]={0,0x1000,0x1000,0x1000,0x2000,0x2000,0x4000};
-        const unsigned limits[]={0,1023,3071,5119,2047,4095,2047};
-        unsigned chosen=count && count<limits[bank]?count:limits[bank];
+        unsigned chosen=selected_limit(bank,count);
         printf("SRAM branch: inferred base=0x%06x maximum_index=%u selected_index=%u\n",
-            0x800000+offsets[bank],limits[bank],chosen);
+            0x800000+bank_offsets[bank],bank_limits[bank],chosen);
         puts("This does not prove circular buffering or safe SRAM ownership. Banks may overlap firmware/patch memory.");
     } else puts("Other/disabled/unsupported branch; interpretation incomplete.");
     return 0;
@@ -189,6 +219,18 @@ static int continuity(const char *path,const char *rate_arg,const char *tone_arg
 }
 static int selftest(void)
 {
+    /* Zero selects maximum, not a zero-length capture. At the largest inferred
+     * size the exclusive end matches the ROM read helper's 0x806000 ceiling. */
+    if(selected_limit(4,0)!=2047 || selected_limit(4,255)!=255 ||
+       selected_limit(4,65535)!=2047 || selected_limit(4,2047)!=2047)return 1;
+    for(unsigned b=1;b<=6;b++)
+        if(bank_offsets[b]+4*(bank_limits[b]+1)>0x6000)return 1;
+    if(bank_offsets[3]+4*(bank_limits[3]+1)!=0x6000)return 1;
+    /* Independent transfer-budget boundaries: at ingress rate there is no
+     * overlapping margin; a 253-byte read requires two overhead intervals. */
+    if(fabs(bank_read_us(8192,500000,0)-16384)>1e-6 ||
+       fabs(bank_read_us(253,1000000,10)-273)>1e-6 ||
+       fabs(bank_read_us(252,1000000,10)-262)>1e-6)return 1;
     const uint8_t p[]={0xf3,0,0x44,0};
     if(arc32(p)!=0xf30044 || le32(p)!=0x004400f3)return 1;
     uint8_t *rom=calloc(0x14000,1);if(!rom)return 2;
@@ -219,6 +261,12 @@ int main(int argc,char **argv)
 {
     if(argc==2 && !strcmp(argv[1],"selftest"))return selftest();
     if(argc==2 && !strcmp(argv[1],"model"))return model();
+    if(argc==2 && !strcmp(argv[1],"banks"))return banks(2000000,0,0);
+    if(argc==5 && !strcmp(argv[1],"banks")) {
+        uint32_t rate,overhead,rearm;
+        if(!number(argv[2],&rate) || !number(argv[3],&overhead) || !number(argv[4],&rearm))return 2;
+        return banks(rate,overhead,rearm);
+    }
     if(argc==3 && !strcmp(argv[1],"route"))return route(argv[2]);
     if(argc==5 && !strcmp(argv[1],"continuity"))return continuity(argv[2],argv[3],argv[4]);
     uint32_t value;
@@ -231,6 +279,7 @@ int main(int argc,char **argv)
     fputs("lr2021_lab commands rom.bin\nlr2021_lab refs image.bin 0xADDRESS\n"
           "lr2021_lab diff before.bin after.bin 0xBASE\nlr2021_lab route 22_HEX_DIGITS\n"
           "lr2021_lab continuity iq16.bin rate_hz known_tone_hz\nlr2021_lab model|selftest\n"
+          "lr2021_lab banks [payload_bytes_per_second overhead_us_per_read rearm_us]\n"
           "Offline only. Pattern matches are candidates, never permission to execute unknown commands.\n",stderr);
     return 2;
 }
