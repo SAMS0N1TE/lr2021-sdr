@@ -62,3 +62,6 @@ See [Capture engine investigation](capture-engine.md) for the SRAM bank map,
 patch-loader mapping evidence, start/stop lifecycle, and transport budgets.
 `banks` models inferred finite-buffer sizes; it does not establish circular
 capture or safe bank ownership.
+
+[Custom firmware research](custom-firmware.md) covers the proven RAM execution
+entry point, vendor JLI hooks, patch memory budget and a C development path.
