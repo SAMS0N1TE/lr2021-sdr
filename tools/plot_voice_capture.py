@@ -13,11 +13,11 @@ f = np.asarray(d["frequency_offset_khz"])
 t = np.asarray(d["time_ms"])
 p = np.asarray(d["waterfall_db"])
 s = np.asarray(d["mean_spectrum_db"])
-bg, panel, ink, muted, accent = "#070d19", "#0c1729", "#f0f5fb", "#a2b5cf", "#63f5c2"
-cmap = LinearSegmentedColormap.from_list("radio", [bg, "#221842", "#69388f", "#dc507b", "#ffaf66", "#fff5c3"])
+bg, panel, ink, muted, accent = "#ffffff", "#ffffff", "#152238", "#52647a", "#087f8c"
+cmap = LinearSegmentedColormap.from_list("radio", [bg, "#e4f1f7", "#9fcde0", "#3b9eb6", "#27638f", "#172b55"])
 plt.rcParams.update({"font.family": "DejaVu Sans", "font.size": 11,
     "text.color": ink, "axes.labelcolor": muted, "xtick.color": muted,
-    "ytick.color": muted, "axes.edgecolor": "#30425b", "savefig.facecolor": bg})
+    "ytick.color": muted, "axes.edgecolor": "#cbd5e1", "savefig.facecolor": bg})
 
 def axes_style(ax):
     ax.set_facecolor(panel)
@@ -27,7 +27,7 @@ def axes_style(ax):
 
 fig = plt.figure(figsize=(15, 10), facecolor=bg)
 fig.text(.075, .95, "LR2021-SDR  /  LIVE RECEPTION", color=accent, fontsize=12, weight="bold")
-fig.text(.075, .875, "Raw I/Q. Real P25 voice.", fontsize=34, weight="bold")
+fig.text(.075, .875, "Raw I/Q.", fontsize=34, weight="bold")
 fig.text(.075, .832, "Measured samples from a voice-triggered LR2021 capture", color=muted, fontsize=13)
 fig.text(.9, .953, "154.7850 MHz", ha="right", fontsize=16, weight="bold")
 fig.text(.9, .917, "125 ksample/s  |  C4FM", ha="right", color=muted, fontsize=11)
@@ -36,7 +36,7 @@ a = fig.add_axes([.075, .59, .825, .175]); axes_style(a)
 a.fill_between(f, -55, s, color=accent, alpha=.11)
 a.plot(f, s, color=accent, lw=1.35)
 a.set_ylim(-55, 3); a.set_yticks([-50,-25,0])
-a.grid(axis="y", color="#30425b", alpha=.45, lw=.6)
+a.grid(axis="y", color="#cbd5e1", alpha=.45, lw=.6)
 a.set_ylabel("Relative power (dB)")
 a.set_title("01  CHANNEL SPECTRUM", loc="left", color=ink, fontsize=12, pad=14, weight="bold")
 a.tick_params(labelbottom=False)

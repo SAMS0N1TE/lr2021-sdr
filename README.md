@@ -1,6 +1,6 @@
 <h1 align="center">LR2021-SDR</h1>
 
-<p align="center"><b>Raw I/Q. Real P25 voice.</b></p>
+<p align="center"><b>Raw I/Q.</b></p>
 
 <p align="center">
   <a href="#start-here">Start here</a> |
