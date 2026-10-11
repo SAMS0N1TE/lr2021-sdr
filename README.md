@@ -69,9 +69,7 @@ hardware measurements from the running receiver.
 ### Live P25 reception
 
 **Live P25 Phase 1 C4FM voice is confirmed through LakeShark's continuous
-LR2021 raw-I/Q path at 154.7850 MHz.** The listener reported substantially better
-sound than the earlier windowed I/Q implementation. The receiver was in I/Q
-mode, with 101 sync detections, 78 voice frames, zero reported capture gaps,
+LR2021 raw-I/Q path at 154.7850 MHz.** The receiver was in I/Q mode, with 101 sync detections, 78 voice frames, zero reported capture gaps,
 zero FIFO loss and zero audio drops at the observed snapshot.
 
 | Observation | Result |

@@ -68,7 +68,7 @@ The timing model assumes instantaneous FIFO drains and omits SPI/BUSY overhead.
 Failure rules out that schedule; success does not establish hardware throughput.
 
 [TheClams' driver](https://github.com/TheClams/lr2021) and
-[examples](https://github.com/TheClams/lr2021-apps) provide useful FIFO and IRQ
+[examples](https://github.com/TheClams/lr2021-apps) provide FIFO and IRQ
 references. Their packet receiver examples do not establish continuous raw I/Q.
 No code from those projects is included here.
 

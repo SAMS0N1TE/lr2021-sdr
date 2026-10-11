@@ -4,7 +4,7 @@
 
 An LR2021 with ROM 1.24 received a P25 Phase 1 C4FM call at 154.7850 MHz through
 an external VHF antenna. LakeShark decoded audible voice using its continuous
-raw-I/Q path on ESP32-P4. The listener confirmed clear reception.
+raw-I/Q path on ESP32-P4.
 
 The recorder taps the same checked IQ16 blocks that feed the live decoder.
 A decoded voice event freezes a one-second ring buffer after 200 ms of
@@ -24,7 +24,7 @@ The receiver continued running during capture.
 The saved samples were replayed through LakeShark's LR2021 frontend, C4FM
 DSP, P25 decoder and IMBE vocoder. The replay produced PCM audio. Its decoder
 reported 56 IMBE bit corrections, no repeated frames and no muted frames.
-This is a decode result from the plotted recording, not a signal-only check.
+The figures use this recording.
 
 ## Reproduce the figures
 

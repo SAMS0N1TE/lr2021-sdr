@@ -1,15 +1,14 @@
 # Capture engine investigation
 
 The saved ROM contains a larger SRAM capture path, but no automatic ping-pong
-buffer switch was found in the routines examined. SRAM is a useful investigation
-target for future on-radio buffering. The implemented streaming path uses the
+buffer switch was found in the routines examined. SRAM bank switching is not implemented. The implemented streaming path uses the
 1024-byte FIFO and P4 producer/consumer tasks; it has decoded
 [live P25 voice](voice-capture.md). The SRAM findings below are static ROM
 analysis, separate from that tested FIFO implementation.
 
 Evidence is from ROM SHA256
 `2bf5736c9b15719598096d077c090d2c39a53e2b27800cb2caab0c48d405d3dc`,
-identified in the earlier hardware work as LR2021 ROM 1.24. Addresses below are
+identified as LR2021 ROM 1.24. Addresses below are
 ROM instruction addresses unless marked as registers. This is static analysis
 of the saved image, not a specification of the silicon or the patched runtime.
 ROM binaries are not distributed.
@@ -107,7 +106,7 @@ they should not be advertised as alternate low-bandwidth I/Q streams.
 
 TheClams' [applications](https://github.com/TheClams/lr2021-apps/tree/cf3b05c7cbd74dc7b97595284f4131ceb96a2517)
 and [driver](https://github.com/TheClams/lr2021/tree/402a12ba350c7a5419acf595ca6ea529403d2dbc)
-provide useful packet FIFO and IRQ examples. The examined ADS-B application
+provide packet FIFO and IRQ examples. The examined ADS-B application
 drains decoded packets on RX_DONE. It does not implement these hidden SRAM
 routes or establish continuous raw I/Q. No code was copied.
 

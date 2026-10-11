@@ -92,7 +92,7 @@ an additional diagnostic in this checklist.
 The resulting implementation uses the documented relocation and P4 scheduling
 without a custom ARC capture scheduler.
 
-## Useful findings outside the LR2021 documentation
+## Related implementations
 
 ### SRAM ownership: lessons from ESP-SDR
 
@@ -108,8 +108,7 @@ Its hardware-specific ownership registers cannot be transplanted to LR2021.
 
 [ESP-SDR's continuous stream](https://github.com/ESPARGOS/esp-sdr/blob/main/docs/iq-stream.md)
 filters and decimates on a separate core, with sample indices and explicit
-loss metadata. Its offset-tuning and complex rotation also offer a useful
-experiment for moving a channel away from DC leakage.
+loss metadata. Offset tuning and complex rotation move a channel away from DC leakage.
 
 For LR2021, filtering on the P4 helps downstream CPU/storage bandwidth only:
 the original samples have already crossed the radio FIFO and SPI. To reduce
@@ -119,11 +118,11 @@ cycle budget and an anti-alias filter. Dropping every Nth sample is not a
 quality-preserving substitute. Offset tuning also needs verified capture
 bandwidth, spectral orientation and filter response on this radio.
 
-### Honest stream timing
+### Stream metadata
 
 [UHD receive metadata](https://files.ettus.com/manual/structuhd_1_1rx__metadata__t.html)
 distinguishes overflow, sequence errors and timestamps. Apply that separation
-to our stream: generation, first-sample index, count, and discontinuity reason.
+to the LR2021 stream: generation, first-sample index, count, and discontinuity reason.
 A host receipt timestamp is not a hardware sample timestamp. If the exact
 number of lost samples is unknown, report unknown loss and reset affected
 decoder state instead of inventing consecutive indices. This also makes
@@ -133,9 +132,8 @@ FSK-versus-I/Q quality comparisons meaningful.
 
 [TI's CC1200 documentation](https://www.ti.com/product/CC1200) distinguishes
 synchronous and transparent serial modes. Their existence on another radio
-does not establish such a port on LR2021. The useful research question is
-whether an LR2021 internal source exposes soft discriminator values, timing
-information, or complex samples. Classify each route before calling it I/Q.
+does not establish such a port on LR2021. LR2021 source testing must distinguish soft discriminator values, timing
+information and complex samples. Classify each route before calling it I/Q.
 A scalar discriminator path may reduce C4FM export traffic, but it does not
 preserve all the information needed for a general complex-signal receiver.
 

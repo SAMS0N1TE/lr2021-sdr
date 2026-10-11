@@ -39,9 +39,8 @@ not a drop-in board adapter included in this repository.
 
 ## Voice observation
 
-A subsequent listening session confirmed audible Phase 1 C4FM voice with the
-continuous raw-I/Q path selected at 154.785 MHz. The listener reported much
-better sound than the earlier windowed I/Q implementation.
+LakeShark decoded Phase 1 C4FM voice from continuous LR2021 raw I/Q at
+154.785 MHz.
 
 The observed snapshot showed 101 sync detections, 78 voice frames, 105 passing
 BCH checks, 515 failed BCH checks, zero reported capture gaps, zero FIFO loss,

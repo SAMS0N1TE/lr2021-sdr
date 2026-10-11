@@ -1,6 +1,6 @@
 # Custom LR2021 firmware research
 
-Custom RAM code execution is established on our tested LR2021 ROM 1.24.
+Custom RAM code executed on the tested LR2021 ROM 1.24.
 LakeShark already runs continuous raw-I/Q reception and decodes
 [P25 voice](voice-capture.md) using the existing ROM route and P4 scheduling.
 A custom on-radio capture extension is a separate research path for buffering
@@ -20,14 +20,12 @@ Independent [research by radioegor146](https://b.re146.dev/lora-under-attack/)
 explicitly reports LR2021 ROM dumping and custom code execution over SPI, and
 states that the chip has no flash. Most of that article concerns LR11xx;
 its flash-update procedures, addresses and security findings must not be
-transferred to LR2021. We do not need those procedures for the tested PRAM path.
+transferred to LR2021. The tested PRAM path does not use those procedures.
 
-Our earlier hardware proof supplies stronger device-specific evidence: a
-100-byte uploaded image computed 0x13579BDF XOR 0x2468ACE0 = 0x373F373F inside
-the radio, wrote the result through its mapped alias, and returned. The final
-saved run reports successful execution, exact restoration of the 25 touched
-words, successful recovery and zero radio errors. Earlier attempts did not
-all pass restoration; the final harness explicitly restores again after reset.
+A 100-byte uploaded image computed 0x13579BDF XOR 0x2468ACE0 = 0x373F373F inside
+the radio, wrote the result through its mapped alias, and returned. The hardware test verified execution, exact restoration of the 25 touched
+words, radio recovery and zero radio errors. The harness restores memory
+again after reset.
 This proves a bounded entry point, not sustained processing, arbitrary memory
 ownership, or compatibility with an active Semtech patch.
 
@@ -55,8 +53,7 @@ The little-endian serialization of that vendor word array has SHA256
   signature verification; successful custom execution is the relevant proof
   for this silicon/version, not a claim about every future revision.
 - The test image is written at data/SPI address 0x801000 but executes through
-  alias 0x101000. Once mapped, its result is read at 0x101060. Treating those
-  addresses as interchangeable throughout the lifecycle caused earlier trouble.
+  alias 0x101000. Once mapped, its result is read at 0x101060. The loader and readback paths use different aliases.
 - The vendor image has primary entry 0x10104C and another pointer at header
   offset 12 to 0x101018. The minimal proof does not need the second callback;
   its broader lifecycle is not fully characterized.
@@ -78,7 +75,7 @@ address is not evidence of an automatically available second patch slot.
 
 ## What a capture extension could do
 
-The first useful target is a bounded capture service that keeps SPI commands
+A capture extension would need a bounded service that keeps SPI commands
 responsive and reports sequence numbers, producer position and overruns.
 
 | Candidate | Potential benefit | Missing evidence |
