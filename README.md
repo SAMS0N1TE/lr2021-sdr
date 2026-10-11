@@ -44,14 +44,34 @@ flowchart LR
     C --> IQ[IQ16 / host analysis]
 ```
 
+### Live P25 reception
+
+**Live P25 Phase 1 C4FM voice reception is confirmed in LakeShark using the
+onboard LR2021 at 154.7850 MHz.** The listener confirmed audible voice with a
+VHF antenna. Receiver telemetry showed:
+
+| Observation | Result |
+| --- | --- |
+| Selected receiver | LR2021 |
+| Sync detections | 67 |
+| Voice frames | 53 |
+| BCH checks passed / failed | 68 / 89 |
+| Read errors / audio drops | 0 / 0 |
+
+This demonstrates the original LakeShark integration's FSK receive path and
+P25 decoder. It does not establish voice decoding through this library's
+experimental raw-I/Q path. Audio quality has not been measured.
+
 ### Captured signals
 
-![Fresh LR2021 VHF antenna capture showing I/Q samples, mean spectrum and waterfall](docs/images/vhf-reception.png)
+![LR2021 VHF antenna capture showing I/Q detail, signal envelope, channel spectrum and waterfall](docs/images/vhf-reception.png)
 
 Over-the-air reception at **154.7850 MHz** with a VHF antenna. This 12,490-pair
 window passed export CRC, FIFO continuity and radio recovery checks. Time and
 frequency axes use the nominal 125 ksample/s rate; amplitude is uncalibrated.
-The plot shows received RF activity, not verified P25 voice decoding.
+The figure shows the validated RF recording with a closer I/Q view, full-window
+envelope and channel detail. It is a separate capture from the live voice
+confirmation above; no audio was decoded from this plotted window.
 
 ### Known-tone checks
 
@@ -124,8 +144,9 @@ firmware interface and signal-level trigger.
 - FIFO windows can overflow, including with internal RAM. Any capture or
   recovery error invalidates the output; continuous lossless reception is unproven.
 - P25 Phase 1 C4FM and CQPSK control frames decoded from qualified synthetic RF
-  captures in the original integration. Live P25, audio quality and Phase 2
-  are not established. A P25 decoder is not included.
+  captures in the original integration. Live Phase 1 C4FM voice is confirmed
+  through LakeShark's FSK path. Raw-I/Q voice decoding, measured audio quality
+  and Phase 2 are not established. A P25 decoder is not included.
 
 ## Take it handheld
 
