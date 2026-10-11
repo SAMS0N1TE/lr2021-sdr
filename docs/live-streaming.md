@@ -43,6 +43,23 @@ do not independently prove sample-perfect RF continuity. A known nonrepeating
 RF sequence is still needed. No valid voice call arrived during these runs;
 matched P25 recordings and audio-quality comparisons remain unverified.
 
+## Voice observation
+
+A subsequent listening session confirmed audible Phase 1 C4FM voice with the
+continuous raw-I/Q path selected at 154.785 MHz. The listener reported much
+better sound than the earlier windowed I/Q implementation.
+
+The observed snapshot showed 101 sync detections, 78 voice frames, 105 passing
+BCH checks, 515 failed BCH checks, zero reported capture gaps, zero FIFO loss,
+zero read errors and zero audio drops. The totals include idle-channel activity.
+One 11-second call reported 60 passing and 2 failed BCH checks, 450 clean IMBE
+frames, zero audio drops and 38 audio underruns. A separate 1.5-second call
+reported 63 clean IMBE frames, zero drops and 19 underruns.
+
+These counters and the listening report support raw-I/Q voice reception.
+They do not establish underrun-free playback or better quality than FSK.
+No audio recording or controlled matched comparison was made.
+
 [Measurement data](data/live-streaming.json) contains only the session metrics.
 Recreate the figure with Python and matplotlib:
 

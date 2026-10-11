@@ -16,12 +16,16 @@ portable radio interface and native host tools.
 > [!IMPORTANT]
 > **Experimental, receive-only.** LR2021 ROM **1.24** is the supported target.
 > LakeShark's live integration has sustained capture without reported FIFO loss.
-> This portable library has host tests and needs a board adapter. Independent
+> A LilyGO ESP32-P4 adapter is included; other boards need porting. Independent
 > RF continuity and raw-I/Q voice quality remain unverified.
 
 ## Start here
 
-**[Build the C tools](#build)** | **[Connect your driver](docs/porting.md)** | **[Console format](docs/console.md)**
+**[ESP32-P4 firmware](firmware/esp32p4/README.md)** | **[Build the C tools](#build)** | **[Connect your driver](docs/porting.md)** | **[Console format](docs/console.md)**
+
+For a quick board test, use the [ESP32-P4 USB console firmware](firmware/esp32p4/README.md).
+It includes a LilyGO T-Display-P4 adapter, checked FIFO tests and IQ16 capture
+export. The screen and audio are unused. Other integrations can use the C API:
 
 1. **Check the radio:** LR2021, ROM 1.24, with SPI, BUSY and reset access.
 2. **Build the library and tools:** CMake and a C11 compiler; MinGW-w64 on Windows.
@@ -63,6 +67,19 @@ sample-continuity and voice-quality tests remain open.
 
 ### Live P25 reception
 
+**Live Phase 1 C4FM voice has also been heard through LakeShark's continuous
+raw-I/Q path at 154.7850 MHz.** The listener reported substantially better
+sound than the earlier windowed I/Q implementation. The receiver was in I/Q
+mode, with 101 sync detections, 78 voice frames, zero reported capture gaps,
+zero FIFO loss and zero audio drops at the observed snapshot.
+
+This is a listening result supported by decoder telemetry, not a controlled
+comparison against FSK. Call logs also recorded audio underruns; measured
+audio quality and underrun behavior still need testing.
+[Voice observations](docs/live-streaming.md#voice-observation).
+
+#### Earlier FSK result
+
 **Live P25 Phase 1 C4FM voice reception is confirmed in LakeShark using the
 onboard LR2021 at 154.7850 MHz.** The listener confirmed audible voice with a
 VHF antenna. Receiver telemetry showed:
@@ -102,9 +119,9 @@ normalization. Amplitude is uncalibrated.
 ## Hardware
 
 LR2021 with ROM firmware **1.24**, SPI, BUSY and reset access. Configure LoRa
-RX before capture. The original implementation was tested with an ESP32-P4
-host; this standalone extraction has host tests only. Supply the board hooks
-described in [Porting](docs/porting.md). No board firmware binary is provided.
+RX before capture. An ESP32-P4 console target and LilyGO board adapter are
+included under [firmware/esp32p4](firmware/esp32p4/README.md). For other hosts,
+supply the board hooks described in [Porting](docs/porting.md).
 
 | Capture | Output | Rate |
 | --- | --- | --- |
@@ -166,7 +183,7 @@ firmware interface and signal-level trigger.
   recovery error invalidates the output; continuous lossless reception is unproven.
 - P25 Phase 1 C4FM and CQPSK control frames decoded from qualified synthetic RF
   captures in the original integration. Live Phase 1 C4FM voice is confirmed
-  through LakeShark's FSK path. Raw-I/Q voice decoding, measured audio quality
+  through LakeShark's FSK and continuous raw-I/Q paths. Measured audio quality
   and Phase 2 are not established. A P25 decoder is not included.
 
 ## Take it handheld

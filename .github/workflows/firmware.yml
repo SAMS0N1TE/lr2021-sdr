@@ -1,0 +1,20 @@
+name: ESP32-P4 firmware
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  firmware:
+    runs-on: ubuntu-latest
+    container: espressif/idf:v5.5.4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        shell: bash
+        run: |
+          . "$IDF_PATH/export.sh"
+          idf.py -C firmware/esp32p4 set-target esp32p4 build
+          python tools/package_firmware.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lr2021-sdr-esp32p4
+          path: firmware/esp32p4/build/lr2021-sdr-esp32p4.zip

@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.18)
+set(PROJECT_VER "0.2.0")
+set(COMPONENTS main)
+include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+project(lr2021_capture)

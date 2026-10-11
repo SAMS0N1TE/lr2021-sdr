@@ -1,4 +1,7 @@
 /build*/
+**/build/
+**/sdkconfig
+**/sdkconfig.old
 /install/
 *.bin
 *.iq8

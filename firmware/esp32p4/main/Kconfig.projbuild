@@ -1,0 +1,38 @@
+menu "LR2021 capture board"
+config LRIQ_LILYGO
+    bool "LilyGO T-Display-P4 XL9535 reset and antenna control"
+    default y
+config LRIQ_SCLK
+    int "SPI SCLK GPIO"
+    default 2
+config LRIQ_MOSI
+    int "SPI MOSI GPIO"
+    default 3
+config LRIQ_MISO
+    int "SPI MISO GPIO"
+    default 4
+config LRIQ_CS
+    int "Radio CS GPIO"
+    default 24
+config LRIQ_BUSY
+    int "Radio BUSY GPIO"
+    default 6
+config LRIQ_RESET
+    int "Direct radio RESET GPIO (non-LilyGO boards)"
+    depends on !LRIQ_LILYGO
+    default 5
+config LRIQ_SDA
+    int "XL9535 I2C SDA GPIO"
+    depends on LRIQ_LILYGO
+    default 7
+config LRIQ_SCL
+    int "XL9535 I2C SCL GPIO"
+    depends on LRIQ_LILYGO
+    default 8
+config LRIQ_TCXO
+    bool "Configure 3.3 V TCXO"
+    default y
+config LRIQ_RFSW
+    bool "Use LilyGO LR2021 DIO6/7/8/10 RF switch table"
+    default y
+endmenu
