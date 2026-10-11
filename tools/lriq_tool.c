@@ -66,6 +66,7 @@ static int analyze(const char *name)
            tone.cycles_per_pair, tone.peak_to_mean_db, tone.rms_a, tone.rms_b);
     return 0;
 }
+#ifdef _WIN32
 static int save(const char *prefix, unsigned index, const lriq_capture *c)
 {
     char name[1024];
@@ -85,7 +86,6 @@ static int save(const char *prefix, unsigned index, const lriq_capture *c)
     bad = ferror(f); if (fclose(f)) bad = 1;
     return bad ? -1 : 0;
 }
-#ifdef _WIN32
 static int capture(const char *port, const char *prefix, unsigned count)
 {
     char device[64], path[1024];
