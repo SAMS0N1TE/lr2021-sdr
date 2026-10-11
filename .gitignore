@@ -1,0 +1,13 @@
+/build*/
+/install/
+*.bin
+*.iq8
+*.iq16
+*.csv
+*.jsonl
+*.log
+*.exe
+*.dll
+*.a
+*.o
+*.obj
