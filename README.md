@@ -49,7 +49,9 @@ three modulation modes. Tests used 915 MHz and independent HackRF reception.
 
 The quadrant test reproduced 45-degree phase steps. Follow-up tests at up to
 19,200 samples/s isolated substantial errors at near-180-degree reversals;
-smaller transitions tracked closely. The ordinary FSK control
+smaller transitions tracked closely. A paired follow-up reduced those errors
+to at most 3.3 degrees using four-step phase ramps at the tested rates.
+[Phase-ramp measurements and replayable captures](research/tx-phase-ramp/). The ordinary FSK control
 recovered all 512 payload bits without errors. **This does not establish
 amplitude-preserving SDR IQ playback or continuous TX streaming.**
 

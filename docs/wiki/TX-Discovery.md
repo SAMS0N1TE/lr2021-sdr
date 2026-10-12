@@ -166,3 +166,24 @@ volume 50 and IQ selection were checked/restored after restoring the original
 application. Future hardware work must match the settings schema and back up
 NVS as well as the application before flashing. Local NVS backups are private
 and are not included in this repository.
+
+## Phase-ramp workaround verified
+
+A paired follow-up compared abrupt near-180-degree reversals with four smaller
+phase steps reaching the same endpoints, at constant nominal I/Q magnitude.
+
+| Samples/s | Largest abrupt endpoint-change error | Largest ramped error |
+| ---: | ---: | ---: |
+| 4,800 | 88.21 degrees | 1.59 degrees |
+| 9,600 | 87.04 degrees | 3.09 degrees |
+| 19,200 | 88.98 degrees | 3.26 degrees |
+
+A separate 4,800-sample/s repeat kept all seven ramped endpoint changes within
+1.46 degrees. All captures finished without FIFO underflow or radio errors.
+These are short-burst endpoint measurements, not proof of full waveform or
+amplitude fidelity. The internal cause of the reversal distortion remains open.
+
+[Exact inputs, lossless RF recordings, analyzer and results](https://github.com/SAMS0N1TE/lr2021-sdr/tree/main/research/tx-phase-ramp/)
+are included. The diagnostic now isolates its settings in `sdr-txlab`; a
+before/after NVS comparison verified the original three active settings keys
+were unchanged. It remains installed between experiments.

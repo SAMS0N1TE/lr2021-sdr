@@ -1,0 +1,79 @@
+[
+  {
+    "name": "v5-direct19200",
+    "rate": 19200,
+    "pattern": 6,
+    "sample_rate": 2000000,
+    "rx_lo": 914750000,
+    "first_original_sample": 1966896,
+    "complex_samples": 30312,
+    "original_sha256": "980f56edd7c78e7d9bcf1a6e520370624af4129d901bec36a986d48737198303",
+    "crop_sha256": "cc26fb071378c5884983ad2cea0b9c8305faeffde0d97d7c22c64c7f80c2dec5"
+  },
+  {
+    "name": "v5-direct4800",
+    "rate": 4800,
+    "pattern": 6,
+    "sample_rate": 2000000,
+    "rx_lo": 914750000,
+    "first_original_sample": 1945776,
+    "complex_samples": 70312,
+    "original_sha256": "b03e7deb09f12765021b9cf480988d033eb25aa73e5472060e669335f0088184",
+    "crop_sha256": "5aad1291f9c34af4079c35111befdac197e53eabe6c4e87db0645f1c3885a6b0"
+  },
+  {
+    "name": "v5-direct9600",
+    "rate": 9600,
+    "pattern": 6,
+    "sample_rate": 2000000,
+    "rx_lo": 914750000,
+    "first_original_sample": 1960576,
+    "complex_samples": 43624,
+    "original_sha256": "70a1e32c60cd7c4a0f1686f66aa510bc8e69e9b50cd6703cc51c6c7f236edbcd",
+    "crop_sha256": "d32ec6fb790fde5086abb9f5a140f34417d9361b93ee715919e6fe0c8909f261"
+  },
+  {
+    "name": "v5-ramped19200",
+    "rate": 19200,
+    "pattern": 7,
+    "sample_rate": 2000000,
+    "rx_lo": 914750000,
+    "first_original_sample": 1967104,
+    "complex_samples": 30288,
+    "original_sha256": "c600da746fa63954c55b2dc73c4fd4f3d2792b0332642e4c2bdc6c031df9e3b5",
+    "crop_sha256": "07543cb2e50a70b72b0a03cb10bd32d3cbb2aefcd81697763b046887231bd8db"
+  },
+  {
+    "name": "v5-ramped4800-repeat",
+    "rate": 4800,
+    "pattern": 7,
+    "sample_rate": 2000000,
+    "rx_lo": 914750000,
+    "first_original_sample": 1956384,
+    "complex_samples": 70312,
+    "original_sha256": "1979e476249a826b8ee85d7a257bd12ff8202875f622bad2238ef20a5e172d03",
+    "crop_sha256": "c481e565febec3766f3e460ef5a6f591b913a3e3b295ee77189b24baf0cdfa39"
+  },
+  {
+    "name": "v5-ramped4800",
+    "rate": 4800,
+    "pattern": 7,
+    "sample_rate": 2000000,
+    "rx_lo": 914750000,
+    "first_original_sample": 1955776,
+    "complex_samples": 70288,
+    "original_sha256": "79d4c9c829e8b9d8f7edf19de48f2ec935797a369609c208fabb5c92f91c705a",
+    "crop_sha256": "544d9cc67bb459255caf1a63c7b7590a9bb4d3abf3b2143a3f60c95747f76dcc"
+  },
+  {
+    "name": "v5-ramped9600",
+    "rate": 9600,
+    "pattern": 7,
+    "sample_rate": 2000000,
+    "rx_lo": 914750000,
+    "first_original_sample": 1963952,
+    "complex_samples": 43632,
+    "original_sha256": "4c6bd0e15391334b442d16760e59edcd2f89941e23059003bafe4dcb115a6a44",
+    "crop_sha256": "18fe39ff82f994d6ae2a5ce16df9b4d88f046e74e2f41c1f6885b16b2e1a66e9"
+  }
+]
