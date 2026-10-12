@@ -233,3 +233,14 @@ amplitude fidelity. The internal cause of the reversal distortion remains open.
 are included. The diagnostic now isolates its settings in `sdr-txlab`; a
 before/after NVS comparison verified the original three active settings keys
 were unchanged. It remains installed between experiments.
+
+## Existing sensor format independently decoded
+
+Stock rtl_433 25.12 decoded synthetic Acurite-606TX readings of 23.4 C,
+-12.3 C and 37.8 C from HackRF recordings of LR2021 uploaded I/Q TX.
+IDs, channels, battery flags and checksums matched. The deliberately bad
+checksum produced no accepted reading; a half-amplitude acquisition failure
+is also archived. Tests used 915 MHz, not the sensor's normal RF band, so
+physical display compatibility is not established.
+
+[Generator, results and replayable evidence](https://github.com/SAMS0N1TE/lr2021-sdr/tree/main/research/tx-temperature/).

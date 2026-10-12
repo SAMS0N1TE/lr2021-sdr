@@ -1,0 +1,33 @@
+{
+  "capture": "v13-freezer-neg12.iq8.gz",
+  "raw_sha256": "693e467282d2495c8ea9d74665f783ab83594a9b9fab8829d4181d68f7651dbe",
+  "input_complex_samples": 6000000,
+  "input_sample_rate": 2000000,
+  "frequency_shift_hz": -250000,
+  "output_sample_rate": 250000,
+  "processing": "fixed frequency translation and 8-sample mean; no amplitude normalization",
+  "decoder_sha256": "7a72a4b0b282e52e1444686c7ff379e5ce4bdeeeaa5183e686f3f5d0d4516bd6",
+  "decoder_arguments": [
+    "-r",
+    "capture_250k.cf32",
+    "-R",
+    "55",
+    "-F",
+    "json",
+    "-F",
+    "log"
+  ],
+  "decoder_log": "rtl_433 version 25.12 branch  at 202512121350 inputs file rtl_tcp\n",
+  "records": [
+    {
+      "time": "@1.005192s",
+      "model": "Acurite-606TX",
+      "id": 167,
+      "channel": 3,
+      "battery_ok": 0,
+      "button": 0,
+      "temperature_C": -12.3,
+      "mic": "CHECKSUM"
+    }
+  ]
+}

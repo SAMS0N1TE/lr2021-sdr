@@ -1,5 +1,10 @@
 # TX discovery: FIFO-fed amplitude, phase and frequency
 
+Latest application result: [an existing temperature-sensor packet format](../research/tx-temperature/)
+now decodes through unmodified rtl_433 from independently captured LR2021 RF.
+Three readings passed integrity checks; a deliberately invalid checksum was rejected.
+The experiment stays at 915 MHz and does not establish physical sensor/display compatibility.
+
 Measured 2026-10-12. [Evidence and diagnostic source](../research/tx-2026-10-12/).
 
 ## Result

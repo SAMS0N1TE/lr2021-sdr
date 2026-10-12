@@ -1,0 +1,3 @@
+lora lrtx-send 9600 1
+lrtx-stream: fifo=1024 samples=7066 bytes=14132 queued=14132 repeats=1 refills=197 min_level=755 max_poll_gap_us=1199
+lrtx: mode=ookraw0 pattern=16 rate=9600 hz=915000000 dbm=-9 elapsed_us=737666 irq=0008000A rxflags=00 txflags=07 txlevel=0 errors=0000 final_errors=0000 phase=transmit result=ESP_OK stop=ESP_OK recovery=ESP_OK

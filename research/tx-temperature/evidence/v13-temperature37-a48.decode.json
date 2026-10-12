@@ -1,0 +1,33 @@
+{
+  "capture": "v13-temperature37-a48.iq8.gz",
+  "raw_sha256": "475d1e2e83aa1eb94936639259016287a0340527d2801db36d24c8cc894f64b9",
+  "input_complex_samples": 6000000,
+  "input_sample_rate": 2000000,
+  "frequency_shift_hz": -250000,
+  "output_sample_rate": 250000,
+  "processing": "fixed frequency translation and 8-sample mean; no amplitude normalization",
+  "decoder_sha256": "7a72a4b0b282e52e1444686c7ff379e5ce4bdeeeaa5183e686f3f5d0d4516bd6",
+  "decoder_arguments": [
+    "-r",
+    "capture_250k.cf32",
+    "-R",
+    "55",
+    "-F",
+    "json",
+    "-F",
+    "log"
+  ],
+  "decoder_log": "rtl_433 version 25.12 branch  at 202512121350 inputs file rtl_tcp\n",
+  "records": [
+    {
+      "time": "@1.005208s",
+      "model": "Acurite-606TX",
+      "id": 49,
+      "channel": 2,
+      "battery_ok": 1,
+      "button": 0,
+      "temperature_C": 37.8,
+      "mic": "CHECKSUM"
+    }
+  ]
+}

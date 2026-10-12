@@ -43,6 +43,20 @@ Successful transmission reports `result=ESP_OK`, successful stop/recovery,
 zero radio errors and `txlevel=0`. Final FIFO flags `03` or `07` are normal;
 bits `10`/`20` mean overflow/underflow and invalidate the transmission.
 
+## Existing sensor packet example
+
+A second generator produces synthetic Acurite-606TX temperature packets,
+independently decoded from HackRF recordings by stock rtl_433 25.12:
+
+```text
+python tools/lr2021_make_temperature.py temperature.iq8 --temperature 23.4 --id 90
+python tools/lr2021_tx_upload.py temperature.iq8 --serial YOUR_USB_SERIAL --send 9600
+```
+
+Use the same console preflight above. This remains a 915 MHz lab transmission,
+not a demonstrated link to a physical Acurite display.
+[Three verified readings, negative controls and replay](../research/tx-temperature/).
+
 ## Supported buffer contract
 
 | Property | Current bound |

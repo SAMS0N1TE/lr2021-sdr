@@ -1,0 +1,15 @@
+{
+  "format": "Acurite-606TX",
+  "synthetic": true,
+  "temperature_C": 23.4,
+  "id": 90,
+  "channel": 1,
+  "battery_ok": 1,
+  "packet_hex": "5a80ea8e",
+  "checksum_valid": true,
+  "sample_rate": 9600,
+  "rows": 6,
+  "amplitude": 48,
+  "complex_samples": 7066,
+  "duration_s": 0.7360416666666667
+}

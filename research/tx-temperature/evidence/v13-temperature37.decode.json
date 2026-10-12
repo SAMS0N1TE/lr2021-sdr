@@ -1,0 +1,22 @@
+{
+  "capture": "v13-temperature37.iq8.gz",
+  "raw_sha256": "61e2fc4b59e01bac687505bcdb56745403060164bc024ae953fc88824eeda1fa",
+  "input_complex_samples": 6000000,
+  "input_sample_rate": 2000000,
+  "frequency_shift_hz": -250000,
+  "output_sample_rate": 250000,
+  "processing": "fixed frequency translation and 8-sample mean; no amplitude normalization",
+  "decoder_sha256": "7a72a4b0b282e52e1444686c7ff379e5ce4bdeeeaa5183e686f3f5d0d4516bd6",
+  "decoder_arguments": [
+    "-r",
+    "capture_250k.cf32",
+    "-R",
+    "55",
+    "-F",
+    "json",
+    "-F",
+    "log"
+  ],
+  "decoder_log": "rtl_433 version 25.12 branch  at 202512121350 inputs file rtl_tcp\n",
+  "records": []
+}

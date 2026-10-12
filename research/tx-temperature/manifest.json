@@ -1,0 +1,92 @@
+[
+  {
+    "name": "v13-temperature23",
+    "input": "temperature",
+    "expected": {
+      "id": 90,
+      "channel": 1,
+      "battery_ok": 1,
+      "temperature_C": 23.4
+    },
+    "raw_sha256": "9c0eee1f7536a735c5cd5e1e68a378e18c18f240efed8542a16c39245569be65",
+    "gzip_sha256": "bbf9ca7776927174d47e9c1a7b3fa1855d724ea606b1abc1cbaab7e98b5b819d",
+    "complex_samples": 6000000,
+    "rx_sample_rate": 2000000,
+    "rx_lo_hz": 914750000,
+    "tx_hz": 915000000,
+    "configured_tx_dbm": -9,
+    "hackrf_lna_db": 16,
+    "hackrf_vga_db": 32,
+    "hackrf_amp": false
+  },
+  {
+    "name": "v13-freezer-neg12",
+    "input": "freezer",
+    "expected": {
+      "id": 167,
+      "channel": 3,
+      "battery_ok": 0,
+      "temperature_C": -12.3
+    },
+    "raw_sha256": "693e467282d2495c8ea9d74665f783ab83594a9b9fab8829d4181d68f7651dbe",
+    "gzip_sha256": "14ed9000fc00fbdb31f05a7d3615622242b57624027d1e065e7ff4b115f4b811",
+    "complex_samples": 6000000,
+    "rx_sample_rate": 2000000,
+    "rx_lo_hz": 914750000,
+    "tx_hz": 915000000,
+    "configured_tx_dbm": -9,
+    "hackrf_lna_db": 16,
+    "hackrf_vga_db": 32,
+    "hackrf_amp": false
+  },
+  {
+    "name": "v13-temperature-badcrc",
+    "input": "bad-checksum",
+    "expected": null,
+    "raw_sha256": "adcc22e667f74ac12262951e49e564063ef81ad661914f8d2a04f59d9ec34267",
+    "gzip_sha256": "8d753384df394188cb269f166bf1fd0aa840f60b76f2ba79e406c5e253a87c24",
+    "complex_samples": 6000000,
+    "rx_sample_rate": 2000000,
+    "rx_lo_hz": 914750000,
+    "tx_hz": 915000000,
+    "configured_tx_dbm": -9,
+    "hackrf_lna_db": 16,
+    "hackrf_vga_db": 32,
+    "hackrf_amp": false
+  },
+  {
+    "name": "v13-temperature37",
+    "input": "warm",
+    "expected": null,
+    "raw_sha256": "61e2fc4b59e01bac687505bcdb56745403060164bc024ae953fc88824eeda1fa",
+    "gzip_sha256": "b53ce134521162cc9fc0ca001b806a27ce3c493334d61edc816b07fa35585957",
+    "complex_samples": 6000000,
+    "rx_sample_rate": 2000000,
+    "rx_lo_hz": 914750000,
+    "tx_hz": 915000000,
+    "configured_tx_dbm": -9,
+    "hackrf_lna_db": 16,
+    "hackrf_vga_db": 32,
+    "hackrf_amp": false
+  },
+  {
+    "name": "v13-temperature37-a48",
+    "input": "warm48",
+    "expected": {
+      "id": 49,
+      "channel": 2,
+      "battery_ok": 1,
+      "temperature_C": 37.8
+    },
+    "raw_sha256": "475d1e2e83aa1eb94936639259016287a0340527d2801db36d24c8cc894f64b9",
+    "gzip_sha256": "7626038c6cae9530010f0384d5a52aee59c228fd487485d4f314c495d07690b1",
+    "complex_samples": 6000000,
+    "rx_sample_rate": 2000000,
+    "rx_lo_hz": 914750000,
+    "tx_hz": 915000000,
+    "configured_tx_dbm": -9,
+    "hackrf_lna_db": 16,
+    "hackrf_vga_db": 32,
+    "hackrf_amp": false
+  }
+]

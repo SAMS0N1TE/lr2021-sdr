@@ -18,6 +18,13 @@ upload tools and independently captured RF evidence.
 tested build delivered **235 CRC-valid frames / 15,040 payload bits with zero
 bit errors**, verified by an independent HackRF receiver.
 
+**An existing sensor packet format now works too:** stock `rtl_433` decoded
+three transmitted temperature readings (23.4 C, -12.3 C and 37.8 C), including
+IDs, channels, battery flags and valid checksums. A deliberately invalid
+checksum produced no accepted reading. [Reproduce the sensor-packet demo](research/tx-temperature/).
+These are synthetic packets at our 915 MHz test frequency, not a physical
+sensor/display compatibility claim.
+
 | Capability | Verified result |
 | --- | --- |
 | Raw I/Q RX | LakeShark capture and processing ran for 391 seconds without reported FIFO loss or queue rejection |
@@ -101,6 +108,19 @@ IQ16 recordings require appropriate conversion and resampling before TX.
 
 [Complete usage and integration](docs/tx-playback.md) ·
 [Payload results, source, decoder and replayable RF evidence](research/tx-payload/)
+
+### Real example: a temperature-sensor test source
+
+```text
+python tools/lr2021_make_temperature.py temperature.iq8 --temperature 23.4 --id 90
+python tools/lr2021_tx_upload.py temperature.iq8 --serial YOUR_USB_SERIAL --send 9600
+```
+
+Uses the same firmware and preflight above. The generated OOK waveform
+encodes an existing Acurite-606TX packet format; an unmodified `rtl_433`
+decoder reads the independently captured RF. [Results, failed controls and
+replayable recordings](research/tx-temperature/) cover three readings at
+4,800, 9,600 and 19,200 complex samples/s.
 
 ### Waveform fidelity and remaining limits
 
