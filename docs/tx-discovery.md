@@ -1,6 +1,10 @@
 # TX discovery: FIFO-fed amplitude, phase and frequency
 
-Latest application result: [an existing temperature-sensor packet format](../research/tx-temperature/)
+Latest result: [P25 Phase 1 voice-data TX](../research/tx-p25/) recovered 72 IMBE
+frames across two RF captures and reconstructed the expected 1,011 Hz test tone.
+This is bounded late-entry test-tone playback; continuous voice and HDU interoperability remain unverified.
+
+Earlier application result: [an existing temperature-sensor packet format](../research/tx-temperature/)
 now decodes through unmodified rtl_433 from independently captured LR2021 RF.
 Three readings passed integrity checks; a deliberately invalid checksum was rejected.
 The experiment stays at 915 MHz and does not establish physical sensor/display compatibility.

@@ -18,6 +18,13 @@ upload tools and independently captured RF evidence.
 tested build delivered **235 CRC-valid frames / 15,040 payload bits with zero
 bit errors**, verified by an independent HackRF receiver.
 
+**P25 Phase 1 TX now works in short test bursts:** two independently captured
+RF runs recovered **72 IMBE voice frames**, all matching the software reference,
+and synthesized the expected **1,011 Hz test tone**. NAC, talkgroup and source
+ID decoded correctly. [P25 TX evidence and reproduction](research/tx-p25/).
+This is a pre-encoded test-tone/late-entry demonstration, not continuous
+microphone voice or verified HDU interoperability.
+
 **An existing sensor packet format now works too:** stock `rtl_433` decoded
 three transmitted temperature readings (23.4 C, -12.3 C and 37.8 C), including
 IDs, channels, battery flags and valid checksums. A deliberately invalid
@@ -28,6 +35,7 @@ sensor/display compatibility claim.
 | Capability | Verified result |
 | --- | --- |
 | Raw I/Q RX | LakeShark capture and processing ran for 391 seconds without reported FIFO loss or queue rejection |
+| P25 voice-data TX | 72 IMBE frames recovered through independent RF decoding; expected test-tone audio synthesized |
 | Live voice RX | P25 Phase 1 C4FM voice decoded from LR2021 raw I/Q in LakeShark |
 | Amplitude + phase TX | Uploaded signed I8/Q8 drives a two-ring, four-phase 8-APSK payload waveform |
 | TX sample rates | 4,800; 9,600; 19,200; 38,400; 76,800; 125,000 complex samples/s |
@@ -108,6 +116,18 @@ IQ16 recordings require appropriate conversion and resampling before TX.
 
 [Complete usage and integration](docs/tx-playback.md) ·
 [Payload results, source, decoder and replayable RF evidence](research/tx-payload/)
+
+### Real example: P25 voice-data test bursts
+
+```text
+python tools/lr2021_make_p25.py research/tx-p25/inputs/voice-tone.p25 p25.iq8
+python tools/lr2021_tx_upload.py p25.iq8 --serial YOUR_USB_SERIAL --send 19200 --repeats 2
+```
+
+Requires NumPy and the same TX firmware/preflight above. OP25-generated
+LDU1/LDU2/TDU frames are modulated into C4FM I/Q in software. Stock DSD-neo
+recovers the voice data from HackRF RF recordings; file playback synthesizes
+the test tone. [Recordings, decoded audio, tools and limitations](research/tx-p25/).
 
 ### Real example: a temperature-sensor test source
 

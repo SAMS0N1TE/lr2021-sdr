@@ -1,0 +1,17 @@
+NOTICE: Frontend: none
+NOTICE: Frame log file: C:\Users\black\AppData\Local\Temp\lr2021-p25-9st_923x\frames.log
+NOTICE: Decoding only P25 Phase 1 frames.
+NOTICE: Enabling only C4FM modulation optimizations.
+NOTICE: ------------------------------------------------------------------------------
+NOTICE: | Digital Speech Decoder: DSD-neo v2.10.0 (ff5843f)
+NOTICE: ------------------------------------------------------------------------------
+NOTICE: MBElib-neo Version: 2.1.0
+Audio In Device: C:\Users\black\AppData\Local\Temp\lr2021-p25-9st_923x\discriminator.wav
+WARNING: Input Level LOW -120.0 dBFS: raise source/input volume if signal is present
+
+End of C:\Users\black\AppData\Local\Temp\lr2021-p25-9st_923x\discriminator.wav
+NOTICE:
+NOTICE: Total audio errors: 0
+NOTICE: Total header errors: 0
+NOTICE: Total irrecoverable header errors: 0
+NOTICE: Exiting.

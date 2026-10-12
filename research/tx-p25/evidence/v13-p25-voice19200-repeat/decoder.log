@@ -1,0 +1,28 @@
+NOTICE: Frontend: none
+NOTICE: Frame log file: C:\Users\black\AppData\Local\Temp\lr2021-p25-i3hm_d5k\frames.log
+NOTICE: Decoding only P25 Phase 1 frames.
+NOTICE: Enabling only C4FM modulation optimizations.
+NOTICE: ------------------------------------------------------------------------------
+NOTICE: | Digital Speech Decoder: DSD-neo v2.10.0 (ff5843f)
+NOTICE: ------------------------------------------------------------------------------
+NOTICE: MBElib-neo Version: 2.1.0
+Audio In Device: C:\Users\black\AppData\Local\Temp\lr2021-p25-i3hm_d5k\discriminator.wav
+WARNING: Input Level LOW -120.0 dBFS: raise source/input volume if signal is present
+14:18:56 Sync: +P25p1 NAC/CC: 293;  LDU1
+ Group Voice Channel User - Group 4242 Source 123456
+14:18:57 Sync: +P25p1 NAC/CC: 293;  LDU2
+ LDU2 ALG ID: 0x80 KEY ID: 0x0000 MI: 0x0000000000000000
+14:18:57 Sync: +P25p1 NAC/CC: 293;  TDU
+14:18:57 Sync: +P25p1 NAC/CC: 293;  LDU1
+ Group Voice Channel User - Group 4242 Source 123456
+14:18:57 Sync: +P25p1 NAC/CC: 293;  LDU2
+ LDU2 ALG ID: 0x80 KEY ID: 0x0000 MI: 0x0000000000000000
+14:18:57 Sync: +P25p1 NAC/CC: 293;  TDU
+Sync: no sync
+
+End of C:\Users\black\AppData\Local\Temp\lr2021-p25-i3hm_d5k\discriminator.wav
+NOTICE:
+NOTICE: Total audio errors: 0
+NOTICE: Total header errors: 3
+NOTICE: Total irrecoverable header errors: 0
+NOTICE: Exiting.

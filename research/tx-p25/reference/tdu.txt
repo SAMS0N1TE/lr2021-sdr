@@ -1,0 +1,7 @@
+Simple Terminator Data Unit:
+	DUID  = 3
+	NAC   = 293
+	SSym  = 0 0
+	Symbol data:
+		Microslot:  ___________0___________  ___________1___________
+		        0:  557 5f5 ff7 7ff 293 338  5dd ca3 3b5 b80 000 000

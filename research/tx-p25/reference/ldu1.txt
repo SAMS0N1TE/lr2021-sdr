@@ -1,0 +1,39 @@
+		Service Options:
+			E      = 0
+			P      = 0
+			D      = 0
+			M      = 0
+			R      = 0
+			Pri    = 00
+			SvcOpt = 00
+Logical Link Data Unit 1:
+	DUID  = 5
+	NAC   = 293
+	SSym  = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	IMBE  = 38928490d433c0be1b91844ff058a589d839
+	LSD   = 00000000
+	Link Control Word:
+		Link Control Format:
+			P   = 0
+			SF  = 0
+			LCO = 00
+			LCF = 00
+		MFID  = 00
+		S     = 0
+		TGID  = 1092
+		SUID  = 01e240
+		LCW   = 00000000109201e240
+	Symbol data:
+		Microslot:  ___________0___________  ___________1___________
+		        0:  557 5f5 ff7 7ff 293 554  7bc b19 4d0 dce 24a 124
+		        2:  0d4 33c 0be 1b9 184 4fc  c16 296 276 0e4 e24 a10
+		        4:  90d 433 c0b e1b 918 44c  fc1 629 627 60e c00 000
+		        6:  000 003 892 849 0d4 33c  02f 86e 461 13f c16 294
+		        8:  89d 839 000 1c0 8d2 e38  24a 124 350 cf0 2f8 6e4
+		       10:  184 4ff 058 a58 9d8 3b0  007 889 700 0e2 4a1 240
+		       12:  d43 3c0 be1 b91 844 ff0  162 962 760 e5c 13c f00
+		       14:  f94 389 284 90d 433 c08  f86 e46 113 fc1 629 624
+		       16:  d83 be2 1dd 61b 883 890  a12 435 0cf 02f 86e 460
+		       18:  44f f05 8a5 89d 839 704  b86 fdd 10e 24a 124 350
+		       20:  33c 0be 1b9 184 4ff 058  296 276 0ec 000 000 00c
+		       22:  892 849 0d4 33c 0be 1b8  461 13f c16 296 276 0e4

@@ -1,0 +1,18 @@
+{
+  "sample_rate": 19200,
+  "symbol_rate": 4800,
+  "sample_count": 7776,
+  "duration_s": 0.405,
+  "amplitude": 48,
+  "packed_bytes": 450,
+  "packed_sha256": "d1fe7d57cc094c316a95fd83a0b6b1c3ef56834b2346a85feb4ffc0b0f7b3e8f",
+  "prefix_symbols": 96,
+  "suffix_symbols": 48,
+  "modulation": "C4FM",
+  "nominal_dibit_deviation_hz": [
+    600,
+    1800,
+    -600,
+    -1800
+  ]
+}

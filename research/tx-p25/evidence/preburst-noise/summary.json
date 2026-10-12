@@ -1,0 +1,21 @@
+{
+  "capture": "preburst-noise.iq8.gz",
+  "raw_sha256": "d8209f381777d9af102acf8d462d7423dc9be8a9143a09185881d33b34abf4b3",
+  "decoder_sha256": "f3217e79a8a403f303e2330e8c7f737e1f24b779b38e7aff808de7622ac64428",
+  "input_sample_rate": 2000000,
+  "rx_offset_hz": 250000,
+  "discriminator_sample_rate": 48000,
+  "preprocessing": "fixed downmix/decimation, 7 kHz FIR, FM discriminator, .008 amplitude gate, fixed PCM gain 5",
+  "frame_types": {},
+  "nac_values": [],
+  "group_source_pairs": [],
+  "imbe_frames": 0,
+  "imbe_data_hex": [],
+  "imbe_error_counts": [],
+  "decoder_error_totals": {
+    "audio errors": 0,
+    "header errors": 0,
+    "irrecoverable header errors": 0
+  },
+  "audio": null
+}

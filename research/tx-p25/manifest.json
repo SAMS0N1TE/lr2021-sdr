@@ -1,0 +1,39 @@
+[
+  {
+    "name": "v13-p25-voice19200",
+    "raw_sha256": "27af32700b188513dbc411549c5f4bac2204f7d82591034549b799c05683e5f5",
+    "gzip_sha256": "a4f169154130eba546e2f14ce52f46637b71c923b3a2fa778499fe6e11e17118",
+    "sample_rate": 2000000,
+    "rx_lo": 914750000,
+    "tx_hz": 915000000,
+    "tx_configured_dbm": -9,
+    "lna_gain_db": 16,
+    "vga_gain_db": 32,
+    "amp": false,
+    "tx_rate": 19200,
+    "tx_repeats": 2,
+    "expected_imbe_frames": 36
+  },
+  {
+    "name": "v13-p25-voice19200-repeat",
+    "raw_sha256": "a6cbe9a674c242257cdd92d8bd695be3c619dcca6c69d260cc15fb14ee339167",
+    "gzip_sha256": "74562ea926e677de4882a01792a2bb3c79defa50cfadff8c94e1783b530c8d29",
+    "sample_rate": 2000000,
+    "rx_lo": 914750000,
+    "tx_hz": 915000000,
+    "tx_configured_dbm": -9,
+    "lna_gain_db": 16,
+    "vga_gain_db": 32,
+    "amp": false,
+    "tx_rate": 19200,
+    "tx_repeats": 2,
+    "expected_imbe_frames": 36
+  },
+  {
+    "name": "preburst-noise",
+    "raw_sha256": "d8209f381777d9af102acf8d462d7423dc9be8a9143a09185881d33b34abf4b3",
+    "gzip_sha256": "5acbd7607c026c91e3ba2b07e2f3ea7d814e17c17dc27d913f354afbf8b2defe",
+    "source": "first 0.5 seconds of v13-p25-voice19200",
+    "expected_imbe_frames": 0
+  }
+]

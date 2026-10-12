@@ -43,6 +43,21 @@ Successful transmission reports `result=ESP_OK`, successful stop/recovery,
 zero radio errors and `txlevel=0`. Final FIFO flags `03` or `07` are normal;
 bits `10`/`20` mean overflow/underflow and invalidate the transmission.
 
+## P25 Phase 1 test-tone example
+
+P25 voice-data transmission is now RF-verified using the existing firmware:
+
+```text
+python tools/lr2021_make_p25.py research/tx-p25/inputs/voice-tone.p25 p25.iq8
+python tools/lr2021_tx_upload.py p25.iq8 --serial YOUR_USB_SERIAL --send 19200 --repeats 2
+```
+
+Requires NumPy. The example transmits pre-encoded LDU1/LDU2/TDU test-tone
+frames at the fixed 915 MHz test frequency. Two RF captures recovered 72 IMBE
+frames matching the reference; stock DSD-neo file playback reconstructed the
+1,011 Hz tone. Continuous microphone audio and HDU interoperability are not
+established. [Evidence, decoded WAV and offline replay](../research/tx-p25/).
+
 ## Existing sensor packet example
 
 A second generator produces synthetic Acurite-606TX temperature packets,
