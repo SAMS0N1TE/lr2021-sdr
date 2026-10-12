@@ -1,0 +1,30 @@
+{
+  "name": "v8-gfsk-smooth9600",
+  "rate": 9600,
+  "pattern": 12,
+  "burst_s": [
+    0.990032,
+    0.996944
+  ],
+  "noise_power": 9.294460771291888e-07,
+  "clipped_fraction": 0.0,
+  "timing_offset_from_detected_start_s": 0.00020800000000000018,
+  "cfo_hz": -267.25,
+  "complex_gain": [
+    0.0007402891832865192,
+    0.0018881754168145613
+  ],
+  "interior_waveform_evm_percent": 39.30973763414517,
+  "amplitude_correlation": -0.01527234497923687,
+  "phase_rms_deg": 3.325127388853287,
+  "expected_amplitude_range": [
+    15.689792860328005,
+    47.85256332695207
+  ],
+  "measured_amplitude_range": [
+    32.28699932504835,
+    34.37931019008336
+  ],
+  "fit_sample_count": 286,
+  "reference": "linear interpolation of quantized I8/Q8 input; interior samples10..54; common timing/CFO/gain only"
+}

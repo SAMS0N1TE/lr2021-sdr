@@ -52,6 +52,10 @@ magnitude and phase. Combined staircase tests measured 5.6–7.7% settled-platea
 EVM at 4,800/9,600 samples/s. Magnitudes above roughly 64 saturate; small
 magnitudes have larger phase errors. [Recipe and replayable amplitude evidence](research/tx-amplitude/).
 
+A subsequent smooth signal, changing magnitude and phase every sample, measured
+7.9–8.4% interior waveform EVM; an amplitude-only signal measured 6.2%.
+[Waveform captures, analysis and implications for LakeShark](research/tx-smooth/).
+
 The earlier GFSK-setup quadrant test reproduced 45-degree phase steps. Follow-up tests at up to
 19,200 samples/s isolated substantial errors at near-180-degree reversals;
 smaller transitions tracked closely. A paired follow-up reduced those errors

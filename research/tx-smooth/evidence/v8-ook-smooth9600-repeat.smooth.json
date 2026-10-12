@@ -1,0 +1,30 @@
+{
+  "name": "v8-ook-smooth9600-repeat",
+  "rate": 9600,
+  "pattern": 12,
+  "burst_s": [
+    0.991392,
+    0.998224
+  ],
+  "noise_power": 9.294576556383639e-07,
+  "clipped_fraction": 0.0,
+  "timing_offset_from_detected_start_s": 0.0001400000000000002,
+  "cfo_hz": -269.25,
+  "complex_gain": [
+    -0.00047263434633894595,
+    -0.0009526195396801215
+  ],
+  "interior_waveform_evm_percent": 8.41800702563375,
+  "amplitude_correlation": 0.9950205762634226,
+  "phase_rms_deg": 5.162002907642199,
+  "expected_amplitude_range": [
+    15.689406484631593,
+    47.96198430590399
+  ],
+  "measured_amplitude_range": [
+    16.230302015127688,
+    48.13438683078041
+  ],
+  "fit_sample_count": 286,
+  "reference": "linear interpolation of quantized I8/Q8 input; interior samples10..54; common timing/CFO/gain only"
+}

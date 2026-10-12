@@ -37,6 +37,16 @@ required by the evidence. No PRAM patch was needed.
 The earlier GFSK observations below remain useful controls; their constant
 envelope does not apply to the later OOK setup.
 
+## Smooth waveform follow-up
+
+OOK-initialized raw IQ also passes smoothly changing magnitude and phase,
+measured at 7.9–8.4% interior waveform EVM at 4,800/9,600 samples/s.
+Amplitude-only modulation measured 6.2%; the GFSK control flattened amplitude
+and measured 39.3%. These are narrowband 64-sample tests, excluding burst
+startup/end. Sustained streaming and payload decoding remain open.
+
+[Six captures, exact inputs, replayable analysis and LakeShark implications](https://github.com/SAMS0N1TE/lr2021-sdr/tree/main/research/tx-smooth/).
+
 ## Reproducible Command Format
 
 0x0293 arguments are seven bytes:

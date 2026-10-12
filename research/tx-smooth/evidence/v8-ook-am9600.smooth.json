@@ -1,0 +1,30 @@
+{
+  "name": "v8-ook-am9600",
+  "rate": 9600,
+  "pattern": 13,
+  "burst_s": [
+    0.990704,
+    0.997552
+  ],
+  "noise_power": 9.299627960862855e-07,
+  "clipped_fraction": 0.0,
+  "timing_offset_from_detected_start_s": 0.00015200000000000012,
+  "cfo_hz": -268.75,
+  "complex_gain": [
+    0.0006280241140329658,
+    0.0008511774747878041
+  ],
+  "interior_waveform_evm_percent": 6.158462592086948,
+  "amplitude_correlation": 0.9957649163934726,
+  "phase_rms_deg": 4.018855733710401,
+  "expected_amplitude_range": [
+    16.0,
+    48.0
+  ],
+  "measured_amplitude_range": [
+    16.258185936501675,
+    48.10685869198388
+  ],
+  "fit_sample_count": 286,
+  "reference": "linear interpolation of quantized I8/Q8 input; interior samples10..54; common timing/CFO/gain only"
+}

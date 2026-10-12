@@ -1,0 +1,62 @@
+[
+  {
+    "name": "v8-gfsk-smooth9600",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe raw0 12 9600",
+    "original_sha256": "03db5d03df567372b00d8fcb0030766f493faaad6318b3fa3e3c0629f13bfffa",
+    "excerpt_sha256": "f9b4c33744ba889cbbbd3b1497979d06da0d5254d848f85c5e5792437ae12a5c",
+    "first_original_sample": 1852064,
+    "sample_count": 269856
+  },
+  {
+    "name": "v8-ook-am9600",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 13 9600",
+    "original_sha256": "44a2ac72138f1b43b9114e3573532caf1634f0f136cd4cf6b1878b1f5a188aef",
+    "excerpt_sha256": "4f406c7d87768ba79c68f23f54d2d6f5a19e54b7708f49e5f3b017e2fc788748",
+    "first_original_sample": 1853408,
+    "sample_count": 269728
+  },
+  {
+    "name": "v8-ook-carrier9600",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 14 9600",
+    "original_sha256": "834c805fbfce957bf5d97083cb53fc9128858a5d825a7e68e532b6afa27cf057",
+    "excerpt_sha256": "d31f33fb418df8ac0bc90071244f6fa8fc3573c32b6708e654e4cde6b902f710",
+    "first_original_sample": 1852832,
+    "sample_count": 269696
+  },
+  {
+    "name": "v8-ook-smooth4800",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 12 4800",
+    "original_sha256": "dd3e7b8199c7f8eea59750150600f824a5dad38827aada9b61bb602b02967d37",
+    "excerpt_sha256": "9c514ad366c08382aafdd6b3a7e25ed0bf8fb3981a5466d4e2f2e314edcdf735",
+    "first_original_sample": 1853408,
+    "sample_count": 283008
+  },
+  {
+    "name": "v8-ook-smooth9600-repeat",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 12 9600",
+    "original_sha256": "0f254a19985cd83db7769637f7af277aff45279088f2cc8e13fea406bfef3f13",
+    "excerpt_sha256": "17eae5110fea0ebb2562cc438d6d6be7e10fc5285b513f38dac5cfe5e0849d4e",
+    "first_original_sample": 1854784,
+    "sample_count": 269696
+  },
+  {
+    "name": "v8-ook-smooth9600",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 12 9600",
+    "original_sha256": "47bc0904eef9cb33dfece8ad33eac235762b93c5cac5f5dc615d02267782ccae",
+    "excerpt_sha256": "d21fcd679df30ae295e0e4550b027da9f94244fcfc5e5e5903ef26de1fbaa168",
+    "first_original_sample": 1846624,
+    "sample_count": 269728
+  }
+]

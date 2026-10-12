@@ -1,0 +1,32 @@
+[
+  {
+    "name": "v8-gfsk-smooth9600",
+    "metric": "interior_waveform_evm_percent",
+    "absolute_replay_difference": 2.8421709430404007e-13
+  },
+  {
+    "name": "v8-ook-am9600",
+    "metric": "interior_waveform_evm_percent",
+    "absolute_replay_difference": 1.758593271006248e-13
+  },
+  {
+    "name": "v8-ook-carrier9600",
+    "metric": "carrier_residual_percent",
+    "absolute_replay_difference": 1.056932319443149e-13
+  },
+  {
+    "name": "v8-ook-smooth4800",
+    "metric": "interior_waveform_evm_percent",
+    "absolute_replay_difference": 8.171241461241152e-14
+  },
+  {
+    "name": "v8-ook-smooth9600-repeat",
+    "metric": "interior_waveform_evm_percent",
+    "absolute_replay_difference": 6.927791673660977e-14
+  },
+  {
+    "name": "v8-ook-smooth9600",
+    "metric": "interior_waveform_evm_percent",
+    "absolute_replay_difference": 5.799805080641818e-13
+  }
+]

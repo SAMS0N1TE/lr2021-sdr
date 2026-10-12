@@ -1,0 +1,8 @@
+{
+  "name": "v8-ook-carrier9600",
+  "cfo_hz": -270.04871389535566,
+  "carrier_residual_percent": 2.3153155701365242,
+  "receiver_rms": 0.050226038572289564,
+  "noise_power": 9.290643271659561e-07,
+  "scope": "Combined transmitter, propagation and receiver residual at constant I=48,Q=0; not an isolated receiver noise measurement"
+}
