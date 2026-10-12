@@ -15,9 +15,26 @@ Selector 2 consumes signed samples with a frequency scale proportional to
 sample rate, consistent with phase increments.
 
 This establishes finite experimental IQ playback under OOK setup, with
-measured distortion and saturation. Full waveform fidelity and continuous
+measured distortion and saturation. Full waveform fidelity and indefinite
 streaming remain unverified. All diagnostic emissions were short bursts at
 915 MHz, configured -9 dBm. No PRAM patch was needed.
+
+## Uploaded playback and decoded payloads now working
+
+The current LakeShark integration uploads signed I8/Q8, verifies CRC-32,
+and services a 1 KiB TX FIFO during transmission. It reuses RX's owned 16 MHz
+SPI path and service priority. Supported tested sample rates are 4,800,
+9,600, 19,200, 38,400, 76,800 and 125,000 complex samples/s.
+
+The final build decoded 235 frames / 15,040 payload bits with zero errors and
+all CRCs valid. The largest tested run sent 31,648 complex samples, decoding
+92 consecutive frames. The 8-APSK payload depends on both amplitude and phase.
+An earlier 125 ksample/s underflow at normal 2 MHz SPI is preserved as failure
+evidence; the 16 MHz RX-style service path fixed it.
+
+[Using TX playback](tx-playback.md) and [implementation, decoder, captures and tests](../research/tx-payload/).
+This is bounded playback (at most 900 ms of samples per run), not indefinite
+streaming. The older finite-N=64 measurements below are historical controls.
 
 ## Amplitude route found after revisiting RX discovery methods
 

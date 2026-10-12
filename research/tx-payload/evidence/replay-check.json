@@ -1,0 +1,116 @@
+[
+  {
+    "name": "v11-upload-max9600",
+    "decoded_payloads_and_crcs_identical": true,
+    "original_all_crc_ok": true,
+    "replay_all_crc_ok": true
+  },
+  {
+    "name": "v11-upload19200-r16",
+    "decoded_payloads_and_crcs_identical": true,
+    "original_all_crc_ok": true,
+    "replay_all_crc_ok": true
+  },
+  {
+    "name": "v11-upload9600-r16",
+    "decoded_payloads_and_crcs_identical": true,
+    "original_all_crc_ok": true,
+    "replay_all_crc_ok": true
+  },
+  {
+    "name": "v12-extended125000-r16",
+    "decoded_payloads_and_crcs_identical": true,
+    "original_all_crc_ok": false,
+    "replay_all_crc_ok": false
+  },
+  {
+    "name": "v12-extended38400-r16",
+    "decoded_payloads_and_crcs_identical": true,
+    "original_all_crc_ok": true,
+    "replay_all_crc_ok": true
+  },
+  {
+    "name": "v12-extended76800-r16",
+    "decoded_payloads_and_crcs_identical": true,
+    "original_all_crc_ok": true,
+    "replay_all_crc_ok": true
+  },
+  {
+    "name": "v12-extended9600-r16",
+    "decoded_payloads_and_crcs_identical": true,
+    "original_all_crc_ok": true,
+    "replay_all_crc_ok": true
+  },
+  {
+    "name": "v13-fast125000-r16-repeat",
+    "decoded_payloads_and_crcs_identical": true,
+    "original_all_crc_ok": true,
+    "replay_all_crc_ok": true
+  },
+  {
+    "name": "v13-fast125000-r16",
+    "decoded_payloads_and_crcs_identical": true,
+    "original_all_crc_ok": true,
+    "replay_all_crc_ok": true
+  },
+  {
+    "name": "v13-fast19200",
+    "decoded_payloads_and_crcs_identical": true,
+    "original_all_crc_ok": true,
+    "replay_all_crc_ok": true
+  },
+  {
+    "name": "v13-fast4800",
+    "decoded_payloads_and_crcs_identical": true,
+    "original_all_crc_ok": true,
+    "replay_all_crc_ok": true
+  },
+  {
+    "name": "v13-fast76800",
+    "decoded_payloads_and_crcs_identical": true,
+    "original_all_crc_ok": true,
+    "replay_all_crc_ok": true
+  },
+  {
+    "name": "v13-upload125000-92frames",
+    "decoded_payloads_and_crcs_identical": true,
+    "original_all_crc_ok": true,
+    "replay_all_crc_ok": true
+  },
+  {
+    "name": "v13-upload38400-92frames",
+    "decoded_payloads_and_crcs_identical": true,
+    "original_all_crc_ok": true,
+    "replay_all_crc_ok": true
+  },
+  {
+    "name": "v13-uploadcli9600-r16",
+    "decoded_payloads_and_crcs_identical": true,
+    "original_all_crc_ok": true,
+    "replay_all_crc_ok": true
+  },
+  {
+    "name": "v9-apsk19200-r16",
+    "decoded_payloads_and_crcs_identical": true,
+    "original_all_crc_ok": true,
+    "replay_all_crc_ok": true
+  },
+  {
+    "name": "v9-apsk4800-r12",
+    "decoded_payloads_and_crcs_identical": true,
+    "original_all_crc_ok": true,
+    "replay_all_crc_ok": true
+  },
+  {
+    "name": "v9-apsk9600-r16",
+    "decoded_payloads_and_crcs_identical": true,
+    "original_all_crc_ok": true,
+    "replay_all_crc_ok": true
+  },
+  {
+    "name": "v9-apsk9600",
+    "decoded_payloads_and_crcs_identical": true,
+    "original_all_crc_ok": true,
+    "replay_all_crc_ok": true
+  }
+]

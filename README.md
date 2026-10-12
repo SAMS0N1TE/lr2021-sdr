@@ -1,6 +1,6 @@
 <h1 align="center">LR2021-SDR</h1>
 
-<p align="center"><b>Raw I/Q reception. Experimental raw TX modulation.</b></p>
+<p align="center"><b>Raw I/Q reception. Experimental I/Q transmit playback.</b></p>
 
 <p align="center">
   <a href="#start-here">Start here</a> |
@@ -16,7 +16,7 @@ Captures receiver I/Q through an undocumented ROM path, with a
 portable radio interface and native host tools.
 
 > [!IMPORTANT]
-> **Experimental. The portable library and console target remain receive-only.** LR2021 ROM **1.24** is the supported target.
+> **Experimental. The portable library and standalone ESP32-P4 target remain receive-only; the LakeShark TX integration is separate.** LR2021 ROM **1.24** is the supported target.
 > LakeShark's live integration has sustained capture without reported FIFO loss.
 > Live P25 Phase 1 C4FM voice has been decoded from LR2021 raw I/Q in LakeShark.
 > A LilyGO ESP32-P4 adapter is included; other boards need porting.
@@ -37,6 +37,20 @@ export. The screen and audio are unused. Other integrations can use the C API:
    capture API or a compatible console. See [capture.c](examples/capture.c).
 
 ## Raw TX discovery
+
+**Working LakeShark TX playback:** upload signed I8/Q8 and transmit with
+checked FIFO refilling at 4,800–125,000 complex samples/s. The final build
+decoded **235 frames / 15,040 payload bits with zero errors and valid CRCs**,
+including a 31,648-sample transmission and the host upload-and-send tool.
+[Use TX playback](docs/tx-playback.md) · [Source, decoder and RF evidence](research/tx-payload/).
+
+```text
+python tools/lr2021_make_apsk.py LAKESHAR frame.iq8
+python tools/lr2021_tx_upload.py frame.iq8 --serial YOUR_USB_SERIAL --send 9600 --repeats 16
+```
+
+Requires the TX-enabled LakeShark build. Current bounds: fixed 915 MHz/-9 dBm,
+16 KiB upload, magnitude at most 56, and at most 900 ms of samples per run.
 
 **RF-verified on ROM 1.24:** command `0x0293` accepts finite sample buffers for
 three modulation modes. Tests used 915 MHz and independent HackRF reception.
@@ -61,7 +75,7 @@ The earlier GFSK-setup quadrant test reproduced 45-degree phase steps. Follow-up
 smaller transitions tracked closely. A paired follow-up reduced those errors
 to at most 3.3 degrees using four-step phase ramps at the tested rates.
 [Phase-ramp measurements and replayable captures](research/tx-phase-ramp/). The ordinary FSK control
-recovered all 512 payload bits without errors. **Full waveform fidelity, calibrated linearity and continuous TX streaming
+recovered all 512 payload bits without errors. **Full waveform fidelity, calibrated linearity and indefinite TX streaming
 remain unverified.**
 
 [Command format, measurements and limitations](docs/tx-discovery.md) ·

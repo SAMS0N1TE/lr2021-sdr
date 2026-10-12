@@ -1,0 +1,202 @@
+[
+  {
+    "name": "v11-short-repeat9600",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-send 9600 16",
+    "original_sha256": "42f584e7def9116fcf13bac05bc71e20f1c006a3bb6ef92a356031e08097d7b0",
+    "excerpt_sha256": "12df4743c38d87ea60b357d897a91dcb5407585576cb249c41e0f926d89c2302",
+    "first_original_sample": 1821952,
+    "sample_count": 363328
+  },
+  {
+    "name": "v11-upload-max9600",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-send 9600",
+    "original_sha256": "950c5fc042c149babcf567a1666b2af324e6920b74ed3acc12021fc8210fa692",
+    "excerpt_sha256": "5e48a175b41832a41a4b889e67937ee4908d5b52c7f23b3d629ec9fda2517e53",
+    "first_original_sample": 996032,
+    "sample_count": 3669952
+  },
+  {
+    "name": "v11-upload19200-r16",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-send 19200 16",
+    "original_sha256": "bac4684d8ae2850ce430128b64b548b5b5b10161a05cd8a0a41f8364d4d5ccab",
+    "excerpt_sha256": "889495bf21fc6d986c04a33a1586206d01762f7d982b7c6f90c255235db8dc59",
+    "first_original_sample": 1565760,
+    "sample_count": 1403328
+  },
+  {
+    "name": "v11-upload9600-r16",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-send 9600 16",
+    "original_sha256": "562e28196eeff4ae371a435c735e7c8499be033e815ff4521fc5997ce667e8c8",
+    "excerpt_sha256": "c4f214f9c778ddc548d02f28c3b4ec7d611d16c702da5e00f70b02b238ed1d1d",
+    "first_original_sample": 1271488,
+    "sample_count": 2549952
+  },
+  {
+    "name": "v12-extended125000-r16",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 15 125000 16",
+    "original_sha256": "09fcc1b9d77b0620147ddfc9fd2ea66c542c137c80d2311109b01a1223e294d8",
+    "excerpt_sha256": "ca1768c73b97224f2b381df2c2d587e2b014a4213f77b65851d6c67542c2da13",
+    "first_original_sample": 1824128,
+    "sample_count": 432800
+  },
+  {
+    "name": "v12-extended38400-r16",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 15 38400 16",
+    "original_sha256": "f21490ee9052e4c3bfdf56221d4c6ee04ff1d441d02a8a78e508df156e1c6929",
+    "excerpt_sha256": "2c93b591a1db8546dc12eaf1bd83676f0aaa17a1a111d76d3a5bcb649a024878",
+    "first_original_sample": 1711232,
+    "sample_count": 830016
+  },
+  {
+    "name": "v12-extended76800-r16",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 15 76800 16",
+    "original_sha256": "3ef77c9deeeaddf67bfafb0a206d65de4b9a4a9a36796cbb5b1d61956b7d46a3",
+    "excerpt_sha256": "63d0e5ff344adeb5f6ad973f5eeae855ec952050e8dafca10bf5e4342a1bc52b",
+    "first_original_sample": 1794720,
+    "sample_count": 543392
+  },
+  {
+    "name": "v12-extended9600-r16",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 15 9600 16",
+    "original_sha256": "9816d1f9de55f332b433b96d42856cb5820331d66690507a1b28c776ed84666c",
+    "excerpt_sha256": "415e2c3017b78df41f9dab672a1c20d3e95197c06f779c080c41057ea31ab0f0",
+    "first_original_sample": 1283264,
+    "sample_count": 2549952
+  },
+  {
+    "name": "v13-fast125000-r16-repeat",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 15 125000 16",
+    "original_sha256": "74d271b91c39cd235873ca1a9496c5c3b70e427f94471271e935b5d8bc3c5b7a",
+    "excerpt_sha256": "955556d90c9dc1b3305c5eb504145b06afdf2e66db22304e3056c3417b7e85ba",
+    "first_original_sample": 1813408,
+    "sample_count": 432832
+  },
+  {
+    "name": "v13-fast125000-r16",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 15 125000 16",
+    "original_sha256": "a872f829ab10fcc3154e411dfc6543c78010ff387891f8b6904ad553456aa0c8",
+    "excerpt_sha256": "09cb13033d135899a8747e10e6c5e57595b8a23679e59f8adb65b9cf2c3a0511",
+    "first_original_sample": 1807360,
+    "sample_count": 432832
+  },
+  {
+    "name": "v13-fast19200",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 15 19200",
+    "original_sha256": "d7797bc5a35ebf1d4620a6ec561f00784f3ab3dda2e4f947c113e06e4ce8e5a3",
+    "excerpt_sha256": "a6069e02a72445261f66c67c4c1ccee0a9394a0d00f1c998e21ac4428a32cf98",
+    "first_original_sample": 1839776,
+    "sample_count": 328352
+  },
+  {
+    "name": "v13-fast4800",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 15 4800",
+    "original_sha256": "37f3151ef4e62fa4bde2151b42f641de357d22cd9d88faa64f8506deda328a7d",
+    "excerpt_sha256": "fcf31f28344026581fde8b330849037c67b042d3c16d8caf0f76dbf63514eb05",
+    "first_original_sample": 1777440,
+    "sample_count": 543296
+  },
+  {
+    "name": "v13-fast76800",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 15 76800",
+    "original_sha256": "5a702a59021a5b6992457344793bff44ba7a9944d0c75ace9410c7c34fb9309e",
+    "excerpt_sha256": "58cb7a854f9a5ae838bcfe93c3b13c6f0463ab109ca37ea93833af8ced9f0b3b",
+    "first_original_sample": 1844480,
+    "sample_count": 274624
+  },
+  {
+    "name": "v13-upload125000-92frames",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-send 125000 4",
+    "original_sha256": "c3ddab613108fbf47eeed45707d710193b3efc36ef5b7c765243fb0db82c48fa",
+    "excerpt_sha256": "79bf59d522f47d78df1d172351ba51d7c8e05adc1a1dcff8b346b737d7f84160",
+    "first_original_sample": 1599648,
+    "sample_count": 1269440
+  },
+  {
+    "name": "v13-upload38400-92frames",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-send 38400 4",
+    "original_sha256": "2544d190aeca8c3d4745973b6c9e85ba983bab60e3cb875844a0a031f2eb0662",
+    "excerpt_sha256": "8b476f87a82641bf6021664634d2a5c4bb2d2fe56b9074fb757271172e3f717d",
+    "first_original_sample": 1028064,
+    "sample_count": 3553344
+  },
+  {
+    "name": "v13-uploadcli9600-r16",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "python tools/lr2021_tx_upload.py uploaded-apsk.iq8 --serial BOARD --send 9600 --repeats 16",
+    "original_sha256": "8da5084396c4ed80b5b4c90a1382d9e8c6d68b4b3364efb9419033a2c884a639",
+    "excerpt_sha256": "831ed8e6724d2391df540edb8f1aeb4424554973be0049241c63aad0d2acbf8c",
+    "first_original_sample": 1856672,
+    "sample_count": 2549952
+  },
+  {
+    "name": "v9-apsk19200-r16",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 15 19200 16",
+    "original_sha256": "ff1446e250cfda744a1996f24f2834fe5a157ebb72c16797423e6fddb02134f1",
+    "excerpt_sha256": "18602d71da6f9397bb4a25af18b12e4c23d4b9a5f283a9079d3265c63dc854b3",
+    "first_original_sample": 1568832,
+    "sample_count": 1403328
+  },
+  {
+    "name": "v9-apsk4800-r12",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 15 4800 12",
+    "original_sha256": "449a81a17c5a333160437589b65d84451de7c72e9015fd0ee506f58ac41022d0",
+    "excerpt_sha256": "ac5b5a3b09bbef7a7c0ed2e6f5102fa944b3d7336c8358ec1d007c36e907119d",
+    "first_original_sample": 998464,
+    "sample_count": 3696576
+  },
+  {
+    "name": "v9-apsk9600-r16",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 15 9600 16",
+    "original_sha256": "12ab3f78b9fba6ae146c2f23440f04d050d4493776da50616fb1841e5646b9fc",
+    "excerpt_sha256": "dbd0fa54ef664385ecb0bad4f4d17571b9ccc22f82bcedc1e8065158073cfc24",
+    "first_original_sample": 1284576,
+    "sample_count": 2549952
+  },
+  {
+    "name": "v9-apsk9600",
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 15 9600",
+    "original_sha256": "4038883b900a3f96c470bd3d32f8603b8bbb158e312f23e43d484a04a192dee8",
+    "excerpt_sha256": "a6102283985fe38b40d2f7710426d6c366c9af2b5c512073fcce78cac76e6014",
+    "first_original_sample": 1811712,
+    "sample_count": 400032
+  }
+]

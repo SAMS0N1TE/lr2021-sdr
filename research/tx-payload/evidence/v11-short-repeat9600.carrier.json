@@ -1,0 +1,8 @@
+{
+  "name": "v11-short-repeat9600",
+  "cfo_hz": -266.55087516743674,
+  "carrier_residual_percent": 2.6227941404869504,
+  "receiver_rms": 0.049700716203620994,
+  "noise_power": 9.276818882579442e-07,
+  "scope": "Combined transmitter, propagation and receiver residual at constant I=48,Q=0; not an isolated receiver noise measurement"
+}

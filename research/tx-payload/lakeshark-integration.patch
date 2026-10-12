@@ -1,0 +1,83 @@
+diff --git a/components/apps/map_gui/AppMap.cpp b/components/apps/map_gui/AppMap.cpp
+index e0478b12..eab099ce 100644
+--- a/components/apps/map_gui/AppMap.cpp
++++ b/components/apps/map_gui/AppMap.cpp
+@@ -31,7 +31,7 @@ extern "C" {
+ #define COL_RED     SDR_RED
+ #define COL_PANEL   SDR_PANEL
+ 
+-static const char *TAG_NS  = "sdr-tool";
++static const char *TAG_NS  = "sdr-txlab";
+ static const char *WPT_KEY = "waypoints";
+ 
+ /**/
+diff --git a/components/lakeshark/apps/p25/scan_ctrl_nvs.c b/components/lakeshark/apps/p25/scan_ctrl_nvs.c
+index 5414cfc6..ac807b41 100644
+--- a/components/lakeshark/apps/p25/scan_ctrl_nvs.c
++++ b/components/lakeshark/apps/p25/scan_ctrl_nvs.c
+@@ -13,7 +13,7 @@
+ #include <string.h>
+ 
+ static const char *TAG    = "p25scan";
+-static const char *NS     = "sdr-tool";
++static const char *NS     = "sdr-txlab";
+ static const char *BLOBK  = "p25scanv1";
+ 
+ /* Sized to hold every possible mutation: header + max lockout + max allow. */
+diff --git a/components/lakeshark/board/ls_lora_lr20xx.c b/components/lakeshark/board/ls_lora_lr20xx.c
+index 40449c5d..c2febad0 100644
+--- a/components/lakeshark/board/ls_lora_lr20xx.c
++++ b/components/lakeshark/board/ls_lora_lr20xx.c
+@@ -3766,8 +3766,13 @@ static int capture_fifo_probe_command(int argc, char **argv)
+     return err == ESP_OK ? 0 : 1;
+ }
+ 
++#include "lr2021_tx_probe.inc"
++
+ int lr20xx_clock_command(int argc, char **argv)
+ {
++    if (argc > 1 && !strcmp(argv[1], "lrtx-upload")) return tx_upload_command(argc, argv);
++    if (argc > 1 && !strcmp(argv[1], "lrtx-send")) return tx_send_command(argc, argv);
++    if (argc > 1 && !strcmp(argv[1], "lrtx-probe")) return tx_probe_command(argc, argv);
+     if (argc > 1 && !strcmp(argv[1], "lrfifo-size")) {
+         uint32_t n = 0;
+         if (argc != 2 && (argc != 3 || !probe_number(argv[2], 1024, &n) ||
+diff --git a/components/lakeshark/core/scan_channels.c b/components/lakeshark/core/scan_channels.c
+index 975a17c6..00f8e081 100644
+--- a/components/lakeshark/core/scan_channels.c
++++ b/components/lakeshark/core/scan_channels.c
+@@ -10,7 +10,7 @@
+ #include <strings.h>
+ 
+ static const char  *TAG    = "scanch";
+-static const char  *NS     = "sdr-tool";
++static const char  *NS     = "sdr-txlab";
+ static const char  *BLOBK  = "scanlist";
+ 
+ static EXT_RAM_BSS_ATTR scan_channel_t s_ch[SCAN_MAX_CHANNELS];
+diff --git a/components/lakeshark/core/settings.c b/components/lakeshark/core/settings.c
+index 9c816a35..8fc84436 100644
+--- a/components/lakeshark/core/settings.c
++++ b/components/lakeshark/core/settings.c
+@@ -24,7 +24,7 @@
+ #include "esp_attr.h"
+ 
+ static const char  *TAG      = "settings";
+-static const char  *NS       = "sdr-tool";
++static const char  *NS       = "sdr-txlab";
+ static nvs_handle_t s_nvs    = 0;
+ static bool         s_nvs_ok = false;
+ static bool         s_home_write_ready = false;
+diff --git a/components/lakeshark/output/event_stream.c b/components/lakeshark/output/event_stream.c
+index 6cda8a7f..fc55b1c8 100644
+--- a/components/lakeshark/output/event_stream.c
++++ b/components/lakeshark/output/event_stream.c
+@@ -15,7 +15,7 @@
+ #define STREAM_TX_STACK     3072
+ #define STREAM_TX_PRIO      1
+ #define STREAM_TX_CORE      0
+-#define NVS_NS              "sdr-tool"
++#define NVS_NS              "sdr-txlab"
+ #define NVS_KEY_ENABLED     "cartotui_en"
+ 
+ static const char *TAG = "event_stream";

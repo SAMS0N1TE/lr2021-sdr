@@ -1,0 +1,173 @@
+[
+  {
+    "name": "v11-upload-max9600",
+    "rate": 9600,
+    "frames": 23,
+    "crc_passes": 23,
+    "payload_bits": 1472,
+    "bit_errors": 0,
+    "radio_success": true
+  },
+  {
+    "name": "v11-upload19200-r16",
+    "rate": 19200,
+    "frames": 16,
+    "crc_passes": 16,
+    "payload_bits": 1024,
+    "bit_errors": 0,
+    "radio_success": true
+  },
+  {
+    "name": "v11-upload9600-r16",
+    "rate": 9600,
+    "frames": 16,
+    "crc_passes": 16,
+    "payload_bits": 1024,
+    "bit_errors": 0,
+    "radio_success": true
+  },
+  {
+    "name": "v12-extended125000-r16",
+    "rate": 125000,
+    "frames": 16,
+    "crc_passes": 1,
+    "payload_bits": 1024,
+    "bit_errors": 544,
+    "radio_success": false
+  },
+  {
+    "name": "v12-extended38400-r16",
+    "rate": 38400,
+    "frames": 16,
+    "crc_passes": 16,
+    "payload_bits": 1024,
+    "bit_errors": 0,
+    "radio_success": true
+  },
+  {
+    "name": "v12-extended76800-r16",
+    "rate": 76800,
+    "frames": 16,
+    "crc_passes": 16,
+    "payload_bits": 1024,
+    "bit_errors": 0,
+    "radio_success": true
+  },
+  {
+    "name": "v12-extended9600-r16",
+    "rate": 9600,
+    "frames": 16,
+    "crc_passes": 16,
+    "payload_bits": 1024,
+    "bit_errors": 0,
+    "radio_success": true
+  },
+  {
+    "name": "v13-fast125000-r16-repeat",
+    "rate": 125000,
+    "frames": 16,
+    "crc_passes": 16,
+    "payload_bits": 1024,
+    "bit_errors": 0,
+    "radio_success": true
+  },
+  {
+    "name": "v13-fast125000-r16",
+    "rate": 125000,
+    "frames": 16,
+    "crc_passes": 16,
+    "payload_bits": 1024,
+    "bit_errors": 0,
+    "radio_success": true
+  },
+  {
+    "name": "v13-fast19200",
+    "rate": 19200,
+    "frames": 1,
+    "crc_passes": 1,
+    "payload_bits": 64,
+    "bit_errors": 0,
+    "radio_success": true
+  },
+  {
+    "name": "v13-fast4800",
+    "rate": 4800,
+    "frames": 1,
+    "crc_passes": 1,
+    "payload_bits": 64,
+    "bit_errors": 0,
+    "radio_success": true
+  },
+  {
+    "name": "v13-fast76800",
+    "rate": 76800,
+    "frames": 1,
+    "crc_passes": 1,
+    "payload_bits": 64,
+    "bit_errors": 0,
+    "radio_success": true
+  },
+  {
+    "name": "v13-upload125000-92frames",
+    "rate": 125000,
+    "frames": 92,
+    "crc_passes": 92,
+    "payload_bits": 5888,
+    "bit_errors": 0,
+    "radio_success": true
+  },
+  {
+    "name": "v13-upload38400-92frames",
+    "rate": 38400,
+    "frames": 92,
+    "crc_passes": 92,
+    "payload_bits": 5888,
+    "bit_errors": 0,
+    "radio_success": true
+  },
+  {
+    "name": "v13-uploadcli9600-r16",
+    "rate": 9600,
+    "frames": 16,
+    "crc_passes": 16,
+    "payload_bits": 1024,
+    "bit_errors": 0,
+    "radio_success": true
+  },
+  {
+    "name": "v9-apsk19200-r16",
+    "rate": 19200,
+    "frames": 16,
+    "crc_passes": 16,
+    "payload_bits": 1024,
+    "bit_errors": 0,
+    "radio_success": true
+  },
+  {
+    "name": "v9-apsk4800-r12",
+    "rate": 4800,
+    "frames": 12,
+    "crc_passes": 12,
+    "payload_bits": 768,
+    "bit_errors": 0,
+    "radio_success": true
+  },
+  {
+    "name": "v9-apsk9600-r16",
+    "rate": 9600,
+    "frames": 16,
+    "crc_passes": 16,
+    "payload_bits": 1024,
+    "bit_errors": 0,
+    "radio_success": true
+  },
+  {
+    "name": "v9-apsk9600",
+    "rate": 9600,
+    "frames": 1,
+    "crc_passes": 1,
+    "payload_bits": 64,
+    "bit_errors": 0,
+    "radio_success": true
+  }
+]
