@@ -11,7 +11,7 @@
 
 Experimental raw I/Q capture for the Semtech LR2021, written in C11.
 [New TX research](docs/tx-discovery.md) also verifies an undocumented FIFO-fed
-phase/frequency modulation path using independent HackRF measurements.
+amplitude/phase modulation path using independent HackRF measurements.
 Captures receiver I/Q through an undocumented ROM path, with a
 portable radio interface and native host tools.
 
@@ -43,17 +43,22 @@ three modulation modes. Tests used 915 MHz and independent HackRF reception.
 
 | Selector | Observed input | Verified behavior |
 | --- | --- | --- |
-| 0 | Signed I8/Q8 pairs | Coordinate angle controls phase; amplitude was not preserved |
+| 0 | Signed I8/Q8 pairs | OOK setup passes magnitude and phase; GFSK setup gives constant envelope |
 | 1 | Signed 8-bit values | Programmable frequency deviation |
 | 2 | Signed 8-bit values | Rate-scaled frequency, consistent with phase increments |
 
-The quadrant test reproduced 45-degree phase steps. Follow-up tests at up to
+**Amplitude path found:** OOK setup followed by selector 0 passes both I/Q
+magnitude and phase. Combined staircase tests measured 5.6–7.7% settled-plateau
+EVM at 4,800/9,600 samples/s. Magnitudes above roughly 64 saturate; small
+magnitudes have larger phase errors. [Recipe and replayable amplitude evidence](research/tx-amplitude/).
+
+The earlier GFSK-setup quadrant test reproduced 45-degree phase steps. Follow-up tests at up to
 19,200 samples/s isolated substantial errors at near-180-degree reversals;
 smaller transitions tracked closely. A paired follow-up reduced those errors
 to at most 3.3 degrees using four-step phase ramps at the tested rates.
 [Phase-ramp measurements and replayable captures](research/tx-phase-ramp/). The ordinary FSK control
-recovered all 512 payload bits without errors. **This does not establish
-amplitude-preserving SDR IQ playback or continuous TX streaming.**
+recovered all 512 payload bits without errors. **Full waveform fidelity, calibrated linearity and continuous TX streaming
+remain unverified.**
 
 [Command format, measurements and limitations](docs/tx-discovery.md) ·
 [Diagnostic source and evidence](research/tx-2026-10-12)

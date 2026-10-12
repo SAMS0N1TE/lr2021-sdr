@@ -1,0 +1,14 @@
+{
+  "name": "v6-ook-control9600",
+  "rate": 9600,
+  "pattern": 9,
+  "burst_s": [
+    0.98968,
+    1.046424
+  ],
+  "noise_power": 3.838960226796e-06,
+  "clipped_fraction": 0.0,
+  "envelope_q25": 0.0043563330027102795,
+  "envelope_q75": 0.06501045171394042,
+  "envelope_q75_q25_db": 23.4772422677497
+}

@@ -1,0 +1,132 @@
+[
+  {
+    "name": "v6-gfsk-amplitude9600",
+    "original_sha256": "d9ff471366a8a6518070b748e8b87a39c6a6227fb0d17191e423c91076d9c6e2",
+    "excerpt_sha256": "b514208a12589e39cb8b92813cf07c759e852175e02eb293adde3da2828d3cf6",
+    "first_original_sample": 1892184,
+    "sample_count": 173864,
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe raw0 4 9600"
+  },
+  {
+    "name": "v6-ook-amplitude4800",
+    "original_sha256": "b94ca25a597b0d9d83915601944e8aff42051e4e22833bbc19a06f1db583cfa6",
+    "excerpt_sha256": "9d5ec12c721ceb983cce7f0d5d2a1208b30632cc1eb525c9f6a3191bf0e9e051",
+    "first_original_sample": 1872664,
+    "sample_count": 242792,
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 4 4800"
+  },
+  {
+    "name": "v6-ook-amplitude9600",
+    "original_sha256": "2df20a49f57925fe0a7556dfc2a34ca0bbb9be71ff70e9d884c8458a5c10128a",
+    "excerpt_sha256": "935949e0fac8f2dd4fd82a92320aa9035df5cdc3c36662321616328648a8ce59",
+    "first_original_sample": 1899120,
+    "sample_count": 173680,
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 4 9600"
+  },
+  {
+    "name": "v6-ook-circle9600",
+    "original_sha256": "8b03e0d8b818882b9719e6c3e0f10f0ee238cbf0e593ce479f38845d91ddf40e",
+    "excerpt_sha256": "7913a0fd7f3ae133ce59b16cf4a97a3c80ffa73d356ed284d9a4a8711b819477",
+    "first_original_sample": 1901400,
+    "sample_count": 173704,
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 3 9600"
+  },
+  {
+    "name": "v6-ook-control9600",
+    "original_sha256": "6b065d48186629529d2d05f2b14b42daece05ad82466011683fb39b89d354e2d",
+    "excerpt_sha256": "4b28103301aaf62dfa2d6455b4f96ef842bbc286b416ac97c1d9f26ecf39219f",
+    "first_original_sample": 1525264,
+    "sample_count": 1021688,
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookpacket 9 9600"
+  },
+  {
+    "name": "v6-ook-held4800",
+    "original_sha256": "ad952bded63ffb7d5e3d1ba94a8b0bf62ede354d0c7a28d880daaddd13a6a36f",
+    "excerpt_sha256": "edacdad0c751e36442e473bd9d09095560d17d6ad96ed25d799d9371e6046edc",
+    "first_original_sample": 1871336,
+    "sample_count": 243152,
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 5 4800"
+  },
+  {
+    "name": "v6-ook20-amplitude9600",
+    "original_sha256": "ea491d41e87cdafe4fe3303713ed58d13ba3df04fd6cbb30cd51d3ee742f5b15",
+    "excerpt_sha256": "d5ccbed2fa7fdb482b8e9440c3d56277830422e922fcadf057914d9caf5f13aa",
+    "first_original_sample": 1902768,
+    "sample_count": 173672,
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ook20raw0 4 9600"
+  },
+  {
+    "name": "v7-mag-amplitude9600",
+    "original_sha256": "85854369bd384b8eb14d328777f23e3b847e9ccf36c30888622956ebf86947bc",
+    "excerpt_sha256": "27c8f4b28b032b58fd745909e43a9be8a4d6bad2eb17e0703bfe373e4d6ff6e3",
+    "first_original_sample": 1891888,
+    "sample_count": 173864,
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe magraw0 4 9600"
+  },
+  {
+    "name": "v7-mag-spiral4800",
+    "original_sha256": "17e8ad6e698d00ed06bb27fc6bf1db436a704b9864e6806bf9edc1f366bce6ed",
+    "excerpt_sha256": "dd1fa25138a0a7b6dd3a0e615cdbddbc671ab58d0c323e63455d1944f6e185ff",
+    "first_original_sample": 1866344,
+    "sample_count": 244736,
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe magraw0 10 4800"
+  },
+  {
+    "name": "v7-ook-lowlevels9600",
+    "original_sha256": "8ece682a5544cd1318ba7425301569f594e4ff7287db3c750f874fd5baa45367",
+    "excerpt_sha256": "2f4a191f03968d582b502ddf91c6a7a65db20ce79ff028fcf449ba564d2491b3",
+    "first_original_sample": 1900992,
+    "sample_count": 172504,
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 11 9600"
+  },
+  {
+    "name": "v7-ook-spiral4800",
+    "original_sha256": "287724b3c2b7c8d67b6c0789903d8a4f9937cb67a297fc0385ca19487f717b42",
+    "excerpt_sha256": "bfcd819fd996c921d0f6bdc152cd17b2c3c9ebde89bf021938ec0b09378f5718",
+    "first_original_sample": 1863072,
+    "sample_count": 242216,
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 10 4800"
+  },
+  {
+    "name": "v7-ook-spiral9600",
+    "original_sha256": "c9435adbd68345bb9e84991754811d334e22bfe09dd9e9161d1cbfc7bcc704f6",
+    "excerpt_sha256": "ea861bdb46809d432d45b59b5433c4ac3ae6e417a9ebbaf845b7173a46adc460",
+    "first_original_sample": 1902720,
+    "sample_count": 173616,
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 10 9600"
+  },
+  {
+    "name": "v7-ook-spiral9600-repeat",
+    "original_sha256": "3d374859939cef8fd6dfe9ae503ba8cb08120e1903deca53af5a81ab7adca7da",
+    "excerpt_sha256": "25df58dd30ebc90f4b24d7a50b60543f244091a85d3469e6b7a61a974dbac373",
+    "first_original_sample": 1901072,
+    "sample_count": 173584,
+    "sample_rate": 2000000,
+    "receiver_lo_hz": 914750000,
+    "command": "lora lrtx-probe ookraw0 10 9600"
+  }
+]

@@ -1,4 +1,4 @@
-# TX discovery: FIFO-fed phase and frequency modulation
+# TX discovery: FIFO-fed amplitude, phase and frequency
 
 Measured 2026-10-12. [Evidence and diagnostic source](../research/tx-2026-10-12/).
 
@@ -9,14 +9,33 @@ on this LR2021 ROM 1.24 board. Actual 915 MHz transmissions were independently
 captured by HackRF. HackRF only received; MMX was not used.
 
 Selector 0 consumes two signed bytes per sample, consistent with I8 then Q8.
-RF phase follows the coordinate angle, but amplitude did NOT follow input
-magnitude in the tested setup. Selector 1 consumes signed frequency samples.
+RF phase follows the coordinate angle. The initial GFSK setup gave constant
+amplitude; subsequent OOK setup passes magnitude as well as phase. Selector 1 consumes signed frequency samples.
 Selector 2 consumes signed samples with a frequency scale proportional to
 sample rate, consistent with phase increments.
 
-This establishes finite raw modulation, not amplitude-preserving SDR-style
-IQ playback or continuous streaming. All diagnostic emissions were short bursts at
+This establishes finite experimental IQ playback under OOK setup, with
+measured distortion and saturation. Full waveform fidelity and continuous
+streaming remain unverified. All diagnostic emissions were short bursts at
 915 MHz, configured -9 dBm. No PRAM patch was needed.
+
+## Amplitude route found after revisiting RX discovery methods
+
+Following ROM source/configuration paths, as in the RX capture investigation,
+led to a working magnitude route: configure OOK before `0x0293` selector 0.
+Positive-I steps scale approximately linearly below magnitude 64 and saturate
+above it. Combined magnitude/phase tests measured 5.60% settled-plateau EVM
+at 4,800 samples/s and 7.14–7.70% at 9,600. These are plateau measurements,
+not full-waveform EVM; low-amplitude phase distortion remains significant.
+
+OOK's magnitude-depth helper changes `F30910`, but copying those fields alone
+after GFSK setup does not enable amplitude. The full OOK sequence is currently
+required by the evidence. No PRAM patch was needed.
+
+[Working sequence, exact samples, 13 RF captures and analysis](../research/tx-amplitude/).
+
+The earlier GFSK observations below remain useful controls; their constant
+envelope does not apply to the later OOK setup.
 
 ## Reproducible Command Format
 
@@ -150,8 +169,8 @@ Holding points longer did not remove the persistent phase errors. The data
 narrow the problem to large transitions in this setup, but do not yet identify
 whether conversion, interpolation, limiting or the PLL causes them. The next
 controlled test should replace each large reversal with smaller intermediate
-phase steps at constant coordinate magnitude. Amplitude preservation remains
-unproven.
+phase steps at constant coordinate magnitude. At this earlier stage, amplitude preservation had not yet been observed;
+the OOK follow-up above supersedes that limitation for settled plateaus.
 
 [Lossless RF excerpts and analysis](../research/tx-2026-10-12/samples/) and
 [phase-jump evidence](../research/tx-2026-10-12/evidence/v4-raw0-held4800.jumps.json)

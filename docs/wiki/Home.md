@@ -1,6 +1,6 @@
 # LR2021-SDR research wiki
 
-- [TX discovery](TX-Discovery): RF-verified FIFO-fed phase and frequency modulation.
+- [TX discovery](TX-Discovery): RF-verified FIFO-fed magnitude/phase IQ under OOK setup; frequency modes also tested.
 - [RX protocol](https://github.com/SAMS0N1TE/lr2021-sdr/blob/main/docs/protocol.md).
 - [Live RX results](https://github.com/SAMS0N1TE/lr2021-sdr/blob/main/docs/live-streaming.md).
 

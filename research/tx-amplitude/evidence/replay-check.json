@@ -1,0 +1,61 @@
+{
+  "all_capture_hashes_verified": true,
+  "all_thirteen_console_results_clean": true,
+  "checks": [
+    {
+      "name": "v6-gfsk-amplitude9600",
+      "metric": "observed_max_min_ratio",
+      "absolute_replay_difference": 1.019636997057205e-08
+    },
+    {
+      "name": "v6-ook-amplitude4800",
+      "metric": "observed_max_min_ratio",
+      "absolute_replay_difference": 0.002747549812422978
+    },
+    {
+      "name": "v6-ook-amplitude9600",
+      "metric": "observed_max_min_ratio",
+      "absolute_replay_difference": 6.720911107915839e-05
+    },
+    {
+      "name": "v6-ook-control9600",
+      "metric": "envelope_q75_q25_db",
+      "absolute_replay_difference": 0.0
+    },
+    {
+      "name": "v6-ook20-amplitude9600",
+      "metric": "observed_max_min_ratio",
+      "absolute_replay_difference": 0.0002562541721427003
+    },
+    {
+      "name": "v7-mag-amplitude9600",
+      "metric": "observed_max_min_ratio",
+      "absolute_replay_difference": 1.018694002485887e-07
+    },
+    {
+      "name": "v7-mag-spiral4800",
+      "metric": "settled_plateau_evm_percent",
+      "absolute_replay_difference": 2.842170943040401e-14
+    },
+    {
+      "name": "v7-ook-lowlevels9600",
+      "metric": "settled_plateau_evm_percent",
+      "absolute_replay_difference": 1.3855583347321954e-13
+    },
+    {
+      "name": "v7-ook-spiral4800",
+      "metric": "settled_plateau_evm_percent",
+      "absolute_replay_difference": 0.0053080737589912275
+    },
+    {
+      "name": "v7-ook-spiral9600",
+      "metric": "settled_plateau_evm_percent",
+      "absolute_replay_difference": 0.6122449037337665
+    },
+    {
+      "name": "v7-ook-spiral9600-repeat",
+      "metric": "settled_plateau_evm_percent",
+      "absolute_replay_difference": 7.585043704239069e-13
+    }
+  ]
+}
