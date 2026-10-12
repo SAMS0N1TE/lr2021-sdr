@@ -1,40 +1,102 @@
-# LR2021-SDR
+<div align="center">
 
-**P25 voice, signal recording, and custom transmissions on a LoRa radio chip.**
+<h1 align="center">LR2021-SDR</h1>
 
-[Start here](docs/getting-started.md) · [Explore the guides](docs/README.md) · [P25 in action](docs/p25.md) · [LakeShark](https://github.com/SAMS0N1TE/LakeShark)
+### P25 voice, signal recording, and custom transmissions on a LoRa radio chip
+
+<br>
+
+[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue?style=for-the-badge)](LICENSE)
+[![Status: Experimental](https://img.shields.io/badge/status-experimental-orange?style=for-the-badge)](docs/tx-playback.md#remaining-scope)
+[![LR2021 ROM 1.24](https://img.shields.io/badge/LR2021-ROM%201.24-informational?style=for-the-badge)](docs/hardware.md)
+[![P25 Phase 1](https://img.shields.io/badge/P25-Phase%201%20voice-success?style=for-the-badge)](docs/p25.md)
+
+<br>
+
+**[Start here](docs/getting-started.md)** &nbsp;•&nbsp;
+**[Explore the guides](docs/README.md)** &nbsp;•&nbsp;
+**[P25 in action](docs/p25.md)** &nbsp;•&nbsp;
+**[LakeShark](https://github.com/SAMS0N1TE/LakeShark)**
+
+<br>
 
 [![LakeShark handheld radio workbench on the bench alongside other radio hardware](https://github.com/user-attachments/assets/bdd8069b-3c1a-4dd6-a821-1526e724c950)](https://github.com/SAMS0N1TE/LakeShark)
 
-*The LakeShark radio workbench. LR2021-SDR brings access to the signal inside its LR2021 radio.*
+<sub><i>The LakeShark radio workbench. LR2021-SDR brings access to the signal inside its LR2021 radio.</i></sub>
 
-The LR2021 is sold as a LoRa transceiver. This project opens up its raw signal path so software can receive and create other kinds of radio signals. It already powers **live P25 Phase 1 voice reception in LakeShark**, and the experimental transmit path now sends **P25 test-tone bursts, temperature packets, and custom waveforms**.
+</div>
 
-## What you can do
+<br>
+
+<div align="center">
+
+The LR2021 is sold as a LoRa transceiver.<br>
+This project opens up its **raw signal path** so software can receive and create other kinds of radio signals.
+
+It already powers **live P25 Phase 1 voice reception in LakeShark**,<br>
+and the experimental transmit path now sends **P25 test-tone bursts, temperature packets, and custom waveforms**.
+
+</div>
+
+<br>
+
+<h1 align="center">What you can do</h1>
+
+<div align="center">
 
 | Listen | Record | Transmit |
-| --- | --- | --- |
+| :---: | :---: | :---: |
 | Hear P25 Phase 1 voice through the onboard LR2021 in LakeShark. | Save the radio signal itself, then replay it through a decoder or study it on a computer. | Upload a waveform and send it over the air, controlling both its strength and phase. |
-| [Receive guide →](docs/receive.md) | [Recording guide →](docs/voice-capture.md) | [Transmit guide →](docs/transmit.md) |
+| **[Receive guide →](docs/receive.md)** | **[Recording guide →](docs/voice-capture.md)** | **[Transmit guide →](docs/transmit.md)** |
 
-## P25 is the proof
+</div>
 
-**A LoRa chip receiving digital voice—and now transmitting P25 voice-data bursts.**
+<br>
 
-Live reception produced audible P25 calls. A saved signal recording played back into voice again. On transmit, an independent receiver recovered **72 voice frames** and reconstructed the expected test tone.
+<h1 align="center">P25</h1>
 
-[Follow the P25 story](docs/p25.md) · [Listen to the recovered TX tone](research/tx-p25/evidence/v13-p25-voice19200/recovered.wav)
+<div align="center">
 
-## Make it yours
+### A LoRa chip receiving digital voice, and now transmitting P25 voice-data bursts.
 
-**Want a handheld?** Start with [LakeShark](https://github.com/SAMS0N1TE/LakeShark) on the LR2021 version of the LilyGO T-Display P4.
+Live reception produced audible P25 calls.<br>
+A saved signal recording played back into voice again.<br>
+On transmit, an independent receiver recovered **72 voice frames** and reconstructed the expected test tone.
 
-**Want to build with it?** This repo includes a portable receive library, USB capture firmware, waveform tools, and a separate LakeShark transmit integration. [Choose your starting point →](docs/getting-started.md)
+**[Follow the P25 story →](docs/p25.md)** &nbsp;•&nbsp; **[Listen to the recovered TX tone](research/tx-p25/evidence/v13-p25-voice19200/recovered.wav)**
 
-Experimental, tested on LR2021 ROM 1.24. [Hardware and setup](docs/hardware.md) · [Current TX capabilities](docs/tx-playback.md#remaining-scope)
+</div>
 
-[**All guides**](docs/README.md) · [Developer guide](docs/developer-guide.md) · [Research and measurements](docs/research.md)
+<br>
+
+<h1 align="center">Make it yours</h1>
+
+<div align="center">
+
+| Want a handheld? | Want to build with it? |
+| :---: | :---: |
+| Start with **[LakeShark](https://github.com/SAMS0N1TE/LakeShark)** on the LR2021 version of the LilyGO T-Display P4. | This repo includes a portable receive library, USB capture firmware, waveform tools, and a separate LakeShark transmit integration. |
+| | **[Choose your starting point →](docs/getting-started.md)** |
+
+</div>
+
+<br>
+
+<div align="center">
+
+*Experimental, tested on LR2021 ROM 1.24.*<br>
+[Hardware and setup](docs/hardware.md) &nbsp;•&nbsp; [Current TX capabilities](docs/tx-playback.md#remaining-scope)
+
+<br>
+
+**[All guides](docs/README.md)** &nbsp;•&nbsp; **[Developer guide](docs/developer-guide.md)** &nbsp;•&nbsp; **[Research and measurements](docs/research.md)**
+
+<br>
 
 ---
 
-Inspired by [ESP-SDR](https://github.com/ESPARGOS/esp-sdr) and the ESPARGOS team's work opening raw radio access. Original LR2021 capture and hardware integration by [LakeShark](https://github.com/SAMS0N1TE/LakeShark). No ESP-SDR code is included. [GPL-3.0](LICENSE).
+<sub>Inspired by [ESP-SDR](https://github.com/ESPARGOS/esp-sdr) and the ESPARGOS team's work opening raw radio access.<br>
+Original LR2021 capture and hardware integration by [LakeShark](https://github.com/SAMS0N1TE/LakeShark).<br>
+No ESP-SDR code is included. [GPL-3.0](LICENSE).</sub>
+
+</div>
