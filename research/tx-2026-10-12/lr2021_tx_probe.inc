@@ -13,10 +13,10 @@ static int tx_probe_command(int argc, char **argv)
     }
     uint32_t pattern = 0, rate = 9600;
     if (argc < 3 || argc > 5 || (!cw && !packet && raw < 0) ||
-        (argc >= 4 && !probe_number(argv[3], 4, &pattern)) ||
+        (argc >= 4 && !probe_number(argv[3], 5, &pattern)) ||
         (argc >= 5 && !probe_number(argv[4], 19200, &rate)) ||
         (rate != 4800 && rate != 9600 && rate != 19200)) {
-        puts("usage: lora lrtx-probe cw|packet|config0|config1|config2|raw0|raw1|raw2 [pattern 0..4] [rate 4800|9600|19200]");
+        puts("usage: lora lrtx-probe cw|packet|config0|config1|config2|raw0|raw1|raw2 [pattern 0..5] [rate 4800|9600|19200]");
         return 1;
     }
     if (lr20xx_stream_source2_active()) return 1;
@@ -36,7 +36,11 @@ static int tx_probe_command(int argc, char **argv)
             else payload[i]=(uint8_t)steps[i/8];
         }
     }
-    if (pattern >= 3) {
+    if (pattern == 5) {
+        if (raw != 0) return 1;
+        for (int i=63;i>=0;--i) { payload[2*i]=payload[2*(i/4)]; payload[2*i+1]=payload[2*(i/4)+1]; }
+    }
+    if (pattern == 3 || pattern == 4) {
         if (raw != 0) return 1;
         static const int8_t circle[8][2]={{64,0},{45,45},{0,64},{-45,45},{-64,0},{-45,-45},{0,-64},{45,-45}};
         static const int8_t amplitude[8]={16,32,48,64,80,96,112,32};

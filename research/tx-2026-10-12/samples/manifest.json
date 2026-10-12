@@ -1,0 +1,56 @@
+[
+  {
+    "name": "probe-packet0",
+    "sample_rate": 2000000,
+    "rx_lo": 914750000,
+    "first_original_sample": 1906464,
+    "complex_samples": 257384,
+    "original_sha256": "b550721e4ebe00523989fe3e4900de1a6eed736d21a794aa356862a69f6e24eb",
+    "crop_sha256": "4ff3949cc490d8391877d1e96e0cc0a31c3ad4329e45ede74c1f4b60c390ea06"
+  },
+  {
+    "name": "v3-raw0-circle",
+    "sample_rate": 2000000,
+    "rx_lo": 914750000,
+    "first_original_sample": 1957072,
+    "complex_samples": 43632,
+    "original_sha256": "ccb4645c3398174da7d56099455e498fb9aa56d42691f841cf29d7057f4a7c53",
+    "crop_sha256": "ce71c36eca5ec7a011c4c69f8a6ca1056e836214320bcfe071b0d871409a58e5"
+  },
+  {
+    "name": "v3-raw0-amplitude",
+    "sample_rate": 2000000,
+    "rx_lo": 914750000,
+    "first_original_sample": 1958504,
+    "complex_samples": 43656,
+    "original_sha256": "fde4ef26b337d5b4639214e25f17688669485f01a40614f71c0990393dae6555",
+    "crop_sha256": "6d322c176fb63748b8c53790f78c8e4bb176a24ad308849d0adbbd2d929c4174"
+  },
+  {
+    "name": "v4-raw0-held4800",
+    "sample_rate": 2000000,
+    "rx_lo": 914750000,
+    "first_original_sample": 1945408,
+    "complex_samples": 70288,
+    "original_sha256": "dd7e02a6956d6d8733be76cdf8e6280e17bcfc9310fa7ca520ed1d3544e3231c",
+    "crop_sha256": "7b1e2f0fb85a87efc388e5934242d7c055bd0a9926094ea7c0629ebedd31ab0e"
+  },
+  {
+    "name": "v4-raw0-held9600",
+    "sample_rate": 2000000,
+    "rx_lo": 914750000,
+    "first_original_sample": 1962304,
+    "complex_samples": 43632,
+    "original_sha256": "dfb60527a2677d441985e2f8d6bbca830294d47bca7ccce5cae99465c92ad2b9",
+    "crop_sha256": "2bb4f2d6f1b8891434b1e71889a0ea1362e06b5171fd7ede42fab3527eb0c778"
+  },
+  {
+    "name": "v4-raw0-held19200",
+    "sample_rate": 2000000,
+    "rx_lo": 914750000,
+    "first_original_sample": 1965192,
+    "complex_samples": 30288,
+    "original_sha256": "92668753e28462a5e775579b731e97f930c63c4649295f710fae4945ec43b5f7",
+    "crop_sha256": "29905d0a8184c6fe3f770434247c42226e36a337a1a0004a2fd152cb221af6e9"
+  }
+]

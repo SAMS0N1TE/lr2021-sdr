@@ -47,7 +47,9 @@ three modulation modes. Tests used 915 MHz and independent HackRF reception.
 | 1 | Signed 8-bit values | Programmable frequency deviation |
 | 2 | Signed 8-bit values | Rate-scaled frequency, consistent with phase increments |
 
-The quadrant test reproduced 45-degree phase steps. The ordinary FSK control
+The quadrant test reproduced 45-degree phase steps. Follow-up tests at up to
+19,200 samples/s isolated substantial errors at near-180-degree reversals;
+smaller transitions tracked closely. The ordinary FSK control
 recovered all 512 payload bits without errors. **This does not establish
 amplitude-preserving SDR IQ playback or continuous TX streaming.**
 

@@ -35,7 +35,7 @@ Implementation: lr2021_tx_probe.inc (LakeShark integration, not standalone firmw
 is also present in LakeShark components/lakeshark/board/.
 CLI: lora lrtx-probe raw0|raw1|raw2 [pattern] [4800|9600|19200]
 config0/config1/config2 do configuration only. cw and packet are controls.
-19200 is accepted by the diagnostic but was NOT RF-tested.
+The initial tests used 4800/9600; the follow-up below adds mode 0 at 19200.
 Patterns: 0=random xorshift, 1=inverted bytes, 2=held signed levels,
 3=I/Q circle (raw0 only), 4=I-only amplitude levels (raw0 only).
 Inspect FIFO flags as well as result=ESP_OK: command success alone does not
@@ -126,3 +126,43 @@ phase fidelity, zero-IQ semantics, alternative amplitude controls, packet-type
 dependencies, other ROM versions and other bands remain uncharacterized.
 The verified path supports developing finite custom constant-envelope
 waveforms, with explicit timeout/FIFO checking/stop/reset recovery retained.
+
+## Follow-up: distortion concentrates at large phase reversals
+
+The next experiment held each of 16 random I/Q pairs for four sample clocks,
+at **4,800, 9,600 and 19,200 samples/s**. All completed with FIFO level zero,
+flags `03`, TX_DONE and zero radio errors. Mode 0 is now RF-tested at 19,200;
+this is not its maximum established rate or a fidelity guarantee.
+
+At 4,800 samples/s, **13 of 15 relative phase transitions matched within
+1.65 degrees**. The two near-180-degree transitions did not:
+
+| Requested change | Measured change at 4,800 | At 9,600 |
+| --- | --- | --- |
+| -176.99 degrees | -90.87 degrees | -48.89 degrees |
+| +175.72 degrees | +70.68 degrees | +96.55 degrees |
+
+At 9,600, the other 13 transitions were within 2.48 degrees. At 19,200 the
++153.51-degree transition was also distorted. Carrier offset was estimated
+from the interiors of held plateaus before comparing phase changes.
+
+Holding points longer did not remove the persistent phase errors. The data
+narrow the problem to large transitions in this setup, but do not yet identify
+whether conversion, interpolation, limiting or the PLL causes them. The next
+controlled test should replace each large reversal with smaller intermediate
+phase steps at constant coordinate magnitude. Amplitude preservation remains
+unproven.
+
+[Lossless RF excerpts and analysis](../research/tx-2026-10-12/samples/) and
+[phase-jump evidence](../research/tx-2026-10-12/evidence/v4-raw0-held4800.jumps.json)
+are available for independent checks.
+
+### Diagnostic firmware compatibility
+
+The LakeShark build used a settings schema older than the board's original
+firmware. Boot reset three keys in its `sdr-tool` namespace. The saved namespace
+history identified the latest set as schema version, volume and P25 IQ mode;
+volume 50 and IQ selection were checked/restored after restoring the original
+application. Future hardware work must match the settings schema and back up
+NVS as well as the application before flashing. Local NVS backups are private
+and are not included in this repository.
