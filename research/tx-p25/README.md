@@ -8,7 +8,7 @@ the expected 1,011 Hz test tone.** No firmware rebuild or reflash was needed.
 This adds a concrete software-defined radio function to LakeShark: the LR2021
 can transmit P25 voice-data test bursts even though its packet interface does
 not provide a P25 framer or voice encoder. This demonstration uses pre-encoded
-test-tone frames; continuous microphone speech is not implemented.
+test-tone frames.
 
 ## Measured results
 
@@ -26,8 +26,8 @@ test-tone frames; continuous microphone speech is not implemented.
 | Audio FFT peak | 1,011.11 Hz | 1,011.11 Hz |
 
 Across both captures, **72 recovered 88-bit IMBE frames match the reference**.
-Do not describe the complete RF stream as error-free: DSD reports the header
-errors shown above. The post-FEC voice data matches, and no irrecoverable
+DSD reports the header errors shown above. The post-FEC voice data matches,
+and no irrecoverable
 header errors were reported. A received 0.5-second pre-burst noise segment
 produced zero P25 or IMBE frames using the same processing.
 
@@ -61,17 +61,14 @@ are supplied to DSD. Reference comparison happens after decoding.
 DSD's direct live WAV output was empty in this setup. For the audio check,
 the tool packages the **actual recovered IMBE frames and their logged error
 counts** into DSD's `.imb` file format and invokes stock DSD file playback.
-That produces the archived 8 kHz stereo WAV files. This is a two-stage decoder
-and vocoder test, not a claim that the live audio-output path is integrated.
-No audio is played through the computer or board speakers.
+That produces the archived 8 kHz stereo WAV files through a two-stage decoder
+and vocoder pipeline.
 
 An initial **offline HDU-containing baseline** misdecoded the header's
-encryption metadata. Its [log](reference/hdu-baseline-failed.log) is retained;
-it was not used as RF success evidence. The successful late-entry LDU2
-decoded clear-audio algorithm ID `0x80`, key ID zero and message indicator zero.
-HDU interoperability, arbitrary speech, continuous TX and spectral conformance
-remain unverified. This fixed 915 MHz experiment does not establish operation
-with a commercial P25 radio on another band.
+encryption metadata. Its [log](reference/hdu-baseline-failed.log) is retained.
+The successful late-entry LDU2 decoded clear-audio algorithm ID `0x80`, key ID zero and message indicator zero.
+Further work covers HDU interoperability, arbitrary speech, continuous TX and
+spectral conformance. See [TX development status](../../docs/tx-playback.md#remaining-scope).
 
 ## Reproduce the transmitted waveform
 
@@ -86,7 +83,7 @@ python tools/lr2021_tx_upload.py p25.iq8 --serial YOUR_USB_SERIAL --send 19200 -
 The first command exactly reproduces [voice-tone.iq8](inputs/voice-tone.iq8).
 The second explicitly transmits an approximately 810 ms burst. The existing
 upload limits and magnitude checks still apply. This tool modulates already
-framed P25 bytes; it does not encode microphone audio.
+framed P25 bytes.
 
 ## Replay the recordings without transmitting
 

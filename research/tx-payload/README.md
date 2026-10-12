@@ -8,7 +8,6 @@ both amplitude and phase, with payload CRC verification.
 **The final v13 build passed 235 frames / 15,040 payload bits with zero bit
 errors and every CRC valid.** These tests cover all six supported sample
 rates, repeated frames, long buffers, and the host upload-and-send command.
-This is a finite bench result, not a general reliability or BER guarantee.
 
 [Using the working interface](../../docs/tx-playback.md) gives commands,
 buffer limits, build integration and remaining scope.

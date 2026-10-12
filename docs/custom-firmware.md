@@ -51,7 +51,7 @@ The little-endian serialization of that vendor word array has SHA256
   header offset 8 and calls it when the low byte of header word 1 is nonzero.
   A return value of 2 sets a runtime flag. This inspected path does not contain
   signature verification; successful custom execution is the relevant proof
-  for this silicon/version, not a claim about every future revision.
+  for the tested silicon/version.
 - The test image is written at data/SPI address 0x801000 but executes through
   alias 0x101000. Once mapped, its result is read at 0x101060. The loader and readback paths use different aliases.
 - The vendor image has primary entry 0x10104C and another pointer at header

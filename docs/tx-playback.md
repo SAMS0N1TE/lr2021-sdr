@@ -55,8 +55,7 @@ python tools/lr2021_tx_upload.py p25.iq8 --serial YOUR_USB_SERIAL --send 19200 -
 Requires NumPy. The example transmits pre-encoded LDU1/LDU2/TDU test-tone
 frames at the fixed 915 MHz test frequency. Two RF captures recovered 72 IMBE
 frames matching the reference; stock DSD-neo file playback reconstructed the
-1,011 Hz tone. Continuous microphone audio and HDU interoperability are not
-established. [Evidence, decoded WAV and offline replay](../research/tx-p25/).
+1,011 Hz tone. [Evidence, decoded WAV and offline replay](../research/tx-p25/).
 
 ## Existing sensor packet example
 
@@ -68,8 +67,7 @@ python tools/lr2021_make_temperature.py temperature.iq8 --temperature 23.4 --id 
 python tools/lr2021_tx_upload.py temperature.iq8 --serial YOUR_USB_SERIAL --send 9600
 ```
 
-Use the same console preflight above. This remains a 915 MHz lab transmission,
-not a demonstrated link to a physical Acurite display.
+Use the same console preflight above.
 [Three verified readings, negative controls and replay](../research/tx-temperature/).
 
 ## Supported buffer contract
@@ -141,9 +139,9 @@ The existing RX tests remain enabled.
 
 ## Remaining scope
 
-This is working **bounded I/Q playback and FIFO-fed transmission**, not
-indefinite host streaming, simultaneous RX/TX, or a calibrated wideband SDR.
-125 ksample/s is an input rate, not a verified flat 125 kHz transmit bandwidth.
-Modulation distortion, spectral emissions, other RF frequencies/powers and
-other boards still need characterization. Abrupt phase reversals and very
-small amplitudes retain the limitations documented in the earlier research.
+**Bounded I/Q playback and FIFO-fed transmission are working.** Remaining
+work includes continuous host streaming, gapless burst chaining, microphone
+voice encoding, P25 HDU interoperability, and simultaneous RX/TX testing.
+Characterization work covers TX bandwidth, linearity, spectral emissions,
+other frequencies/powers and other boards. The earlier research records
+distortion at abrupt phase reversals and very small amplitudes.

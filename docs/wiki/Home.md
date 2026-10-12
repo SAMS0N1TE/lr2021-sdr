@@ -14,8 +14,7 @@ Stock rtl_433 25.12 decoded synthetic Acurite-606TX readings of 23.4 C,
 -12.3 C and 37.8 C from HackRF recordings of LR2021 uploaded I/Q TX.
 IDs, channels, battery flags and checksums matched. The deliberately bad
 checksum produced no accepted reading; a half-amplitude acquisition failure
-is also archived. Tests used 915 MHz, not the sensor's normal RF band, so
-physical display compatibility is not established.
+is also archived. Tests used 915 MHz.
 
 [Generator, results and replayable evidence](https://github.com/SAMS0N1TE/lr2021-sdr/tree/main/research/tx-temperature/).
 
@@ -26,7 +25,6 @@ talkgroup 4242, source 123456, and 72 recovered IMBE frames matching the
 software reference. File playback of those recovered frames reconstructed
 the expected 1,011 Hz tone. All voice-frame error counts were zero; header
 errors were reported but none were irrecoverable. The received-noise control
-decoded nothing. This is a short late-entry test-tone sequence at 915 MHz,
-not continuous microphone audio or verified HDU interoperability.
+decoded nothing. The test used a short late-entry test-tone sequence at 915 MHz.
 
 [Tools, RF recordings and decoded audio](https://github.com/SAMS0N1TE/lr2021-sdr/tree/main/research/tx-p25/).

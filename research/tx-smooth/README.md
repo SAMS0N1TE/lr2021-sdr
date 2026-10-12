@@ -106,13 +106,11 @@ LR2021 more programmable than a fixed packet-modem interface alone.
 - Receive-and-replay becomes a research target, provided sample rates,
   amplitude scale, filtering and sustained TX data flow are handled correctly.
 
-These are development opportunities, not implemented LakeShark features.
-The portable library remains RX-only. Continuous FIFO refill, useful maximum
-bandwidth, spectral quality, calibrated linearity and payload decoding on
-this magnitude-preserving route remain open. Simultaneous RX/TX has not been
-demonstrated. The result does not make the LR2021 a wideband HackRF replacement.
+Subsequent work implemented [FIFO-fed playback and decoded 8-APSK payloads](../tx-payload/),
+[temperature-sensor packets](../tx-temperature/), and [P25 voice-data bursts](../tx-p25/).
+The portable library remains RX-only; TX uses the LakeShark integration.
+[Current development status](../../docs/tx-playback.md#remaining-scope) tracks
+streaming, bandwidth, spectral quality and amplitude/phase calibration.
 
-The next useful milestones are a decoded payload using shaped complex samples,
-repeatable amplitude/phase calibration, and sustained FIFO-fed transmission.
 Continue tracing the OOK-specific setup/start state: changing F30910 alone
 was insufficient, and the exact internal magnitude enable remains unresolved.

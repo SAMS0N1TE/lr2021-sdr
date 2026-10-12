@@ -3,8 +3,8 @@
 Measured on LR2021 ROM 1.24, 2026-10-12. The earlier constant-envelope
 result was specific to GFSK setup. **OOK setup followed by raw selector 0
 transmits both coordinate magnitude and phase**, with distortion and a
-limited useful magnitude range. This is finite, experimental IQ playback;
-continuous streaming and full waveform fidelity remain unverified.
+limited useful magnitude range. See [current TX playback](../../docs/tx-playback.md)
+for the implementation and development status.
 
 ## Why revisit setup?
 

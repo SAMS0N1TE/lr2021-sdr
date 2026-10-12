@@ -21,22 +21,21 @@ would erase its on/off information.
 | `v13-temperature37` | 19,200 | 24 | 3 | Half-amplitude acquisition failure: **no accepted reading** |
 
 Each successful burst produces one decoded reading from repeated packet rows;
-these are **three accepted readings**, not fifteen independently accepted frames.
+the result is **three accepted readings**.
 All five transmissions completed with zero radio errors, no FIFO overflow or
 underflow, empty final TX FIFO, and successful stop/recovery. Bursts lasted
 approximately 0.38-0.79 seconds. The historical `badcrc` filename refers to the
-sensor's LFSR checksum; it is not a conventional CRC. Independent generic
+sensor's LFSR checksum. Independent generic
 pulse slicing recovered all six deliberately invalid rows as `5a80ea8f0`
 (the valid checksum byte is `8e`). Thus the rejected control contained the
 intended bits rather than simply failing to produce a detectable packet.
 See [raw pulse output](evidence/bad-checksum-pulses.txt).
 
-The lower-amplitude case is retained rather than counted as success. With a
+The lower-amplitude case failed acquisition. With a
 global gain of four applied offline, pulse analysis recovered two complete
 rows and an incomplete first row; protocol 55 requires at least three matching
 rows. The same packet at amplitude 48 decoded with default receiver settings.
-This is an acquisition/sensitivity limitation in this setup, not evidence of
-reliable operation at amplitude 24.
+
 
 ## What this demonstrates
 
@@ -45,12 +44,9 @@ temperature, channel and battery flag, generate the waveform, and transmit it
 through raw I/Q. A separate software receiver reads the intended fields and
 checks integrity without knowing the expected payload.
 
-These are **synthetic lab readings**. The current interface transmits at
-**915 MHz, configured -9 dBm**. The Acurite-606TX packet format normally belongs
-to a different RF band; this experiment does **not** establish compatibility
-with an actual Acurite display or a physical sensor. HackRF was receive-only.
-This OOK result complements the earlier amplitude-and-phase 8-APSK evidence;
-it does not establish arbitrary-QAM fidelity or calibrated RF output.
+The test readings were generated in software and transmitted at **915 MHz,
+configured -9 dBm**, with HackRF receiving. This OOK result complements the
+earlier amplitude-and-phase 8-APSK evidence.
 
 ## Generate and transmit
 

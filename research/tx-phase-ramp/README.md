@@ -27,7 +27,7 @@ underflow, radio errors or receiver clipping occurred. This supports smooth
 phase paths as a practical workaround; it does not identify the internal
 cause or prove arbitrary IQ fidelity. Exact 180-degree behavior was not
 monotonic with nearby reversal angles, so a simple universal angle threshold
-is not established. No amplitude-preserving TX result is claimed.
+is not established. Later [OOK setup measurements](../tx-amplitude/) established amplitude control.
 
 The analyzer chooses timing from plateau flatness without using desired phase.
 It estimates common carrier offset on the final two samples of each eight-sample

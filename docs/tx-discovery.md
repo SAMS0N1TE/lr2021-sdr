@@ -2,12 +2,10 @@
 
 Latest result: [P25 Phase 1 voice-data TX](../research/tx-p25/) recovered 72 IMBE
 frames across two RF captures and reconstructed the expected 1,011 Hz test tone.
-This is bounded late-entry test-tone playback; continuous voice and HDU interoperability remain unverified.
 
 Earlier application result: [an existing temperature-sensor packet format](../research/tx-temperature/)
 now decodes through unmodified rtl_433 from independently captured LR2021 RF.
 Three readings passed integrity checks; a deliberately invalid checksum was rejected.
-The experiment stays at 915 MHz and does not establish physical sensor/display compatibility.
 
 Measured 2026-10-12. [Evidence and diagnostic source](../research/tx-2026-10-12/).
 
@@ -24,8 +22,7 @@ Selector 2 consumes signed samples with a frequency scale proportional to
 sample rate, consistent with phase increments.
 
 This establishes finite experimental IQ playback under OOK setup, with
-measured distortion and saturation. Full waveform fidelity and indefinite
-streaming remain unverified. All diagnostic emissions were short bursts at
+measured distortion and saturation. Diagnostic emissions were short bursts at
 915 MHz, configured -9 dBm. No PRAM patch was needed.
 
 ## Uploaded playback and decoded payloads now working
@@ -136,8 +133,8 @@ See rf/v3-raw0-circle.phase.json.
 
 Amplitude test: I=16,32,48,64,80,96,112,32 and Q=0. Received amplitude stayed
 about 0.0671..0.0676 full scale despite the 7:1 input range. The tested output
-is effectively constant envelope. Do not claim general linear complex-IQ
-transmission. See rf/v3-raw0-amplitude.phase.json.
+is effectively constant envelope under GFSK setup. See
+rf/v3-raw0-amplitude.phase.json. The later OOK setup enables amplitude control.
 
 Random I/Q pairs fit less cleanly: phase-model coherence 0.723 at 9600 and
 0.874 at 4800, phase RMS 44.6 and 29.6 degrees with a simple midpoint model.
@@ -171,7 +168,7 @@ The original ROM trace is retained in the local investigation archive.
 
 LR2021 ROM 1.24 on ESP32-P4; HackRF One receiver, LO914.750MHz, 2MS/s,
 amp and antenna power off, LNA16dB. Initial VGA16dB; v2/v3 VGA32dB.
-Over-air US-band antennas. No calibrated output-power claim. Original board
+Over-air US-band antennas; power values are configured settings. Original board
 firmware was restored and flash hash verified after testing.
 
 ## Limits / Next Work

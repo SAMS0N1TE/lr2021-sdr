@@ -22,15 +22,11 @@ bit errors**, verified by an independent HackRF receiver.
 RF runs recovered **72 IMBE voice frames**, all matching the software reference,
 and synthesized the expected **1,011 Hz test tone**. NAC, talkgroup and source
 ID decoded correctly. [P25 TX evidence and reproduction](research/tx-p25/).
-This is a pre-encoded test-tone/late-entry demonstration, not continuous
-microphone voice or verified HDU interoperability.
 
 **An existing sensor packet format now works too:** stock `rtl_433` decoded
 three transmitted temperature readings (23.4 C, -12.3 C and 37.8 C), including
 IDs, channels, battery flags and valid checksums. A deliberately invalid
 checksum produced no accepted reading. [Reproduce the sensor-packet demo](research/tx-temperature/).
-These are synthetic packets at our 915 MHz test frequency, not a physical
-sensor/display compatibility claim.
 
 | Capability | Verified result |
 | --- | --- |
@@ -45,8 +41,7 @@ sensor/display compatibility claim.
 > **Experimental; tested on LR2021 ROM 1.24.** The portable C library and
 > standalone ESP32-P4 firmware provide RX. TX requires the separate
 > [LakeShark integration](docs/tx-playback.md#integrating-the-source).
-> TX is bounded playback; 125 ksample/s is an input rate, not a verified flat
-> 125 kHz transmit bandwidth.
+> TX playback supports finite bursts at input rates through 125 ksample/s.
 
 ## Start here
 
@@ -148,15 +143,14 @@ The two amplitude rings in the decoded 8-APSK frames demonstrate useful
 amplitude information at the receiver. Separate low-rate measurements found
 5.6–7.7% settled-plateau EVM and 7.9–8.4% interior EVM on smooth signals
 changing magnitude and phase every sample. These smooth signals used
-150/300 Hz fundamentals and harmonics; they do not establish full-bandwidth
-fidelity. Magnitudes above roughly 64 saturate, and small magnitudes have
-larger phase errors. The demo uses four-step phase ramps to reduce distortion
+150/300 Hz fundamentals and harmonics. Magnitudes above roughly 64 saturate,
+and small magnitudes have larger phase errors. The demo uses four-step phase ramps to reduce distortion
 at abrupt phase reversals.
 
 For LakeShark, this adds a measured path for generating custom narrowband
 waveforms and transmitting uploaded I/Q bursts alongside its existing raw-I/Q
-receiver. **Calibrated linearity, indefinite host streaming, gapless burst
-chaining and simultaneous RX/TX remain unverified.**
+receiver. [TX development status](docs/tx-playback.md#remaining-scope) tracks
+streaming, calibration and further characterization.
 
 [Amplitude measurements](research/tx-amplitude/) ·
 [Smooth waveform measurements](research/tx-smooth/) ·

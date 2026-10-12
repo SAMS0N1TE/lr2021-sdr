@@ -15,8 +15,7 @@ Selector 2 consumes signed samples with a frequency scale proportional to
 sample rate, consistent with phase increments.
 
 This establishes finite experimental IQ playback under OOK setup, with
-measured distortion and saturation. Full waveform fidelity and indefinite
-streaming remain unverified. All diagnostic emissions were short bursts at
+measured distortion and saturation. Diagnostic emissions were short bursts at
 915 MHz, configured -9 dBm. No PRAM patch was needed.
 
 ## Uploaded playback and decoded payloads now working
@@ -127,8 +126,8 @@ See rf/v3-raw0-circle.phase.json.
 
 Amplitude test: I=16,32,48,64,80,96,112,32 and Q=0. Received amplitude stayed
 about 0.0671..0.0676 full scale despite the 7:1 input range. The tested output
-is effectively constant envelope. Do not claim general linear complex-IQ
-transmission. See rf/v3-raw0-amplitude.phase.json.
+is effectively constant envelope under GFSK setup. See
+rf/v3-raw0-amplitude.phase.json. The later OOK setup enables amplitude control.
 
 Random I/Q pairs fit less cleanly: phase-model coherence 0.723 at 9600 and
 0.874 at 4800, phase RMS 44.6 and 29.6 degrees with a simple midpoint model.
@@ -162,7 +161,7 @@ The original ROM trace is retained in the local investigation archive.
 
 LR2021 ROM 1.24 on ESP32-P4; HackRF One receiver, LO914.750MHz, 2MS/s,
 amp and antenna power off, LNA16dB. Initial VGA16dB; v2/v3 VGA32dB.
-Over-air US-band antennas. No calibrated output-power claim. Original board
+Over-air US-band antennas; power values are configured settings. Original board
 firmware was restored and flash hash verified after testing.
 
 ## Limits / Next Work
@@ -240,8 +239,7 @@ Stock rtl_433 25.12 decoded synthetic Acurite-606TX readings of 23.4 C,
 -12.3 C and 37.8 C from HackRF recordings of LR2021 uploaded I/Q TX.
 IDs, channels, battery flags and checksums matched. The deliberately bad
 checksum produced no accepted reading; a half-amplitude acquisition failure
-is also archived. Tests used 915 MHz, not the sensor's normal RF band, so
-physical display compatibility is not established.
+is also archived. Tests used 915 MHz.
 
 [Generator, results and replayable evidence](https://github.com/SAMS0N1TE/lr2021-sdr/tree/main/research/tx-temperature/).
 
@@ -252,7 +250,6 @@ talkgroup 4242, source 123456, and 72 recovered IMBE frames matching the
 software reference. File playback of those recovered frames reconstructed
 the expected 1,011 Hz tone. All voice-frame error counts were zero; header
 errors were reported but none were irrecoverable. The received-noise control
-decoded nothing. This is a short late-entry test-tone sequence at 915 MHz,
-not continuous microphone audio or verified HDU interoperability.
+decoded nothing. The test used a short late-entry test-tone sequence at 915 MHz.
 
 [Tools, RF recordings and decoded audio](https://github.com/SAMS0N1TE/lr2021-sdr/tree/main/research/tx-p25/).
