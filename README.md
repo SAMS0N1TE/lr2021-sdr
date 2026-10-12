@@ -9,25 +9,39 @@
   <a href="https://github.com/SAMS0N1TE/LakeShark">LakeShark</a>
 </p>
 
-Experimental raw I/Q capture for the Semtech LR2021, written in C11.
-[New TX research](docs/tx-discovery.md) also verifies an undocumented FIFO-fed
-amplitude/phase modulation path using independent HackRF measurements.
-Captures receiver I/Q through an undocumented ROM path, with a
-portable radio interface and native host tools.
+Raw I/Q reception and experimental **amplitude-preserving I/Q transmit
+playback** on the Semtech LR2021. This repository includes a portable C11
+receive library, host tools, and a separate LakeShark TX integration with
+upload tools and independently captured RF evidence.
+
+**TX now carries decoded payloads using both amplitude and phase.** The final
+tested build delivered **235 CRC-valid frames / 15,040 payload bits with zero
+bit errors**, verified by an independent HackRF receiver.
+
+| Capability | Verified result |
+| --- | --- |
+| Raw I/Q RX | LakeShark capture and processing ran for 391 seconds without reported FIFO loss or queue rejection |
+| Live voice RX | P25 Phase 1 C4FM voice decoded from LR2021 raw I/Q in LakeShark |
+| Amplitude + phase TX | Uploaded signed I8/Q8 drives a two-ring, four-phase 8-APSK payload waveform |
+| TX sample rates | 4,800; 9,600; 19,200; 38,400; 76,800; 125,000 complex samples/s |
+| Longest verified TX buffer | 31,648 complex samples / 63,296 FIFO bytes, carrying 92 consecutive valid frames at both 38.4 and 125 ksample/s |
 
 > [!IMPORTANT]
-> **Experimental. The portable library and standalone ESP32-P4 target remain receive-only; the LakeShark TX integration is separate.** LR2021 ROM **1.24** is the supported target.
-> LakeShark's live integration has sustained capture without reported FIFO loss.
-> Live P25 Phase 1 C4FM voice has been decoded from LR2021 raw I/Q in LakeShark.
-> A LilyGO ESP32-P4 adapter is included; other boards need porting.
-
-![LR2021 raw I/Q spectrum and waterfall from a decoded P25 voice call](docs/images/voice-iq-hero-purple.png)
+> **Experimental; tested on LR2021 ROM 1.24.** The portable C library and
+> standalone ESP32-P4 firmware provide RX. TX requires the separate
+> [LakeShark integration](docs/tx-playback.md#integrating-the-source).
+> TX is bounded playback; 125 ksample/s is an input rate, not a verified flat
+> 125 kHz transmit bandwidth.
 
 ## Start here
 
-**[ESP32-P4 firmware](firmware/esp32p4/README.md)** | **[Build the C tools](#build)** | **[Connect your driver](docs/porting.md)** | **[Console format](docs/console.md)**
+**[Transmit I/Q](docs/tx-playback.md)** | **[ESP32-P4 RX firmware](firmware/esp32p4/README.md)** | **[Build the C tools](#build)** | **[Connect your driver](docs/porting.md)** | **[Console format](docs/console.md)**
 
-For a quick board test, use the [ESP32-P4 USB console firmware](firmware/esp32p4/README.md).
+For TX, install the [TX-enabled LakeShark integration](docs/tx-playback.md#integrating-the-source)
+and follow the upload example below. The repository includes its source,
+integration patch, waveform generator, uploader, decoder and RF recordings.
+
+For a quick RX board test, use the [ESP32-P4 USB console firmware](firmware/esp32p4/README.md).
 It includes a LilyGO T-Display-P4 adapter, checked FIFO tests and IQ16 capture
 export. The screen and audio are unused. Other integrations can use the C API:
 
@@ -36,52 +50,82 @@ export. The screen and audio are unused. Other integrations can use the C API:
 3. **Capture a window:** supply the board hooks, configure LoRa RX, then use the
    capture API or a compatible console. See [capture.c](examples/capture.c).
 
-## Raw TX discovery
+## I/Q transmit playback
 
-**Working LakeShark TX playback:** upload signed I8/Q8 and transmit with
-checked FIFO refilling at 4,800–125,000 complex samples/s. The final build
-decoded **235 frames / 15,040 payload bits with zero errors and valid CRCs**,
-including a 31,648-sample transmission and the host upload-and-send tool.
-[Use TX playback](docs/tx-playback.md) · [Source, decoder and RF evidence](research/tx-payload/).
+The working TX path uses **OOK initialization followed by raw ROM command
+`0x0293`, selector 0** to transmit signed I8/Q8. This setup passes both sample
+magnitude and phase; GFSK initialization produces a constant envelope.
+No PRAM patch is required.
+
+The FIFO service reuses LakeShark's raw-RX fast SPI path. A 1 KiB TX FIFO,
+owned 16 MHz SPI access, and checked refills sustain the tested finite
+transmissions through 125 ksample/s. Uploads use acknowledged chunks and a
+whole-buffer CRC-32 before playback is allowed.
+
+### Send a payload
+
+With the TX-enabled LakeShark firmware installed, run in the board console:
+
+```text
+tui off
+mesh stop
+lora config 915 7 62.5 5 -9
+```
+
+Install Python's `pyserial` package, then run from this repository:
 
 ```text
 python tools/lr2021_make_apsk.py LAKESHAR frame.iq8
 python tools/lr2021_tx_upload.py frame.iq8 --serial YOUR_USB_SERIAL --send 9600 --repeats 16
 ```
 
-Requires the TX-enabled LakeShark build. Current bounds: fixed 915 MHz/-9 dBm,
-16 KiB upload, magnitude at most 56, and at most 900 ms of samples per run.
+Replace `YOUR_USB_SERIAL` with the board's USB serial number, or use
+`--port COM19` with the appropriate port. The first command generates an
+8-APSK frame containing the eight-byte payload and CRC-16. The second uploads
+and transmits it. Omit `--send` to upload only. The ready buffer can be sent
+again without reflashing or resetting the board.
 
-**RF-verified on ROM 1.24:** command `0x0293` accepts finite sample buffers for
-three modulation modes. Tests used 915 MHz and independent HackRF reception.
+| Playback property | Current bound |
+| --- | --- |
+| RF configuration | Fixed 915 MHz, configured −9 dBm |
+| Sample format | Interleaved signed 8-bit I, Q; no header |
+| Upload size | 2–16,384 bytes, even length |
+| Sample magnitude | `I*I + Q*Q <= 56*56` |
+| Repetitions | 1–16 |
+| Total samples per run | At most 32,767 complex samples, including repetitions |
+| Sample duration | At most 900 ms per run |
 
-| Selector | Observed input | Verified behavior |
-| --- | --- | --- |
-| 0 | Signed I8/Q8 pairs | OOK setup passes magnitude and phase; GFSK setup gives constant envelope |
-| 1 | Signed 8-bit values | Programmable frequency deviation |
-| 2 | Signed 8-bit values | Rate-scaled frequency, consistent with phase increments |
+Preserve relative sample amplitudes when scaling a waveform. Normalizing
+each I/Q pair to a constant radius destroys the amplitude information. RX
+IQ16 recordings require appropriate conversion and resampling before TX.
 
-**Amplitude path found:** OOK setup followed by selector 0 passes both I/Q
-magnitude and phase. Combined staircase tests measured 5.6–7.7% settled-plateau
-EVM at 4,800/9,600 samples/s. Magnitudes above roughly 64 saturate; small
-magnitudes have larger phase errors. [Recipe and replayable amplitude evidence](research/tx-amplitude/).
+[Complete usage and integration](docs/tx-playback.md) ·
+[Payload results, source, decoder and replayable RF evidence](research/tx-payload/)
 
-A subsequent smooth signal, changing magnitude and phase every sample, measured
-7.9–8.4% interior waveform EVM; an amplitude-only signal measured 6.2%.
-[Waveform captures, analysis and implications for LakeShark](research/tx-smooth/).
+### Waveform fidelity and remaining limits
 
-The earlier GFSK-setup quadrant test reproduced 45-degree phase steps. Follow-up tests at up to
-19,200 samples/s isolated substantial errors at near-180-degree reversals;
-smaller transitions tracked closely. A paired follow-up reduced those errors
-to at most 3.3 degrees using four-step phase ramps at the tested rates.
-[Phase-ramp measurements and replayable captures](research/tx-phase-ramp/). The ordinary FSK control
-recovered all 512 payload bits without errors. **Full waveform fidelity, calibrated linearity and indefinite TX streaming
-remain unverified.**
+The two amplitude rings in the decoded 8-APSK frames demonstrate useful
+amplitude information at the receiver. Separate low-rate measurements found
+5.6–7.7% settled-plateau EVM and 7.9–8.4% interior EVM on smooth signals
+changing magnitude and phase every sample. These smooth signals used
+150/300 Hz fundamentals and harmonics; they do not establish full-bandwidth
+fidelity. Magnitudes above roughly 64 saturate, and small magnitudes have
+larger phase errors. The demo uses four-step phase ramps to reduce distortion
+at abrupt phase reversals.
 
-[Command format, measurements and limitations](docs/tx-discovery.md) ·
-[Diagnostic source and evidence](research/tx-2026-10-12)
+For LakeShark, this adds a measured path for generating custom narrowband
+waveforms and transmitting uploaded I/Q bursts alongside its existing raw-I/Q
+receiver. **Calibrated linearity, indefinite host streaming, gapless burst
+chaining and simultaneous RX/TX remain unverified.**
+
+[Amplitude measurements](research/tx-amplitude/) ·
+[Smooth waveform measurements](research/tx-smooth/) ·
+[Phase-ramp measurements](research/tx-phase-ramp/) ·
+[ROM command discovery and other modulation selectors](docs/tx-discovery.md)
 
 ## Capture and analysis
+
+![LR2021 raw I/Q spectrum and waterfall from a decoded P25 voice call](docs/images/voice-iq-hero-purple.png)
 
 - 256-pair SRAM capture with verified memory restoration.
 - Bounded FIFO capture, up to 250 ms at a nominal 125 ksample/s.
