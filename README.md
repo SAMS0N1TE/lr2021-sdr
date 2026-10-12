@@ -1,6 +1,6 @@
 <h1 align="center">LR2021-SDR</h1>
 
-<p align="center"><b>Raw I/Q.</b></p>
+<p align="center"><b>Raw I/Q reception. Experimental raw TX modulation.</b></p>
 
 <p align="center">
   <a href="#start-here">Start here</a> |
@@ -10,11 +10,13 @@
 </p>
 
 Experimental raw I/Q capture for the Semtech LR2021, written in C11.
+[New TX research](docs/tx-discovery.md) also verifies an undocumented FIFO-fed
+phase/frequency modulation path using independent HackRF measurements.
 Captures receiver I/Q through an undocumented ROM path, with a
 portable radio interface and native host tools.
 
 > [!IMPORTANT]
-> **Experimental, receive-only.** LR2021 ROM **1.24** is the supported target.
+> **Experimental. The portable library and console target remain receive-only.** LR2021 ROM **1.24** is the supported target.
 > LakeShark's live integration has sustained capture without reported FIFO loss.
 > Live P25 Phase 1 C4FM voice has been decoded from LR2021 raw I/Q in LakeShark.
 > A LilyGO ESP32-P4 adapter is included; other boards need porting.
@@ -33,6 +35,24 @@ export. The screen and audio are unused. Other integrations can use the C API:
 2. **Build the library and tools:** CMake and a C11 compiler; MinGW-w64 on Windows.
 3. **Capture a window:** supply the board hooks, configure LoRa RX, then use the
    capture API or a compatible console. See [capture.c](examples/capture.c).
+
+## Raw TX discovery
+
+**RF-verified on ROM 1.24:** command `0x0293` accepts finite sample buffers for
+three modulation modes. Tests used 915 MHz and independent HackRF reception.
+
+| Selector | Observed input | Verified behavior |
+| --- | --- | --- |
+| 0 | Signed I8/Q8 pairs | Coordinate angle controls phase; amplitude was not preserved |
+| 1 | Signed 8-bit values | Programmable frequency deviation |
+| 2 | Signed 8-bit values | Rate-scaled frequency, consistent with phase increments |
+
+The quadrant test reproduced 45-degree phase steps. The ordinary FSK control
+recovered all 512 payload bits without errors. **This does not establish
+amplitude-preserving SDR IQ playback or continuous TX streaming.**
+
+[Command format, measurements and limitations](docs/tx-discovery.md) ·
+[Diagnostic source and evidence](research/tx-2026-10-12)
 
 ## Capture and analysis
 

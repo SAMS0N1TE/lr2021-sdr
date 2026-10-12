@@ -48,3 +48,9 @@ Nominal source-2 rates measured with known tones:
 
 Measurements used SF7 at 910.525 MHz and agreed within about 0.5%. They are
 not clock or amplitude calibration. The FIFO API only supports the first row.
+
+## TX research
+
+Command `0x0293` provides a separately verified TX sample path on ROM 1.24.
+See [TX formats and RF measurements](tx-discovery.md). RX IQ16 layout does
+not describe the TX I8/Q8 input, and amplitude-preserving TX is unproven.

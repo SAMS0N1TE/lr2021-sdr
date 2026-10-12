@@ -1,0 +1,31 @@
+{
+  "name": "probe-raw1-inverted",
+  "floor_dbfs": -68.43516311238841,
+  "peak_dbfs": -39.620826721191406,
+  "clipped_fraction": 0.0,
+  "bursts_s": [
+    [
+      0.984,
+      0.992
+    ]
+  ],
+  "frequency_p20_hz": -11000.1271875,
+  "frequency_p80_hz": 8187.022711021008,
+  "carrier_offset_hz": -1406.552238239496,
+  "prefix_matches": {
+    "32": {
+      "errors": 8,
+      "bits": 32,
+      "inverted": true,
+      "start_s": 0.988393,
+      "phase_samples": 4.5
+    },
+    "64": {
+      "errors": 22,
+      "bits": 64,
+      "inverted": true,
+      "start_s": 0.9851978333333333,
+      "phase_samples": 13.0
+    }
+  }
+}

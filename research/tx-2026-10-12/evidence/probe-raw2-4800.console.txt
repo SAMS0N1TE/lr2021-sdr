@@ -1,0 +1,12 @@
+lora lrtx-probe raw2 0 4800
+W (169243) ls_lora_lr: TX probe complete: resetting the part (last stat 0x0701)
+lrtx-reg: F30800 00100001 00100401 00100401
+lrtx-reg: F30830 03030000 03030000 03030000
+lrtx-reg: F30838 00030040 00020040 00020040
+lrtx-reg: F30904 00103210 00103220 00103220
+lrtx-reg: F30910 000040C0 000040C0 000040C0
+lrtx-reg: F30914 00000000 00000000 00000000
+lrtx-reg: F30930 63D05555 63D05555 63D05555
+lrtx-reg: F30934 FF0028F5 FF0028F5 FF0028F5
+lrtx: mode=raw2 pattern=0 rate=4800 hz=915000000 dbm=-9 elapsed_us=15664 irq=0008000A rxflags=00 txflags=03 txlevel=0 errors=0000 final_errors=0000 phase=transmit result=ESP_OK stop=ESP_OK recovery=ESP_OK
+lakeshark> 

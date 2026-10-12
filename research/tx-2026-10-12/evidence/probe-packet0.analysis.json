@@ -1,0 +1,52 @@
+{
+  "name": "probe-packet0",
+  "floor_dbfs": -69.05511736987647,
+  "peak_dbfs": -39.628082275390625,
+  "clipped_fraction": 0.0,
+  "bursts_s": [
+    [
+      0.987,
+      1.048
+    ]
+  ],
+  "frequency_p20_hz": -10395.040998149325,
+  "frequency_p80_hz": 10080.959765624999,
+  "carrier_offset_hz": -157.04061626216298,
+  "prefix_matches": {
+    "32": {
+      "errors": 0,
+      "bits": 32,
+      "inverted": false,
+      "start_s": 0.9942916666666666,
+      "phase_samples": 0.0
+    },
+    "64": {
+      "errors": 0,
+      "bits": 64,
+      "inverted": false,
+      "start_s": 0.9942916666666666,
+      "phase_samples": 0.0
+    },
+    "128": {
+      "errors": 0,
+      "bits": 128,
+      "inverted": false,
+      "start_s": 0.9942916666666666,
+      "phase_samples": 0.0
+    },
+    "256": {
+      "errors": 0,
+      "bits": 256,
+      "inverted": false,
+      "start_s": 0.9942916666666666,
+      "phase_samples": 0.0
+    },
+    "512": {
+      "errors": 0,
+      "bits": 512,
+      "inverted": false,
+      "start_s": 0.9942916666666666,
+      "phase_samples": 0.0
+    }
+  }
+}

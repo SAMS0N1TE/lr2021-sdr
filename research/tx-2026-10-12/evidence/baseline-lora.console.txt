@@ -1,0 +1,4 @@
+lora tx TXPATH-20261012
+lora: send ESP_OK (15 bytes, 142 ms air)
+lora: transmit complete
+lakeshark> 

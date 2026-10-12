@@ -1,0 +1,31 @@
+{
+  "name": "probe-raw2-4800",
+  "floor_dbfs": -68.62237439879796,
+  "peak_dbfs": -39.68507385253906,
+  "clipped_fraction": 0.0,
+  "bursts_s": [
+    [
+      0.988,
+      1.002
+    ]
+  ],
+  "frequency_p20_hz": -2704.335881938354,
+  "frequency_p80_hz": 2419.0393241777697,
+  "carrier_offset_hz": -142.64827888029208,
+  "prefix_matches": {
+    "32": {
+      "errors": 6,
+      "bits": 32,
+      "inverted": true,
+      "start_s": 0.9953556666666666,
+      "phase_samples": 16.0
+    },
+    "64": {
+      "errors": 19,
+      "bits": 64,
+      "inverted": false,
+      "start_s": 0.98814,
+      "phase_samples": 35.0
+    }
+  }
+}

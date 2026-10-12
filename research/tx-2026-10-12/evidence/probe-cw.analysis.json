@@ -1,0 +1,52 @@
+{
+  "name": "probe-cw",
+  "floor_dbfs": -68.4550327850962,
+  "peak_dbfs": -39.55189895629883,
+  "clipped_fraction": 0.0,
+  "bursts_s": [
+    [
+      0.94,
+      1.091
+    ]
+  ],
+  "frequency_p20_hz": -990.9813238525392,
+  "frequency_p80_hz": 494.5221191406252,
+  "carrier_offset_hz": -248.22960235595698,
+  "prefix_matches": {
+    "32": {
+      "errors": 4,
+      "bits": 32,
+      "inverted": false,
+      "start_s": 1.0222135,
+      "phase_samples": 6.5
+    },
+    "64": {
+      "errors": 12,
+      "bits": 64,
+      "inverted": false,
+      "start_s": 1.0045211666666667,
+      "phase_samples": 10.5
+    },
+    "128": {
+      "errors": 39,
+      "bits": 128,
+      "inverted": false,
+      "start_s": 1.0154986666666665,
+      "phase_samples": 20.5
+    },
+    "256": {
+      "errors": 92,
+      "bits": 256,
+      "inverted": false,
+      "start_s": 1.0382451666666666,
+      "phase_samples": 4.0
+    },
+    "512": {
+      "errors": 204,
+      "bits": 512,
+      "inverted": false,
+      "start_s": 0.9463881666666666,
+      "phase_samples": 8.5
+    }
+  }
+}

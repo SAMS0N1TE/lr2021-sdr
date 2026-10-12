@@ -1,0 +1,31 @@
+{
+  "name": "probe-raw1",
+  "floor_dbfs": -69.00025984427045,
+  "peak_dbfs": -39.759552001953125,
+  "clipped_fraction": 0.0,
+  "bursts_s": [
+    [
+      0.986,
+      0.994
+    ]
+  ],
+  "frequency_p20_hz": -8741.422900390624,
+  "frequency_p80_hz": 9990.276556170758,
+  "carrier_offset_hz": 624.4268278900672,
+  "prefix_matches": {
+    "32": {
+      "errors": 7,
+      "bits": 32,
+      "inverted": true,
+      "start_s": 0.9902366666666667,
+      "phase_samples": 17.5
+    },
+    "64": {
+      "errors": 22,
+      "bits": 64,
+      "inverted": true,
+      "start_s": 0.9870516666666667,
+      "phase_samples": 2.5
+    }
+  }
+}

@@ -1,0 +1,60 @@
+W (11050) ls_time: wall clock set: 2026-10-12T15:02:03Z
+COMMAND: tui off
+tui off
+lakeshark> tui: stopped - nothing else draws the panel; 'tui' starts it again
+COMMAND: mesh stop
+mesh stop
+W (15129) usb_host: USB boot retry 1: no enumerated devices, host port off: ESP_OK
+mesh: stopped
+lakeshark> W (15630) usb_host: USB boot retry 1: host port on: ESP_OK
+COMMAND: lora config 915 7 62.5 5 -9
+lora config 915 7 62.5 5 -9
+lora: configure ESP_OK
+lora: 915.0000 MHz SF7 BW62500 Hz CR4/5 -9 dBm sync 0x12 airtime(16B)=153 ms
+lakeshark> W (20631) usb_host: USB boot retry 2: no enumerated devices, host port off: ESP_OK
+COMMAND: lora status
+lora status
+lora: chip LR2021, caps 0x3FB
+lora: LR2021 FW 1.24 stat=0x0401 mode=1 cmd=2 reset-src=0 irq-pending=0 irq=0x00000000 errors=0x0000 busy=0
+lora: LR20xx backend: LoRa packets, FSK sessions, the RSSI sweep and a receive-only Mode S session. Transmit is on the LF path below 1 GHz only. The IRQ word is polled over SPI.
+lora: LoRa 915.0000 MHz SF7 BW62500 CR4/5 -9 dBm sync 0x12: idle
+lakeshark> W (21132) usb_host: USB boot retry 2: host port on: ESP_OK
+COMMAND: lora lrtx-probe config0
+lora lrtx-probe config0
+W (24037) ls_lora_lr: TX probe complete: resetting the part (last stat 0x0601)
+lrtx-reg: F30800 00100001 00100801 00000000
+lrtx-reg: F30830 03030000 03030000 00000000
+lrtx-reg: F30838 00030040 00020080 00000000
+lrtx-reg: F30904 00103210 00103200 00000000
+lrtx-reg: F30910 000040C0 000040C0 00000000
+lrtx-reg: F30914 00000000 00000000 00000000
+lrtx-reg: F30930 63682AAA 63682AAA 00000000
+lrtx-reg: F30934 FF0028F5 FF0028F5 00000000
+lrtx: mode=config0 pattern=0 rate=9600 hz=915000000 dbm=-9 elapsed_us=0 irq=00000000 rxflags=00 txflags=00 txlevel=0 errors=0000 final_errors=0000 phase=configure-0293 result=ESP_OK stop=ESP_OK recovery=ESP_OK
+lakeshark> W (26133) usb_host: USB boot retry 3: no enumerated devices, host port off: ESP_OK
+W (26634) usb_host: USB boot retry 3: host port on: ESP_OK
+COMMAND: lora lrtx-probe config1
+lora lrtx-probe config1
+W (27057) ls_lora_lr: TX probe complete: resetting the part (last stat 0x0601)
+lrtx-reg: F30800 00100001 00100401 00000000
+lrtx-reg: F30830 03030000 03030000 00000000
+lrtx-reg: F30838 00030040 00020040 00000000
+lrtx-reg: F30904 00103210 00103210 00000000
+lrtx-reg: F30910 000040C0 000040C0 00000000
+lrtx-reg: F30914 00000000 00000000 00000000
+lrtx-reg: F30930 63682AAA 63682AAA 00000000
+lrtx-reg: F30934 FF0028F5 FF0028F5 00000000
+lrtx: mode=config1 pattern=0 rate=9600 hz=915000000 dbm=-9 elapsed_us=0 irq=00000000 rxflags=00 txflags=00 txlevel=0 errors=0000 final_errors=0000 phase=configure-0293 result=ESP_OK stop=ESP_OK recovery=ESP_OK
+lakeshark> COMMAND: lora lrtx-probe config2
+lora lrtx-probe config2
+W (30081) ls_lora_lr: TX probe complete: resetting the part (last stat 0x0601)
+lrtx-reg: F30800 00100001 00100401 00000000
+lrtx-reg: F30830 03030000 03030000 00000000
+lrtx-reg: F30838 00030040 00020040 00000000
+lrtx-reg: F30904 00103210 00103220 00000000
+lrtx-reg: F30910 000040C0 000040C0 00000000
+lrtx-reg: F30914 00000000 00000000 00000000
+lrtx-reg: F30930 63682AAA 63682AAA 00000000
+lrtx-reg: F30934 FF0028F5 FF0028F5 00000000
+lrtx: mode=config2 pattern=0 rate=9600 hz=915000000 dbm=-9 elapsed_us=0 irq=00000000 rxflags=00 txflags=00 txlevel=0 errors=0000 final_errors=0000 phase=configure-0293 result=ESP_OK stop=ESP_OK recovery=ESP_OK
+lakeshark> 
