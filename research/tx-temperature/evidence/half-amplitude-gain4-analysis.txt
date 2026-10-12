@@ -32,4 +32,3 @@ Guessing modulation: Pulse Position Modulation with fixed pulse width
 view at https://triq.org/pdv/#AAB026040101F407CC0F9C21E88182828181828181818281828282828182818181828281818182818355+AAB02C040201F407CC0F9C21E88181828281818182828181828181818281828282828182818181828281818182818355
 Attempting demodulation... short_width: 1996, long_width: 3996, reset_limit: 8024, sync_width: 0
 Use a flex decoder with -X 'n=name,m=OOK_PPM,s=1996,l=3996,g=4020,r=8024'
-
