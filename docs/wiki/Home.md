@@ -1,5 +1,7 @@
 # LR2021-SDR research wiki
 
+**[Start with the guide hub](https://github.com/SAMS0N1TE/lr2021-sdr/blob/main/docs/README.md)** for setup, receiving, transmitting, P25, and development. See [the P25 story](https://github.com/SAMS0N1TE/lr2021-sdr/blob/main/docs/p25.md) for a plain-English walkthrough.
+
 - [TX discovery](TX-Discovery): RF-verified FIFO-fed magnitude/phase IQ under OOK setup; frequency modes also tested.
 - [RX protocol](https://github.com/SAMS0N1TE/lr2021-sdr/blob/main/docs/protocol.md).
 - [Live RX results](https://github.com/SAMS0N1TE/lr2021-sdr/blob/main/docs/live-streaming.md).
