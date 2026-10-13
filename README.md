@@ -30,7 +30,7 @@
 
 <div align="center">
 
-The LR2021 is sold as a LoRa transceiver.<br>
+The [Semtech LR2021](https://www.semtech.com/products/wireless-rf/lora-plus/lr2021) is sold as a LoRa transceiver.<br>
 This project opens up its **raw signal path** so software can receive and create other kinds of radio signals.
 
 It already powers **live P25 Phase 1 voice reception in LakeShark**,<br>
