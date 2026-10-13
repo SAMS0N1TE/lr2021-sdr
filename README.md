@@ -1,155 +1,97 @@
-<div align="center">
+# LR2021-SDR
 
-<h1 align="center">LR2021-SDR</h1>
+**P25 voice, POCSAG, analog FM, and experimental waveform transmission on a LoRa chip.**
 
-### P25 voice, signal recording, and custom transmissions on a LoRa radio chip
+[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
+[![Status: Experimental](https://img.shields.io/badge/status-experimental-orange)](docs/tx-playback.md#remaining-scope)
+[![LR2021 ROM 1.24](https://img.shields.io/badge/LR2021-ROM%201.24-informational)](docs/hardware.md)
 
-<br>
+[Getting started](docs/getting-started.md) · [All guides](docs/README.md) · [LakeShark](https://github.com/SAMS0N1TE/LakeShark)
 
-[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue?style=for-the-badge)](LICENSE)
-[![Status: Experimental](https://img.shields.io/badge/status-experimental-orange?style=for-the-badge)](docs/tx-playback.md#remaining-scope)
-[![LR2021 ROM 1.24](https://img.shields.io/badge/LR2021-ROM%201.24-informational?style=for-the-badge)](docs/hardware.md)
-[![P25 Phase 1](https://img.shields.io/badge/P25-Phase%201%20voice-success?style=for-the-badge)](docs/p25.md)
+LR2021-SDR gives software access to raw I/Q samples from the [Semtech LR2021](https://www.semtech.com/products/wireless-rf/lora-plus/lr2021), turning its receiver into an SDR. It also includes an experimental transmit path for sending custom waveforms.
 
-<br>
+The chip already supports LoRa, FSK, FLRC, and several other radio modes. Its low-frequency path covers **150–960 MHz**, and its high-frequency path covers **1.5–2.5 GHz**. Normally, it handles modulation and demodulation internally. Raw I/Q access gives us the signal samples themselves, including amplitude and phase information, so we can build our own receivers in software.
 
-**[Start here](docs/getting-started.md)** &nbsp;•&nbsp;
-**[Explore the guides](docs/README.md)** &nbsp;•&nbsp;
-**[P25 in action](docs/p25.md)** &nbsp;•&nbsp;
-**[LakeShark](https://github.com/SAMS0N1TE/LakeShark)**
+In **LakeShark**, this powers P25 Phase 1 voice, POCSAG pager reception, and analog FM through the onboard LR2021. An ESP32-P4 handles decoding and audio directly on the handheld, without an external SDR dongle. Samples can also be saved for offline decoding and analysis.
 
-<br>
+On transmit, experiments have sent P25 test-tone bursts, temperature packets, and custom waveforms. An independent receiver recovered **72 P25 voice frames** from one test transmission and reconstructed the expected tone.
 
-[![LakeShark handheld radio workbench on the bench alongside other radio hardware](https://github.com/user-attachments/assets/bdd8069b-3c1a-4dd6-a821-1526e724c950)](https://github.com/SAMS0N1TE/LakeShark)
+This repository contains the radio access library, capture firmware, waveform tools, and measurements. **LakeShark provides the live decoders, audio, and handheld interface.**
 
-<sub><i>The LakeShark radio workbench. LR2021-SDR brings access to the signal inside its LR2021 radio.</i></sub>
+[![LakeShark handheld alongside other radio hardware](https://github.com/user-attachments/assets/bdd8069b-3c1a-4dd6-a821-1526e724c950)](https://github.com/SAMS0N1TE/LakeShark)
 
-</div>
+*LakeShark running on the LilyGO T-Display P4.*
 
-<br>
+## What you can do
 
-<div align="center">
+| Feature | What works | Guide |
+| --- | --- | --- |
+| Receive | P25 Phase 1 voice, POCSAG, and analog FM through the LR2021 in LakeShark. | [Receive](docs/receive.md) |
+| Record | Capture raw I/Q for offline decoding, replay, and signal analysis. | [Recording](docs/voice-capture.md) |
+| Transmit | Upload and send custom waveforms through the experimental playback path. | [Transmit](docs/transmit.md) |
 
-The [Semtech LR2021](https://www.semtech.com/products/wireless-rf/lora-plus/lr2021) is sold as a LoRa transceiver.<br>
-This project opens up its **raw signal path** so software can receive and create other kinds of radio signals.
+## Start here
 
-It already powers **live P25 Phase 1 voice reception in LakeShark**,<br>
-and the experimental transmit path now sends **P25 test-tone bursts, temperature packets, and custom waveforms**.
+- **Use it as a handheld:** Start with [LakeShark](https://github.com/SAMS0N1TE/LakeShark) on the LR2021 version of the LilyGO T-Display P4.
+- **Capture I/Q:** Use the standalone capture firmware and follow the [getting started guide](docs/getting-started.md).
+- **Build with it:** Explore the portable C library and [developer guide](docs/developer-guide.md).
+- **Try waveform transmission:** Read the [transmit guide](docs/transmit.md) and [current capabilities](docs/tx-playback.md#remaining-scope).
 
-</div>
+The standalone capture firmware records I/Q. Use LakeShark for live decoding, audio, and the handheld UI. The work is experimental and has been tested on **LR2021 ROM 1.24**. See [hardware and setup](docs/hardware.md) for board requirements.
 
-<br>
+## P25 receive and transmit
 
-<h1 align="center">What you can do</h1>
+Live reception has produced audible P25 Phase 1 calls. A saved recording also decoded back into voice offline.
 
-<div align="center">
+[![Received P25 call showing I/Q waveform, signal envelope, spectrum, and waterfall](docs/images/voice-four-panel-purple.png)](docs/voice-capture.md)
 
-| Listen | Record | Transmit |
-| :---: | :---: | :---: |
-| Hear P25 Phase 1 voice through the onboard LR2021 in LakeShark. | Save the radio signal itself, then replay it through a decoder or study it on a computer. | Upload a waveform and send it over the air, controlling both its strength and phase. |
-| **[Receive guide →](docs/receive.md)** | **[Recording guide →](docs/voice-capture.md)** | **[Transmit guide →](docs/transmit.md)** |
+*A one-second call recording at 154.785 MHz. These same samples decoded into 27 IMBE voice frames offline.*
 
-</div>
+Transmit tests sent P25 voice-data bursts carrying a test tone. An independent receiver recovered **72 voice frames** and reconstructed the expected tone. This is experimental burst transmission.
 
-<br>
+[P25 results and setup](docs/p25.md) · [Listen to the recovered TX tone](research/tx-p25/evidence/v13-p25-voice19200/recovered.wav)
 
-<h1 align="center">P25</h1>
+## Receiver measurements
 
-<div align="center">
-
-### A LoRa chip receiving digital voice, and now transmitting P25 voice-data bursts.
-
-Live reception produced audible P25 calls.<br>
-A saved signal recording played back into voice again.<br>
-On transmit, an independent receiver recovered **72 voice frames** and reconstructed the expected test tone.
-
-<br>
-
-[![Received P25 call showing I/Q waveform, signal envelope, spectrum and waterfall](docs/images/voice-four-panel-purple.png)](docs/voice-capture.md)
-
-<sub>A one-second P25 call recording at 154.785 MHz. These same samples replayed into <b>27 IMBE voice frames</b>.</sub>
-
-<br>
-
-**[Follow the P25 story →](docs/p25.md)** &nbsp;•&nbsp; **[Listen to the recovered TX tone](research/tx-p25/evidence/v13-p25-voice19200/recovered.wav)**
-
-</div>
-
-<br>
-
-<h1 align="center">Receiver measurements</h1>
-
-<div align="center">
+### Continuous capture
 
 [![Three LR2021 receive sessions showing duration and peak FIFO occupancy](docs/images/live-streaming-results.png)](docs/live-streaming.md)
 
-<sub>Three separate receive sessions, up to <b>391 seconds</b>, with no reported FIFO loss or queue rejection.<br>These runs measure capture continuity while decoder input processing stays active.</sub>
+Three separate sessions ran for up to **391 seconds**, with no reported FIFO loss or queue rejection. These runs measure capture continuity while decoder input processing stays active.
 
-<br>
-
-**[Live-streaming results →](docs/live-streaming.md)**
-
-</div>
+[Read the live-streaming results](docs/live-streaming.md)
 
 <details>
-<summary><b>Sample rates and known-tone checks</b></summary>
+<summary>Sample rates and known-tone checks</summary>
 
-<br>
-
-<div align="center">
-
-### Sample rate versus LoRa bandwidth
+### Sample rates
 
 [![Measured complex sample rates follow four times the configured LoRa bandwidth](docs/images/sample-rates.png)](docs/technical-overview.md#hardware)
 
-<sub>Known-tone estimates for four tested bandwidths, from about 125,000 to 1,000,000 complex samples per second.<br>These are short-window measurements, not continuous-streaming rate limits.</sub>
+Known-tone estimates for four tested bandwidths ranged from about **125,000 to 1,000,000 complex samples per second**. These are short-window measurements, not continuous-streaming rate limits.
 
-<br>
-
-### I/Q orientation with known RF tones
+### I/Q orientation
 
 [![Captured I/Q samples and spectra of positive and negative RF-offset test tones](docs/images/tone-capture.png)](docs/technical-overview.md#known-tone-checks)
 
-<sub>Separate +25 kHz and −15 kHz test tones verify frequency direction in the captured I/Q.<br>Spectra are normalized separately; amplitude is uncalibrated.</sub>
+Separate +25 kHz and −15 kHz RF-offset tones verify frequency direction in the captured I/Q. Spectra are normalized separately, and amplitude is uncalibrated.
 
-<br>
-
-**[Measurements and setup →](docs/technical-overview.md#known-tone-checks)**
-
-</div>
+[Measurements and setup](docs/technical-overview.md#known-tone-checks)
 
 </details>
 
-<br>
+## More documentation
 
-<h1 align="center">Make it yours</h1>
+- [All guides](docs/README.md)
+- [Hardware and setup](docs/hardware.md)
+- [Developer guide](docs/developer-guide.md)
+- [Research and measurements](docs/research.md)
+- [Transmit capabilities and remaining work](docs/tx-playback.md#remaining-scope)
 
-<div align="center">
+## Credits and license
 
-| Want a handheld? | Want to build with it? |
-| :---: | :---: |
-| Start with **[LakeShark](https://github.com/SAMS0N1TE/LakeShark)** on the LR2021 version of the LilyGO T-Display P4. | This repo includes a portable receive library, USB capture firmware, waveform tools, and a separate LakeShark transmit integration. |
-| | **[Choose your starting point →](docs/getting-started.md)** |
+Inspired by [ESP-SDR](https://github.com/ESPARGOS/esp-sdr) and the ESPARGOS team's work exposing raw radio access. No ESP-SDR code is included.
 
-</div>
+Original LR2021 capture and hardware integration developed for [LakeShark](https://github.com/SAMS0N1TE/LakeShark).
 
-<br>
-
-<div align="center">
-
-*Experimental, tested on LR2021 ROM 1.24.*<br>
-[Hardware and setup](docs/hardware.md) &nbsp;•&nbsp; [Current TX capabilities](docs/tx-playback.md#remaining-scope)
-
-<br>
-
-**[All guides](docs/README.md)** &nbsp;•&nbsp; **[Developer guide](docs/developer-guide.md)** &nbsp;•&nbsp; **[Research and measurements](docs/research.md)**
-
-<br>
-
----
-
-<sub>Inspired by [ESP-SDR](https://github.com/ESPARGOS/esp-sdr) and the ESPARGOS team's work opening raw radio access.<br>
-Original LR2021 capture and hardware integration by [LakeShark](https://github.com/SAMS0N1TE/LakeShark).<br>
-No ESP-SDR code is included. [GPL-3.0](LICENSE).</sub>
-
-</div>
+Licensed under [GPL-3.0](LICENSE).
