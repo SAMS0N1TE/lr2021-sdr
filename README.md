@@ -63,9 +63,62 @@ Live reception produced audible P25 calls.<br>
 A saved signal recording played back into voice again.<br>
 On transmit, an independent receiver recovered **72 voice frames** and reconstructed the expected test tone.
 
+<br>
+
+[![Received P25 call showing I/Q waveform, signal envelope, spectrum and waterfall](docs/images/voice-four-panel-purple.png)](docs/voice-capture.md)
+
+<sub>A one-second P25 call recording at 154.785 MHz. These same samples replayed into <b>27 IMBE voice frames</b>.</sub>
+
+<br>
+
 **[Follow the P25 story →](docs/p25.md)** &nbsp;•&nbsp; **[Listen to the recovered TX tone](research/tx-p25/evidence/v13-p25-voice19200/recovered.wav)**
 
 </div>
+
+<br>
+
+<h1 align="center">Receiver measurements</h1>
+
+<div align="center">
+
+[![Three LR2021 receive sessions showing duration and peak FIFO occupancy](docs/images/live-streaming-results.png)](docs/live-streaming.md)
+
+<sub>Three separate receive sessions, up to <b>391 seconds</b>, with no reported FIFO loss or queue rejection.<br>These runs measure capture continuity while decoder input processing stays active.</sub>
+
+<br>
+
+**[Live-streaming results →](docs/live-streaming.md)**
+
+</div>
+
+<details>
+<summary><b>Sample rates and known-tone checks</b></summary>
+
+<br>
+
+<div align="center">
+
+### Sample rate versus LoRa bandwidth
+
+[![Measured complex sample rates follow four times the configured LoRa bandwidth](docs/images/sample-rates.png)](docs/technical-overview.md#hardware)
+
+<sub>Known-tone estimates for four tested bandwidths, from about 125,000 to 1,000,000 complex samples per second.<br>These are short-window measurements, not continuous-streaming rate limits.</sub>
+
+<br>
+
+### I/Q orientation with known RF tones
+
+[![Captured I/Q samples and spectra of positive and negative RF-offset test tones](docs/images/tone-capture.png)](docs/technical-overview.md#known-tone-checks)
+
+<sub>Separate +25 kHz and −15 kHz test tones verify frequency direction in the captured I/Q.<br>Spectra are normalized separately; amplitude is uncalibrated.</sub>
+
+<br>
+
+**[Measurements and setup →](docs/technical-overview.md#known-tone-checks)**
+
+</div>
+
+</details>
 
 <br>
 
