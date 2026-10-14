@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/SAMS0N1TE/lr2021-sdr/security/advisories/new
+    about: Send vulnerability details privately to the maintainer.
+  - name: Guides and measurements
+    url: https://github.com/SAMS0N1TE/lr2021-sdr/blob/main/docs/README.md
+    about: Read the hardware, capture, developer and transmit guides.
+  - name: LakeShark handheld
+    url: https://github.com/SAMS0N1TE/LakeShark/issues/new/choose
+    about: Problems with the LakeShark firmware, decoders or UI belong in the LakeShark repository.
