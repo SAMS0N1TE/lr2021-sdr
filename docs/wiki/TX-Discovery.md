@@ -253,3 +253,13 @@ errors were reported but none were irrecoverable. The received-noise control
 decoded nothing. The test used a short late-entry test-tone sequence at 915 MHz.
 
 [Tools, RF recordings and decoded audio](https://github.com/SAMS0N1TE/lr2021-sdr/tree/main/research/tx-p25/).
+
+## Sample rate dependence and 433.92 MHz
+
+At 433.92 MHz on the LF path, selector 0 under OOK setup reproduced 2-FSK
+correctly only at 125,000 samples/s (20.1 kHz deviation sent and received).
+The same waveform at 76,800 samples/s came out at about half the deviation, and
+at 38,400 samples/s with its frequency sense inverted. OOK held clean on/off
+at 19,200 and 125,000 samples/s. A Flipper Zero decoded Princeton keys replayed
+from raw IQ16 captures of the same chip. Details, the replay recipe and a
+measurement caution are in [TX playback](../tx-playback.md#sample-rate-and-frequency-findings).

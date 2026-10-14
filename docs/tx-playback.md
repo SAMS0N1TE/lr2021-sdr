@@ -98,6 +98,48 @@ resets/reconfigures the radio. Fast SPI ownership and task priority are
 released/restored. The firmware application stays installed. Sending again
 starts a separate burst; it is not a gapless continuation.
 
+## Sample rate and frequency findings
+
+Measured at 433.92 MHz on the LF path, configured -9 dBm, with a HackRF
+receiving. Earlier sections were measured at 915 MHz; the LF path at 433.92 MHz
+behaves the same for OOK and works for FSK at the rates below.
+
+| Rate (samples/s) | 2-FSK, 4,800 baud, +/-20 kHz | OOK, 400/1,200 us pulses |
+| --- | --- | --- |
+| 125,000 | Correct: 20.1 kHz deviation, frames decode | On/off kept |
+| 76,800 | Half deviation (about 10.5 kHz), frames still decode | Not tested |
+| 38,400 | Frequency sense inverted (bits flip) | Not tested |
+| 19,200 | Not tested | Correct: 418/1,199 us, frames decode |
+| 9,600 | Not tested | Long pulses short by about one sample period (1,148 us) |
+
+- Send frequency-modulated waveforms at 125,000 samples/s.
+- Send OOK at 19,200 samples/s with a constant on level (about 48) and exact zeros
+  when off.
+
+## Replaying received captures
+
+Raw IQ16 captures from the same chip at 125,000 samples/s can be sent back
+through this path after conversion:
+
+- OOK: slice the envelope, drop glitches shorter than 100 us or below half the
+  median pulse level, then rebuild clean on/off samples at 19,200 samples/s. A
+  CC1101 receiver (Flipper Zero, stock Princeton decoder) decoded the replayed
+  keys.
+- FSK: center the carrier on the midpoint of the two tone clusters. A median or
+  power-weighted estimate is biased when one tone is stronger (a 9 dB imbalance
+  was seen), and the low-pass then cuts the far tone. Keep 125,000 samples/s.
+- Telling them apart: count tone changes inside bursts, at least 100 us away
+  from envelope edges. FSK changes tone mid-burst; OOK does not. Transmitters
+  such as the CC1101 add a short frequency transient at each turn-on, which
+  looks like a second tone near the edges.
+
+## Measuring TX with an SDR
+
+Tune the measuring SDR away from the carrier, for example 200 kHz below. With a
+HackRF tuned exactly on the carrier, OOK plateaus faded and only pulse edges
+remained, because of its baseband DC high-pass. The same transmission decoded
+cleanly with the offset.
+
 ## Integrity and decoding
 
 Uploads are sequential, acknowledged 64-byte chunks. An incomplete upload,
