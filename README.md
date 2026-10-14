@@ -14,7 +14,7 @@ The chip already supports LoRa, FSK, FLRC, and several other radio modes. Its lo
 
 In **LakeShark**, this powers P25 Phase 1 voice, POCSAG pager reception, and analog FM through the onboard LR2021. An ESP32-P4 handles decoding and audio directly on the handheld, without an external SDR dongle. Samples can also be saved for offline decoding and analysis.
 
-On transmit, experiments have sent P25 test-tone bursts, temperature packets, and custom waveforms. An independent receiver recovered **72 P25 voice frames** from one test transmission and reconstructed the expected tone.
+On transmit, experiments have sent P25 test-tone bursts, temperature packets, and custom waveforms at 915 MHz and 433.92 MHz. An independent receiver recovered **72 P25 voice frames** from one test transmission and reconstructed the expected tone. Received captures can also be sent back out: a Flipper Zero decoded Princeton remote keys replayed by the LR2021, and FSK replays keep their full deviation.
 
 This repository contains the radio access library, capture firmware, waveform tools, and measurements. **LakeShark provides the live decoders, audio, and handheld interface.**
 
@@ -28,7 +28,7 @@ This repository contains the radio access library, capture firmware, waveform to
 | --- | --- | --- |
 | Receive | P25 Phase 1 voice, POCSAG, and analog FM through the LR2021 in LakeShark. | [Receive](docs/receive.md) |
 | Record | Capture raw I/Q for offline decoding, replay, and signal analysis. | [Recording](docs/voice-capture.md) |
-| Transmit | Upload and send custom waveforms through the experimental playback path. | [Transmit](docs/transmit.md) |
+| Transmit | Upload and send custom waveforms through the experimental playback path, and replay OOK and FSK captures. | [Transmit](docs/transmit.md) |
 
 ## Start here
 
@@ -87,6 +87,7 @@ Separate +25 kHz and −15 kHz RF-offset tones verify frequency direction in the
 - [Developer guide](docs/developer-guide.md)
 - [Research and measurements](docs/research.md)
 - [Transmit capabilities and remaining work](docs/tx-playback.md#remaining-scope)
+- [TX sample rate findings and capture replay](docs/tx-playback.md#sample-rate-and-frequency-findings)
 
 ## Credits and license
 
