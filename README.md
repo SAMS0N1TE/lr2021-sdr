@@ -1,6 +1,6 @@
 # LR2021-SDR
 
-**P25 voice, POCSAG, analog FM, and experimental waveform transmission on a LoRa chip.**
+**A LoRa chip that turns into a 16-bit I/Q SDR.** P25 voice, POCSAG, analog FM, and waveform transmission at 150–960 MHz or 1.5–2.5 GHz.
 
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
 [![Status: Experimental](https://img.shields.io/badge/status-experimental-orange)](docs/tx-playback.md#remaining-scope)
