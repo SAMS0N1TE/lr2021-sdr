@@ -10,6 +10,7 @@ Follow the measurements behind the features, or reproduce an experiment.
 | Raw receive commands and sample layout | [RX protocol](protocol.md) |
 | Sustained reception | [Live-streaming results](live-streaming.md) |
 | Tuning range, sample-rate ceiling, gain table, Bluetooth LE engine | [Receive range and gain](../research/rx-range-and-gain/README.md) |
+| The same tests on the SX1262, for comparison | [SX1262 range](../research/sx1262-range/README.md) |
 | Captured P25 call and replay | [Voice capture](voice-capture.md) |
 | Finding the amplitude-preserving transmit path | [TX discovery](tx-discovery.md) |
 | Using the working TX path | [TX playback](tx-playback.md) |
