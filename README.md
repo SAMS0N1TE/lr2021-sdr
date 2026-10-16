@@ -81,6 +81,21 @@ Three separate sessions ran for up to **391 seconds**, with no reported FIFO los
 
 Retuning tests against the board's own clock harmonics show the receive chain working from **100 MHz to 2740 MHz**, well beyond the datasheet bands. Below 100 MHz image calibration fails, and above about 2750 MHz the synthesizer does not lock.
 
+A second check used a known signal. Inside a shielded enclosure a HackRF One sent one tone 30 kHz above each test frequency, and the LR2021 looked for it, receive only.
+
+| Frequency | Datasheet | Tone over the quiet capture |
+| --- | --- | --- |
+| 98 MHz | below the LF band | none |
+| 100 MHz | below the LF band | 14.5 and 16.3 dB in two runs (the chip flags `IMG_CAL`, samples still carry the tone) |
+| 103 MHz | below the LF band | 11.5 dB (`IMG_CAL` flagged) |
+| 106 MHz | below the LF band | 15.7 dB |
+| 1300 MHz | above the LF band | 37.6 dB |
+| 2600 MHz | above the HF band | 35 dB |
+| 2740 MHz | above the HF band | 42 dB |
+| 2760 MHz | above the HF band | none: `PLL_LOCK`, no samples |
+
+Low band with a VHF whip and the HackRF at TX gain 20; 2600 and 2740 MHz with a 433 MHz antenna and TX gain 0. Levels are relative, not a sensitivity figure. [Method](research/rx-range-and-gain/README.md#shielded-tone-check)
+
 [Range, sample rate, gain and Bluetooth LE results](research/rx-range-and-gain/README.md)
 
 ### Packet decode

@@ -64,6 +64,37 @@ how sensitive it is there.
 From 960 to 1480 MHz both inputs work. The LF input showed the markers 10 to
 25 dB stronger than the HF input over most of that span.
 
+### Shielded tone check
+
+A check with a known outside signal instead of the board's own leakage. Both
+radios sat in a shielded enclosure. A HackRF One, tuned 200 kHz below each test
+frequency F, sent one tone at F + 30 kHz for a few seconds. The LR2021 took a
+60 ms capture at F (`lora lrprobe <kHz> 62500 14 -1 auto 60 hex`, 250
+ksample/s) before the tone and during it. The figure is the strongest bin within
+1.5 kHz of +30 kHz over the capture's median, tone minus quiet. The HackRF's own
+carrier leak sits 200 kHz below F, outside the capture.
+
+| F | Input | Antenna on the LR2021 | HackRF TX gain | Tone minus quiet |
+| --- | --- | --- | --- | --- |
+| 96 MHz | LF | VHF whip | 20 | none (`IMG_CAL` flagged) |
+| 98 MHz | LF | VHF whip | 20 | none: a fixed spur near +30 kHz, unchanged by the tone |
+| 100 MHz | LF | VHF whip | 20 | 16.3 dB, 14.5 dB on a repeat (`IMG_CAL` flagged) |
+| 103 MHz | LF | VHF whip | 20 | 11.5 dB (`IMG_CAL` flagged) |
+| 103 MHz | LF | 433 MHz | 20 | 7.1 dB |
+| 106 MHz | LF | VHF whip | 20 | 15.7 dB |
+| 106 MHz | LF | 433 MHz | 20 | 11.1 dB |
+| 1300 MHz | LF | VHF whip | 20 | 37.6 dB |
+| 1300 MHz | LF | 433 MHz | 20 | 16.9 dB |
+| 2600 MHz | HF | 433 MHz | 0 | 35 dB |
+| 2740 MHz | HF | 433 MHz | 0 | 42 dB |
+| 2760 MHz | HF | 433 MHz | 0 | `PLL_LOCK`, no samples |
+
+The low edge is between 98 and 100 MHz: the same tone that stands 14 to 16 dB
+clear at 100 MHz is gone at 98. At TX gain 0 the low-band tones were too weak
+to show at 103 and 106 MHz, and 1300 MHz still showed 8.7 dB. Every tone that
+showed landed within 400 Hz of the expected offset and was absent from the
+quiet capture.
+
 ## Sample rate
 
 The I/Q rate is four times the LoRa bandwidth. Each rate was captured for
