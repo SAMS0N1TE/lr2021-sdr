@@ -19,7 +19,7 @@ is a calibrated sensitivity figure.
 | Below 100 MHz | Image calibration fails (`IMG_CAL`), no signal reaches the samples |
 | Above about 2750 MHz | The synthesizer reports `PLL_LOCK`; nothing streams |
 | LF input above 960 MHz | Works up to at least 1480 MHz; 10 to 25 dB stronger than the HF input from 960 to 1440 MHz |
-| Sustained I/Q rate | **250 ksample/s** (LoRa BW 62.5 kHz) streams without loss |
+| Highest clean I/Q rate | **250 ksample/s** (LoRa BW 62.5 kHz), no loss in 40 ms captures |
 | 500 ksample/s and 1 Msample/s | FIFO overflows within about 2 ms: the 16 MHz SPI bus cannot carry 2 or 4 MB/s |
 | Best gain for weak signals | Fixed step 12 or 13; boost 7 adds 0.5 to 1.4 dB |
 | Chip AGC | Matches step 13 on weak signals, about 20 dB worse SNR than a fixed step on strong ones |
@@ -78,7 +78,8 @@ The I/Q rate is four times the LoRa bandwidth. Each rate was captured for
 The same 920 MHz marker appears at the same offset at 125 and 250 ksample/s,
 which confirms the four-times-bandwidth rate. At 500 ksample/s the stream needs
 2 MB/s, the whole capacity of a 16 MHz SPI bus before any command overhead, so
-250 ksample/s is the practical ceiling for this interface.
+250 ksample/s is the practical ceiling for this interface. Long sessions at
+250 ksample/s have not been tested yet.
 
 ## Gain and boost
 

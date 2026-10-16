@@ -1,8 +1,8 @@
 # LR2021-SDR
 
-**A LoRa chip that turns into a 16-bit I/Q SDR.** P25 voice, POCSAG, analog FM, and waveform transmission at 150–960 MHz or 1.5–2.5 GHz.
+**A LoRa chip that tunes from 100 MHz to 2.74 GHz and streams 16-bit I/Q.**
 
-*update - potentially could expand 104 MHz to 2,750 MHz*
+P25 voice, pagers, FM, Bluetooth LE and custom transmit from the Semtech LR2021 on a handheld, with no SDR dongle.
 
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
 [![Status: Experimental](https://img.shields.io/badge/status-experimental-orange)](docs/tx-playback.md#remaining-scope)
@@ -10,15 +10,27 @@
 
 [Getting started](docs/getting-started.md) · [All guides](docs/README.md) · [LakeShark](https://github.com/SAMS0N1TE/LakeShark)
 
-LR2021-SDR gives software access to raw I/Q samples from the [Semtech LR2021](https://www.semtech.com/products/wireless-rf/lora-plus/lr2021), turning its receiver into an SDR. It also includes an experimental transmit path for sending custom waveforms.
+| | |
+| --- | --- |
+| **100 MHz to 2.74 GHz** | Continuous receive, well past the datasheet's 150 to 960 MHz and 1.5 to 2.5 GHz. Airband, the top of FM and 2.5 to 2.7 GHz included. |
+| **Up to 250,000 samples/s** | 16-bit I/Q over plain SPI. At 125,000 samples/s it has streamed for over six minutes with no loss. |
+| **P25 Phase 1 voice** | Live calls decoded and played on the handheld. |
+| **Bluetooth LE** | The chip's own BLE engine picks up advertising on all three channels. |
+| **Transmit** | Custom waveforms, P25 test bursts and replayed remotes, confirmed by independent receivers. |
 
-The chip already supports LoRa, FSK, FLRC, and several other radio modes. Its low-frequency path covers **150–960 MHz**, and its high-frequency path covers **1.5–2.5 GHz**. Measured on a bench board, the receiver also works well outside those ranges, continuously from **100 MHz to 2.74 GHz** ([receive range](research/rx-range-and-gain/README.md)). Normally, it handles modulation and demodulation internally. Raw I/Q access gives us the signal samples themselves, including amplitude and phase information, so we can build our own receivers in software.
+[![Tone over noise floor from 40 MHz to 3.8 GHz on both inputs](docs/images/rx-tuning-range.svg)](research/rx-range-and-gain/README.md)
 
-In **LakeShark**, this powers P25 Phase 1 voice, POCSAG pager reception, and analog FM through the onboard LR2021. An ESP32-P4 handles decoding and audio directly on the handheld, without an external SDR dongle. Samples can also be saved for offline decoding and analysis.
+*Every dot is a real signal that moved when the receiver was retuned. Shaded areas are the bands the datasheet promises.*
 
-On transmit, experiments have sent P25 test-tone bursts, temperature packets, and custom waveforms at 915 MHz and 433.92 MHz. An independent receiver recovered **72 P25 voice frames** from one test transmission and reconstructed the expected tone. Received captures can also be sent back out: a Flipper Zero decoded Princeton remote keys replayed by the LR2021, and FSK replays keep their full deviation.
+## How it works
 
-This repository contains the radio access library, capture firmware, waveform tools, and measurements. **LakeShark provides the live decoders, audio, and handheld interface.**
+The [Semtech LR2021](https://www.semtech.com/products/wireless-rf/lora-plus/lr2021) normally demodulates LoRa, FSK, FLRC and other modes internally. An undocumented command in its ROM hands over the raw baseband instead: 16-bit I and Q samples, with amplitude and phase intact. That turns the chip into an SDR, so receivers can be written in software.
+
+In **LakeShark**, an ESP32-P4 runs those receivers on the LilyGO T-Display-P4: P25 Phase 1 voice, POCSAG pagers and analog FM through the onboard LR2021, with decoding and audio on the handheld. Samples can also be saved for offline analysis.
+
+On transmit, the same chip has sent P25 test bursts, temperature packets and custom waveforms at 915 MHz and 433.92 MHz. An independent receiver recovered **72 P25 voice frames** from one transmission. Captures go back out too: a Flipper Zero decoded Princeton remote keys replayed by the LR2021, and FSK replays keep their full deviation.
+
+This repository holds the radio access library, capture firmware, waveform tools and measurements. **LakeShark provides the live decoders, audio and handheld interface.**
 
 [![LakeShark handheld alongside other radio hardware](https://github.com/user-attachments/assets/bdd8069b-3c1a-4dd6-a821-1526e724c950)](https://github.com/SAMS0N1TE/LakeShark)
 
@@ -65,8 +77,6 @@ Three separate sessions ran for up to **391 seconds**, with no reported FIFO los
 
 ### Receive range
 
-[![Tone over noise floor from 40 MHz to 3.8 GHz on both inputs](docs/images/rx-tuning-range.svg)](research/rx-range-and-gain/README.md)
-
 Retuning tests against the board's own clock harmonics show the receive chain working from **100 MHz to 2740 MHz**, well beyond the datasheet bands. Below 100 MHz image calibration fails, and above about 2750 MHz the synthesizer does not lock.
 
 [Range, sample rate, gain and Bluetooth LE results](research/rx-range-and-gain/README.md)
@@ -78,7 +88,7 @@ Retuning tests against the board's own clock harmonics show the receive chain wo
 
 [![Measured complex sample rates follow four times the configured LoRa bandwidth](docs/images/sample-rates.png)](docs/technical-overview.md#hardware)
 
-Known-tone estimates for four tested bandwidths ranged from about **125,000 to 1,000,000 complex samples per second**. These are short-window measurements, not continuous-streaming rate limits. Sustained streaming works up to **250,000 samples per second**; faster rates overflow the chip FIFO because the 16 MHz SPI bus cannot carry them.
+Known-tone estimates for four tested bandwidths ranged from about **125,000 to 1,000,000 complex samples per second**. These are short-window measurements, not continuous-streaming rate limits. Clean captures run at up to **250,000 samples per second**; faster rates overflow the chip FIFO because the 16 MHz SPI bus cannot carry them.
 
 ### I/Q orientation
 

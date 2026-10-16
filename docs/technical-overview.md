@@ -256,7 +256,7 @@ Measured continuous limits, from the [receive range report](../research/rx-range
 | Property | Result |
 | --- | --- |
 | Tuning range that receives | 100 to 2740 MHz, LF input up to at least 1480 MHz |
-| Sustained rate over 16 MHz SPI | 250 ksample/s (BW 62.5 kHz); 500 ksample/s and above overflow the FIFO |
+| Highest clean rate over 16 MHz SPI | 250 ksample/s (BW 62.5 kHz) in 40 ms captures; 500 ksample/s and above overflow the FIFO |
 | Gain for weak signals | Fixed step 12 or 13; AGC is equal there, about 20 dB worse on strong signals |
 | Image rejection | About 41 dB at 433.9 MHz |
 
