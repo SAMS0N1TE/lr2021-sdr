@@ -251,6 +251,15 @@ Known-tone estimates follow 4 times the configured bandwidth within about
 0.5% for the tested profiles. These are short-window rate measurements, not
 a measure of continuous FIFO throughput.
 
+Measured continuous limits, from the [receive range report](../research/rx-range-and-gain/README.md):
+
+| Property | Result |
+| --- | --- |
+| Tuning range that receives | 100 to 2740 MHz, LF input up to at least 1480 MHz |
+| Sustained rate over 16 MHz SPI | 250 ksample/s (BW 62.5 kHz); 500 ksample/s and above overflow the FIFO |
+| Gain for weak signals | Fixed step 12 or 13; AGC is equal there, about 20 dB worse on strong signals |
+| Image rejection | About 41 dB at 433.9 MHz |
+
 ## Build
 
 Requires CMake 3.18+ and a C11 compiler. Windows builds use MinGW-w64.

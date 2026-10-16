@@ -12,7 +12,7 @@
 
 LR2021-SDR gives software access to raw I/Q samples from the [Semtech LR2021](https://www.semtech.com/products/wireless-rf/lora-plus/lr2021), turning its receiver into an SDR. It also includes an experimental transmit path for sending custom waveforms.
 
-The chip already supports LoRa, FSK, FLRC, and several other radio modes. Its low-frequency path covers **150–960 MHz**, and its high-frequency path covers **1.5–2.5 GHz**. Normally, it handles modulation and demodulation internally. Raw I/Q access gives us the signal samples themselves, including amplitude and phase information, so we can build our own receivers in software.
+The chip already supports LoRa, FSK, FLRC, and several other radio modes. Its low-frequency path covers **150–960 MHz**, and its high-frequency path covers **1.5–2.5 GHz**. Measured on a bench board, the receiver also works well outside those ranges, continuously from **100 MHz to 2.74 GHz** ([receive range](research/rx-range-and-gain/README.md)). Normally, it handles modulation and demodulation internally. Raw I/Q access gives us the signal samples themselves, including amplitude and phase information, so we can build our own receivers in software.
 
 In **LakeShark**, this powers P25 Phase 1 voice, POCSAG pager reception, and analog FM through the onboard LR2021. An ESP32-P4 handles decoding and audio directly on the handheld, without an external SDR dongle. Samples can also be saved for offline decoding and analysis.
 
@@ -63,6 +63,14 @@ Three separate sessions ran for up to **391 seconds**, with no reported FIFO los
 
 [Read the live-streaming results](docs/live-streaming.md)
 
+### Receive range
+
+[![Tone over noise floor from 40 MHz to 3.8 GHz on both inputs](docs/images/rx-tuning-range.svg)](research/rx-range-and-gain/README.md)
+
+Retuning tests against the board's own clock harmonics show the receive chain working from **100 MHz to 2740 MHz**, well beyond the datasheet bands. Below 100 MHz image calibration fails, and above about 2750 MHz the synthesizer does not lock.
+
+[Range, sample rate, gain and Bluetooth LE results](research/rx-range-and-gain/README.md)
+
 <details>
 <summary>Sample rates and known-tone checks</summary>
 
@@ -70,7 +78,7 @@ Three separate sessions ran for up to **391 seconds**, with no reported FIFO los
 
 [![Measured complex sample rates follow four times the configured LoRa bandwidth](docs/images/sample-rates.png)](docs/technical-overview.md#hardware)
 
-Known-tone estimates for four tested bandwidths ranged from about **125,000 to 1,000,000 complex samples per second**. These are short-window measurements, not continuous-streaming rate limits.
+Known-tone estimates for four tested bandwidths ranged from about **125,000 to 1,000,000 complex samples per second**. These are short-window measurements, not continuous-streaming rate limits. Sustained streaming works up to **250,000 samples per second**; faster rates overflow the chip FIFO because the 16 MHz SPI bus cannot carry them.
 
 ### I/Q orientation
 

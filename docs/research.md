@@ -9,6 +9,7 @@ Follow the measurements behind the features, or reproduce an experiment.
 | Capabilities, rates, and implementation overview | [Technical overview](technical-overview.md) |
 | Raw receive commands and sample layout | [RX protocol](protocol.md) |
 | Sustained reception | [Live-streaming results](live-streaming.md) |
+| Tuning range, sample-rate ceiling, gain table, Bluetooth LE engine | [Receive range and gain](../research/rx-range-and-gain/README.md) |
 | Captured P25 call and replay | [Voice capture](voice-capture.md) |
 | Finding the amplitude-preserving transmit path | [TX discovery](tx-discovery.md) |
 | Using the working TX path | [TX playback](tx-playback.md) |
