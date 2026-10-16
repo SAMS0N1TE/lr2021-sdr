@@ -79,7 +79,11 @@ The same 920 MHz marker appears at the same offset at 125 and 250 ksample/s,
 which confirms the four-times-bandwidth rate. At 500 ksample/s the stream needs
 2 MB/s, the whole capacity of a 16 MHz SPI bus before any command overhead, so
 250 ksample/s is the practical ceiling for this interface. Long sessions at
-250 ksample/s have not been tested yet.
+250 ksample/s have not been tested yet. The ceiling belongs to the link, not
+necessarily the chip: the datasheet limits SPI to 16 MHz, this board drains the
+FIFO with CPU transfers of up to 64 bytes, and samples arrive as 16-bit pairs.
+A host with a tighter read loop, or an 8-bit or decimated export if the ROM
+offers one, could move it.
 
 ## Gain and boost
 
@@ -179,7 +183,8 @@ because they contain nearby devices' addresses and names.
 
 ## Limits of these results
 
-- One board, one antenna, one location.
+- One board, one antenna, one location. The tuning edges depend on this
+  module's front end and matching and may differ on other module builds.
 - Tone levels are relative: the markers are board leakage and the HackRF
   output is uncalibrated.
 - The 433 and 915 MHz carriers came in at different levels with the same
