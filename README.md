@@ -83,6 +83,14 @@ Retuning tests against the board's own clock harmonics show the receive chain wo
 
 [Range, sample rate, gain and Bluetooth LE results](research/rx-range-and-gain/README.md)
 
+### Packet decode
+
+[![A 433 MHz 2-FSK burst with its envelope, spectrum, frequency trace with decoded fields, and waterfall](docs/images/fsk-decode.png)](tools/plot_fsk_decode.py)
+
+*One burst from the triggered I/Q recorder in LakeShark, decoded offline: 2400 baud 2-FSK, sync D391 D391, 4-byte payload, CRC-16 checks.*
+
+The recorder waits for a signal 10 dB over the floor and keeps 10 ms from before the trigger, so the whole preamble is in the file. [plot_fsk_decode.py](tools/plot_fsk_decode.py) draws this from any LakeShark `.sub` I/Q capture.
+
 <details>
 <summary>Sample rates and known-tone checks</summary>
 
