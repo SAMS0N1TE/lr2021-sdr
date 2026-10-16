@@ -23,6 +23,7 @@ is a calibrated sensitivity figure.
 | 500 ksample/s and 1 Msample/s | FIFO overflows within about 2 ms: the 16 MHz SPI bus cannot carry 2 or 4 MB/s |
 | Best gain for weak signals | Fixed step 12 or 13; boost 7 adds 0.5 to 1.4 dB |
 | Chip AGC | Matches step 13 on weak signals, about 20 dB worse SNR than a fixed step on strong ones |
+| Host-side gain control | Equal to the best fixed step at every level tested, 9 to 18 dB ahead of the chip AGC |
 | Image rejection | About 41 dB at 433.9 MHz |
 | Bluetooth LE 1M advertising | Received on channels 37, 38 and 39 through the 2.4 GHz input |
 
@@ -117,6 +118,26 @@ by more than about 1 dB once the step is 12 or 13.
 
 At step 13 with boost 7 the noise floor sits near -58 dBFS. With AGC it sits
 near -65 dBFS, about 6 to 7 bits of the 16-bit samples.
+
+**Host-side gain control.** LakeShark now picks the gain itself while
+streaming: it starts at step 13 with boost 7, drops one step whenever samples
+come within about 2 dB of full scale, and climbs back after 300 ms below
+-15 dBFS. Against the chip AGC, on the same 433.92 MHz carrier:
+
+| Carrier level | Chip AGC | Host gain control | Best fixed step |
+| --- | --- | --- | --- |
+| Strong | 49.9 dB | 67.9 dB (settled at step 12) | 67.9 dB |
+| Medium | 58.3 dB | 67.6 dB | 67.7 dB |
+| Weak | 37.4 dB | 38.1 dB | 38.1 dB |
+
+It matches the best fixed step at every level, 9 to 18 dB ahead of the chip
+AGC on medium and strong signals. Changing the gain mid-stream does not
+interrupt the samples: a 60 second P25 session and FM sessions at 121.5, 162.55
+and 1200 MHz ran with no FIFO loss.
+
+**DC offset.** At step 13 the mean of I and Q sat about 33 dB below the noise
+RMS, so no DC correction is applied. That also matters for narrowband FM,
+where a centred carrier sits at 0 Hz and a DC blocker would remove it.
 
 **Image rejection.** The mirror of the strong carrier appeared about 41 dB
 below it at both step 7 and step 13.
