@@ -117,7 +117,6 @@ Known-tone estimates for four tested bandwidths ranged from about **125,000 to 1
 
 ### I/Q orientation
 
-[![Captured I/Q samples and spectra of positive and negative RF-offset test tones](docs/images/tone-capture.png)](docs/technical-overview.md#known-tone-checks)
 
 Separate +25 kHz and −15 kHz RF-offset tones verify frequency direction in the captured I/Q. Spectra are normalized separately, and amplitude is uncalibrated.
 
