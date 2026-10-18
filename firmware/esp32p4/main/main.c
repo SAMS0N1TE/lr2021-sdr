@@ -1,4 +1,5 @@
 #include "radio.h"
+#include "board.h"
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -104,7 +105,8 @@ static int info_cmd(int argc,char **argv)
 { (void)argc; (void)argv; return initialized?radio_info():1; }
 void app_main(void)
 {
-    int e=radio_init();
+    int e=board_load();
+    if(!e) e=radio_init();
     initialized=!e;
     printf("LR2021-SDR receive-only capture firmware; radio_init=%d\n",e);
     if(!e) radio_info();
@@ -119,6 +121,7 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_console_new_repl_uart(&dc,&rc,&repl));
 #endif
     const esp_console_cmd_t commands[]={
+        {.command="board",.help="Show or stage board profile; save then reboot to apply",.func=board_command},
         {.command="info",.help="Radio version and errors",.func=info_cmd},
         {.command="tune",.help="Set receive frequency in Hz",.func=tune_cmd},
         {.command="capture",.help="Record 1..100 ms of checked IQ16 in internal RAM",.func=capture_cmd},

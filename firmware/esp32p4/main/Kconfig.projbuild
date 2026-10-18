@@ -4,34 +4,58 @@ config LRIQ_LILYGO
     default y
 config LRIQ_SCLK
     int "SPI SCLK GPIO"
+    range 0 54
     default 2
 config LRIQ_MOSI
     int "SPI MOSI GPIO"
+    range 0 54
     default 3
 config LRIQ_MISO
     int "SPI MISO GPIO"
+    range 0 54
     default 4
 config LRIQ_CS
     int "Radio CS GPIO"
+    range 0 54
     default 24
 config LRIQ_BUSY
     int "Radio BUSY GPIO"
+    range 0 54
     default 6
 config LRIQ_RESET
     int "Direct radio RESET GPIO (non-LilyGO boards)"
-    depends on !LRIQ_LILYGO
+    range 0 54
     default 5
+config LRIQ_RESET_HIGH
+    bool "RESET is active high"
+    default n
+config LRIQ_IRQ
+    int "Optional IRQ GPIO (-1 for none; capture uses polling)"
+    range -1 54
+    default -1
+config LRIQ_IRQ_DIO
+    int "LR2021 IRQ DIO"
+    range 5 11
+    default 9
 config LRIQ_SDA
     int "XL9535 I2C SDA GPIO"
-    depends on LRIQ_LILYGO
+    range 0 54
     default 7
 config LRIQ_SCL
     int "XL9535 I2C SCL GPIO"
-    depends on LRIQ_LILYGO
+    range 0 54
     default 8
 config LRIQ_TCXO
-    bool "Configure 3.3 V TCXO"
+    bool "Configure TCXO"
     default y
+config LRIQ_TCXO_VOLTAGE
+    int "TCXO voltage code (0..7: 1.6, 1.7, 1.8, 2.2, 2.4, 2.7, 3.0, 3.3 V)"
+    range 0 7
+    default 7
+config LRIQ_TCXO_TICKS
+    int "TCXO startup delay in 32 MHz ticks"
+    range 0 2147483647
+    default 32768
 config LRIQ_RFSW
     bool "Use LilyGO LR2021 DIO6/7/8/10 RF switch table"
     default y

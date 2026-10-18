@@ -16,11 +16,57 @@ Default wiring: SCLK 2, MOSI 3, MISO 4, CS 24, BUSY 6. XL9535 at I2C address
 The adapter selects external MMCX1, LDO regulation and a 3.3 V TCXO, and drives
 DIO8 for LF reception. It does not load a PRAM patch or transmit.
 
-Other P4 boards need `idf.py menuconfig` under **LR2021 capture board**.
-Check reset wiring, oscillator supply and RF switch routing before connecting
-a different module. Direct GPIO reset is supported. Other boards are untested.
 Native USB Serial/JTAG is also supported when selected as the console in
 ESP-IDF menuconfig; the prebuilt image uses UART0 through the USB bridge.
+
+## Other boards
+
+`board` shows the pending profile. Kconfig supplies the defaults, which match
+LilyGO. Edits apply only after `board save` and a reset or power cycle. NVS is
+loaded before radio access; the console stays available if radio setup fails.
+
+Example: direct active-low reset, optional IRQ, 1.8 V TCXO with 2 ms startup,
+and one LF RX switch. SPI stays at SCLK/MOSI/MISO/CS 2/3/4/24:
+
+```text
+board default
+board set reset gpio 5 low
+board set busy 6
+board set irq gpio 9 dio 9
+board set tcxo 1.8
+board set tcxo ticks 64000
+board rfsw clear
+board rfsw 8 0 1 0 0 0
+board
+board save
+```
+
+Reboot after saving. Pin settings use `board set <busy|sclk|mosi|miso|cs> <gpio>`.
+Reset accepts `gpio <pin> low`, `gpio <pin> high`, or `xl9535`. XL9535 retains
+LilyGO rail and MMCX1 control; its pins use `board set sda <gpio>` and `scl`.
+Use `board set irq none` to disable IRQ. IRQ GPIO/DIO are reserved in the boot
+profile but have no radio IRQ mapping or handler; capture still polls.
+
+TCXO accepts `off`, or 1.6/1.7/1.8/2.2/2.4/2.7/3.0/3.3 V (codes 0..7).
+`board set tcxo ticks <count>` sets an unsigned 32-bit delay in 32 MHz periods.
+Stock is code 7, 32768 ticks. Off uses the crystal after reboot.
+
+`board rfsw <dio> <standby> <rx_lf> <tx_lf> <rx_hf> <tx_hf> [pull]` sets
+one of six entries. Levels are 0/1, packed as bits 0..4 in that order. There
+is no separate TX HP bit. DIO is 5..11. Function is RF switch (2); sleep pull
+is 0 none, 1 down, 2 up, or 3 auto. Default pull is 3, except DIO5 requires 2.
+Use `board rfsw <dio> remove` or `board rfsw clear` to remove entries. See
+[Semtech sections 6.8 and 6.11](https://cdn.robotshop.com/media/S/See/RB-See-1255/pdf/semtech-lr2021-lora-evaluation-kit-eu868-xiao-nrf54l15-lr2021_v1_1_datasheet.pdf)
+for the native command fields.
+
+GPIOs are 0..54, excluding USB 26/27 and console UART pins (stock 37/38).
+P4 flash, PSRAM and high-speed USB use dedicated pads without GPIO numbers.
+Shared GPIOs, duplicate DIOs and IRQ/switch conflicts are refused. Check the
+schematic for other attached devices. `board default` stages build defaults;
+save and reboot to restore them. Invalid saved profiles leave the radio off;
+correct them in the console. NVS errors never erase other data. Other boards
+are untested. Capture, receive-only operation and ROM 1.24 requirements stay
+the same.
 
 ## Flash a prebuilt image
 
