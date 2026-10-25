@@ -134,6 +134,10 @@ Separate +25 kHz and −15 kHz RF-offset tones verify frequency direction in the
 - [Transmit capabilities and remaining work](docs/tx-playback.md#remaining-scope)
 - [TX sample rate findings and capture replay](docs/tx-playback.md#sample-rate-and-frequency-findings)
 
+## Contact
+
+[support@terminalbay.com](mailto:support@terminalbay.com)
+
 ## Credits and license
 
 Inspired by [ESP-SDR](https://github.com/ESPARGOS/esp-sdr) and the ESPARGOS team's work exposing raw radio access. No ESP-SDR code is included.
