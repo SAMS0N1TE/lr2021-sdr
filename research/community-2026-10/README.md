@@ -174,6 +174,8 @@ certification fixes, but they are third-party implementation evidence, not a
 verified ROM 1.24 opcode contract. A useful next test is a **known** 2M or
 coded BLE advertiser, comparing bounded receive counts before and after the
 corresponding patch, with the same antenna and channel.
+The driver's own [protocol status table](https://github.com/TheClams/lr2021/blob/402a12ba350c7a5419acf595ca6ea529403d2dbc/Readme.md)
+marks 2M and coded BLE as TODO, so it does not itself prove those paths work.
 
 We ran an unpatched, receive-only BLE baseline on COM14 with the attached
 Wi-Fi antenna. In eight seconds per primary advertising channel, 1M yielded
