@@ -74,16 +74,53 @@ LoRa recovery. Two complete 20 ms captures showed the strongest marker move
 −20.00 kHz under a +20 kHz retune on the requested 576k axis.
 
 One 2 s attempt overflowed at 1.785 s after a 1.251 ms service gap and
-recovered LoRa. We have **not** measured the converter's analog filter width
-on this board. The W12's wider-filter result remains sfowlr's measurement.
+recovered LoRa. The short tone comparison below tests relative response on
+this board; sfowlr's complete W12 filter characterization remains separate.
+
+### Known 2.4 GHz input and a longer raw capture
+
+We transmitted a short, unmodulated HackRF tone at 2412.050 MHz into a nearby
+Wi-Fi antenna, with the LR2021 also on a Wi-Fi antenna. The antennas were
+about 13 cm apart. The HackRF RF amplifier and antenna bias were off. At a
+fixed transmit setting and LR gain 1, the source-1 and source-0 IQ8 peaks
+moved with the expected retunes. The roughly 0.4–0.6 kHz excess offset is
+consistent with two free-running frequency references. This gives us a known
+external RF marker; it is not a calibrated sensitivity measurement.
+
+For the filter comparison we held the HackRF carrier and transmit setting
+fixed, moved the LR center, and normalized each source to its +50 kHz tone
+amplitude. Three passes at the key positive offsets gave these medians:
+
+| Tone offset from LR center | Source 1, code 18 | Source 0, code 33 |
+| --- | ---: | ---: |
+| +50 kHz | 0 dB | 0 dB |
+| +150 kHz | −7.9 dB | −3.7 dB |
+| +175 kHz | −15.8 dB | −7.6 dB |
+
+Source 0 retained more of this tone at +150 and +175 kHz in all three passes.
+That supports the wider-response lead from sfowlr's W12 work. The over-air
+path, independent oscillators, and nonmonotonic single-pass points prevent us
+from assigning a calibrated 3 dB bandwidth or generalizing to other boards.
+
+A separate +100 kHz known tone was recorded for 250 ms with source 1, code
+18, into a 512 KiB PSRAM buffer before serial transfer. The host received
+332,968 IQ8 bytes (166,484 candidate complex pairs) with every serial block
+in order. The capture returned `ESP_OK`, FIFO flags `0x04`, zero chip errors,
+and normal LoRa recovery. At the assumed 666,667-pair/s rate, the tone peak
+was +100,434 Hz. A one-sample slip would cause about a 54° lasting phase
+step at that tone. The largest detected lasting step was 10.4° using 128-pair
+blocks and eight-block flanks, or 6.2° with 256-pair blocks. We found no
+one-sample-sized persistent jump in this 250 ms capture. This phase screen
+does not certify every index in the earlier 3 s count-only run, and it cannot
+detect a pair of losses and insertions that cancel between its blocks.
 
 ## Remaining checks
 
-- Use a known input at several levels to measure passband, saturation and the
-  reported IQ16 dynamic-range advantage. The board's own moving clock marker
-  cannot establish antenna-port sensitivity.
-- Send a known nonrepeating waveform to check missing samples and order through
-  FIFO wrap. Compare with an independent receiver.
+- Use a cabled, attenuated input and several levels to measure calibrated
+  passband, saturation and the reported IQ16 dynamic-range advantage.
+- Send a known nonrepeating waveform to check missing samples and order
+  through FIFO wrap over multi-second captures. Compare with an independent
+  receiver.
 - Compare exact W12 and P4 RX command order, patch state and register-read
   timing to resolve the gain-reset difference.
 - Test TX scaling and native four-level FSK separately with an independent

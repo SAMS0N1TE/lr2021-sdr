@@ -86,5 +86,68 @@
         "lora_recovery": "ESP_OK"
       }
     ]
+  },
+  "known_2p4ghz_tone": {
+    "input": "over_air_hackrf_unmodulated_tone",
+    "rf_amp_enabled": false,
+    "antenna_bias_enabled": false,
+    "antenna_separation_approx_cm": 13,
+    "relative_amplitude_db_median_normalized_to_plus_50khz": {
+      "source_1_code_18": {
+        "plus_50khz": 0.0,
+        "plus_150khz": -7.91,
+        "plus_175khz": -15.82
+      },
+      "source_0_code_33": {
+        "plus_50khz": 0.0,
+        "plus_150khz": -3.72,
+        "plus_175khz": -7.64
+      }
+    },
+    "passes_per_key_offset": 3,
+    "calibrated_bandwidth": false
+  },
+  "source_1_known_tone_250ms": {
+    "center_khz": 2412000,
+    "nominal_tone_offset_khz": 100,
+    "requested_ms": 250,
+    "elapsed_us": 250041,
+    "bytes": 332968,
+    "candidate_complex_pairs": 166484,
+    "max_fifo_level": 572,
+    "max_service_gap_us": 428,
+    "fifo_flags": "0x04",
+    "chip_errors": "0x0000",
+    "capture_result": "ESP_OK",
+    "lora_recovery": "ESP_OK",
+    "serial_blocks_complete": true,
+    "buffer": "psram",
+    "assumed_rate_pairs_per_second": 666667,
+    "tone_peak_hz": 100434.126,
+    "one_sample_phase_step_degrees": 54.23,
+    "max_persistent_step_degrees_128pair_blocks_8block_flanks": 10.42,
+    "max_persistent_step_degrees_256pair_blocks_8block_flanks": 6.2,
+    "full_sample_index_continuity_proven": false
+  },
+  "wifi_slice_control": {
+    "c6_connected_channel": 6,
+    "source": 1,
+    "fsk_rx_bw_code": 18,
+    "capture_ms": 20,
+    "threshold_arbitrary_power": 100,
+    "high_rate_first_set": {
+      "traffic_windows_above_threshold": 41,
+      "traffic_windows": 77,
+      "idle_windows_above_threshold": 16,
+      "idle_windows": 77
+    },
+    "high_rate_balanced_repeat": {
+      "traffic_windows_above_threshold": 14,
+      "traffic_windows": 191,
+      "idle_windows_above_threshold": 25,
+      "idle_windows": 191
+    },
+    "traffic_correlated_detection_reproduced": false,
+    "one_idle_tune_error": "0x4000"
   }
 }

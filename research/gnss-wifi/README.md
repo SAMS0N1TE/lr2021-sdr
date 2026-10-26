@@ -53,9 +53,25 @@ sensitivity results cannot be transferred to this hardware.
 
 A typical Wi-Fi channel is much wider than these IQ slices. The LR2021 can
 measure energy and timing inside one narrow slice, but the current data
-cannot reconstruct a full 20 MHz packet or normal CSI. An operator-owned AP
-with a known on/off traffic pattern would let us compare in-channel and
-off-channel slices at fixed gain. We have not run that controlled test.
+cannot reconstruct a full 20 MHz packet or normal CSI.
+
+We used the board's C6 to scan the local channels. Channel 6 had the strongest
+nearby AP in two scans. Twelve 50 ms source-1/source-0 raw-IQ slices around
+channels 1, 6 and 11 had clean FIFO flags and LoRa recovery. Several channel
+6 slices contained bursts, but bursts also occurred elsewhere. Nearby network
+identifiers and raw captures remain local.
+
+We then sent test UDP traffic from the PC to the board's own C6 while taking
+20 ms source-1 slices near channel 6 at fixed gain. A first, higher-rate set
+had 41 of 77 one-millisecond windows above a chosen power threshold during
+traffic, against 16 of 77 idle. A balanced repeat reversed that pattern:
+14 of 191 traffic windows against 25 of 191 idle. The lower-rate set was also
+indistinguishable. One idle run reported chip-error bit `0x4000` during tune;
+its stream completed and LoRa recovered, but we do not count it as a clean
+trial. These observations do **not** identify Wi-Fi packets or reproduce a
+traffic-linked detector. Short captures, uncontrolled AP traffic and a narrow
+slice leave that question open. The next test needs synchronized C6 packet
+timestamps and longer LR energy windows, or a cabled, attenuated Wi-Fi source.
 
 The LR2021's packet engine did decode BLE 1M advertisements on channels 37,
 38 and 39 in separate eight-second receive-only windows. Tests of BLE 2M
