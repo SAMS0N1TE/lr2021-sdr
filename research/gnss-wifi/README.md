@@ -227,6 +227,18 @@ the LR2021 measures narrowband energy and BLE activity. Timestamp both streams
 explicitly. This could reveal non-Wi-Fi interferers and coexistence effects;
 timing correlation alone does not identify a transmitter.
 
+### BLE packet receiver cross-check
+
+With the same Wi-Fi antenna, the LR2021's separate BLE packet engine decoded
+1M advertising frames on all three primary advertising channels during a
+bounded receive-only pass. Counts were 415, 543 and 402 in eight seconds each
+on channels 37, 38 and 39; the board recovered normal LoRa RX afterward.
+This proves a 2.4 GHz packet path on this setup, but it does not identify
+802.11 traffic or validate the raw IQ export. A [comparison with TheClams'
+driver](../community-2026-10/README.md#theclams-driver-packet-mode-cross-check-and-ble-phy-lead)
+records a separate, unverified `0x0230` setup lead for BLE 2M and coded PHY.
+The received BLE addresses and full logs remain local.
+
 ## Prioritized experiments
 
 | Priority | Angle | First useful result |

@@ -149,6 +149,51 @@ later test native LR2021 4-FSK, an independent receiver should measure those
 four deviation levels and decode complete DMR bursts; a successful `0x023B`
 command response alone would not demonstrate modulation or interoperability.
 
+### TheClams driver: packet-mode cross-check and BLE PHY lead
+
+[TheClams/lr2021](https://github.com/TheClams/lr2021) is a separate, public
+Rust LR2021 driver. We reviewed commit
+[`402a12b`](https://github.com/TheClams/lr2021/tree/402a12ba350c7a5419acf595ca6ea529403d2dbc)
+against the LakeShark command path. Its
+[`RxBw` table](https://github.com/TheClams/lr2021/blob/402a12ba350c7a5419acf595ca6ea529403d2dbc/src/cmd/cmd_fsk.rs)
+independently maps codes 163, 162, 154, 26 and 225 to nominal FSK RX
+bandwidths of 66.7, 133.3, 166.7, 192.3 and 222.2 kHz. Those are filter
+settings; they do **not** establish the hidden sample-export rate formula.
+The driver exposes `SetAgcGainManual` as opcode `0x021A`, step 0 for AGC and
+steps 1–15 for manual gain, but does not document an RX-start gain reset.
+We found no implementation of the Discussion #16 raw IQ route or opcode
+`0x023B` in this revision. Thus it corroborates normal command encodings,
+not the contributor's private export and native 4-FSK results.
+
+The driver does contain a useful [BLE PHY workaround](https://github.com/TheClams/lr2021/blob/402a12ba350c7a5419acf595ca6ea529403d2dbc/src/ble.rs):
+for 2M it sends an `0x0230` command; for coded S2/S8 it sends a different
+`0x0230` command and changes two CPFSK demodulation/detection registers.
+Those raw `0x0230` sequences are absent from its generated command spec and
+from LakeShark's present BLE setup. Their comments describe preamble and
+certification fixes, but they are third-party implementation evidence, not a
+verified ROM 1.24 opcode contract. A useful next test is a **known** 2M or
+coded BLE advertiser, comparing bounded receive counts before and after the
+corresponding patch, with the same antenna and channel.
+
+We ran an unpatched, receive-only BLE baseline on COM14 with the attached
+Wi-Fi antenna. In eight seconds per primary advertising channel, 1M yielded
+415, 543 and 402 decoded advertising frames on channels 37, 38 and 39,
+respectively; the session returned `ESP_OK` and normal LoRa RX recovered.
+The poll also reported 82, 55 and 70 rejected/error events. Another eight
+seconds per channel at 2M, coded S2 and coded S8 yielded zero frames and zero
+reported errors. This **does not diagnose those PHYs**: no known matching
+transmitter was present, and 2M advertising normally uses secondary channels.
+Device identifiers and full console logs stay local.
+
+The same driver exposes [Z-Wave's multi-rate scan command](https://github.com/TheClams/lr2021/blob/402a12ba350c7a5419acf595ca6ea529403d2dbc/src/cmd/cmd_zwave.rs),
+[Wi-SUN modes with 2/4-FSK](https://github.com/TheClams/lr2021/blob/402a12ba350c7a5419acf595ca6ea529403d2dbc/src/wisun.rs),
+and Wireless M-Bus modes. LakeShark already has low-level Z-Wave and Wi-SUN
+receive engines, so controlled packet captures are feasible without a new
+demodulator. The Wi-SUN four-level PHY is an alternate *standard packet
+mode*, not evidence that `0x023B` provides the contributor's generic DMR
+four-level waveform. These modes need a known local source or a long bounded
+survey before interpreting a zero-packet result.
+
 ## What changes in our interpretation
 
 Our **250 kpair/s clean source-2 result** remains a measurement of our IQ16
