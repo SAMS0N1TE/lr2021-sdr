@@ -33,6 +33,8 @@ class CasicTests(unittest.TestCase):
                          "bace040006010310ffff07100501")
         self.assertEqual(cp.named_query("measurements_stream").hex(),
                          "bace040006010310010007100701")
+        self.assertEqual(cp.named_query("measurements2_stream").hex(),
+                         "bace040006010311010007110701")
 
     def test_mixed_nmea_and_binary(self):
         ver=b"TEST_SW\0".ljust(32,b"\0")+b"TEST_HW\0".ljust(32,b"\0")
@@ -66,6 +68,9 @@ class CasicTests(unittest.TestCase):
         stream=transfer.replace("name=rate", "name=measurements_stream").replace(
             "tx=10", "tx=14 cleanup_tx=14 cleanup_error=ESP_OK")
         self.assertEqual(cp.parse_bridge_output(stream,"measurements_stream"),raw)
+        self.assertEqual(cp.parse_bridge_output(stream.replace("name=measurements_stream",
+                                                        "name=measurements2_stream"),
+                                                "measurements2_stream"),raw)
         with self.assertRaises(ValueError):
             cp.parse_bridge_output(stream.replace("cleanup_tx=14","cleanup_tx=0"),
                                    "measurements_stream")

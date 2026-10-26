@@ -39,6 +39,7 @@ family command works in the module's firmware**.
 | Hardware diagnostics | 0A,09 | Explicit NAK |
 | Navigation clock | 01,11 | Explicit NAK |
 | Receiver measurements | 03,10 | Empty poll explicitly NAKed; message-rate entry exists, but enabling it produced no measurement frames |
+| Alternate measurement candidate | 03,11 | Message-rate entry exists, but a timed rate-one stream produced no binary frames |
 
 The named `port`, `messages`, `rate` and broader-family direct polls have empty
 payloads. The tool also encodes fixed CFG-MSG one-shot requests and the bridge
@@ -84,10 +85,14 @@ the short capture window, so the one-shot result is inconclusive. A bounded
 `03/10` rate-one stream test captured 1594 UART bytes over 1800 ms and an ACK,
 but no `03/10` frame. The firmware automatically sent a rate-zero stop frame
 after the window (`cleanup_tx=14`, `cleanup_error=ESP_OK`). An immediate second
-`messages` query verified that `03/10` had returned to rate zero. All these
-captures had zero dropped bytes and valid CASIC checksums. Passive capture
-afterward contained only NMEA. The GPS receiver retained normal NMEA output;
-full UART captures, including location-bearing NMEA, stay private. **No
+`messages` query verified that `03/10` had returned to rate zero. A second
+1800 ms stream test on `03/11` captured 1277 UART bytes and an ACK, again with
+no measurement frame; its automatic stop succeeded and a following inventory
+verified rate zero. All these captures had zero dropped bytes and valid CASIC
+checksums. Passive capture afterward contained only NMEA. The GPS receiver
+retained a fix and normal NMEA output (108 sentences, zero checksum errors in
+the fresh-boot `03/11` test). Full UART captures, including location-bearing
+NMEA, stay private. **No
 undocumented measurement output has been demonstrated on this board.**
 
 To repeat against the experimental firmware, use the console bridge parser:
@@ -97,13 +102,15 @@ python tools/casic_probe.py bridge --port COM14 --poll passive --ms 700 --out lo
 python tools/casic_probe.py bridge --port COM14 --poll rate --ms 700 --out local-rate
 python tools/casic_probe.py bridge --port COM14 --poll messages --ms 1000 --out local-messages
 python tools/casic_probe.py bridge --port COM14 --poll measurements_stream --ms 1800 --out local-measurements
+python tools/casic_probe.py bridge --port COM14 --poll measurements2_stream --ms 1800 --out local-measurements2
 ```
 
 The tool checks console block offsets and CRC before writing `uart-private.bin`
 and `report-private.json`. Its terminal summary omits payloads and coordinates.
-The stream command requires the experimental firmware's automatic stop and
+The stream commands require the experimental firmware's automatic stop and
 rejects a capture without confirmed cleanup. Requery `messages` afterward to
-verify rate zero; `measurements_stop` is also available for recovery.
+verify rate zero; `measurements_stop` and `measurements2_stop` are also
+available for recovery.
 
 ## The important distinctions
 

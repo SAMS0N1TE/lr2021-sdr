@@ -26,7 +26,9 @@ ONE_SHOTS = {"gga_once": (0x4E, 0x00), "clock_once": (0x01, 0x11),
              "measurements_once": (0x03, 0x10), "measurements2_once": (0x03, 0x11),
              "position_once": (0x01, 0x03)}
 STREAM_CONTROL = {"measurements_stream": (0x03, 0x10, 1),
-                  "measurements_stop": (0x03, 0x10, 0)}
+                  "measurements_stop": (0x03, 0x10, 0),
+                  "measurements2_stream": (0x03, 0x11, 1),
+                  "measurements2_stop": (0x03, 0x11, 0)}
 
 
 def named_query(name):
@@ -124,8 +126,9 @@ def parse_bridge_output(output, name):
     expected_tx = 0 if name == "passive" else len(named_query(name))
     if int(fields.get("tx", "-1")) != expected_tx:
         raise ValueError("Incomplete query write")
-    if name == "measurements_stream" and (fields.get("cleanup_tx") != "14" or
-                                           fields.get("cleanup_error") != "ESP_OK"):
+    if name in ("measurements_stream", "measurements2_stream") and (
+            fields.get("cleanup_tx") != "14" or
+            fields.get("cleanup_error") != "ESP_OK"):
         raise ValueError("Firmware did not confirm automatic stream stop")
     return bytes(data)
 
