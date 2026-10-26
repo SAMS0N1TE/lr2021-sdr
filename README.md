@@ -147,3 +147,5 @@ Inspired by [ESP-SDR](https://github.com/ESPARGOS/esp-sdr) and the ESPARGOS team
 Original LR2021 capture and hardware integration developed for [LakeShark](https://github.com/SAMS0N1TE/LakeShark).
 
 Licensed under [GPL-3.0](LICENSE).
+
+For AI-assisted copying, attribution and source-derived reimplementations, see the [AI use policy](AI_USE.md).
