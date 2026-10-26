@@ -1,0 +1,90 @@
+{
+  "date": "2026-10-26",
+  "board": "LilyGO T-Display-P4 LR2021",
+  "lr2021_rom": "1.24",
+  "spi_configured_hz": 16000000,
+  "physical_sclk_measured": false,
+  "sample_index_continuity_verified": false,
+  "source_1": {
+    "center_khz": 920010,
+    "fsk_rx_bw_code": 18,
+    "route": "FF 00 00 00 00 09 00 00 00 00 01",
+    "sink": "count_only",
+    "trials": [
+      {
+        "requested_ms": 2000,
+        "elapsed_us": 2000135,
+        "bytes": 2666420,
+        "max_fifo_level": 586,
+        "max_service_gap_us": 438,
+        "fifo_flags": "0x04",
+        "chip_errors": "0x0000",
+        "capture_result": "ESP_OK",
+        "lora_recovery": "ESP_OK"
+      },
+      {
+        "requested_ms": 3000,
+        "elapsed_us": 3000201,
+        "bytes": 3999848,
+        "max_fifo_level": 630,
+        "max_service_gap_us": 473,
+        "fifo_flags": "0x04",
+        "chip_errors": "0x0000",
+        "capture_result": "ESP_OK",
+        "lora_recovery": "ESP_OK"
+      }
+    ]
+  },
+  "source_0_converter": {
+    "center_khz": 920010,
+    "fsk_rx_bw_code": 33,
+    "route": "21 00 08 CA 00 08 00 00 00 00 01",
+    "sink": "count_only",
+    "trials": [
+      {
+        "requested_ms": 1000,
+        "elapsed_us": 1000163,
+        "bytes": 1151932,
+        "max_fifo_level": 466,
+        "max_service_gap_us": 402,
+        "fifo_flags": "0x04",
+        "chip_errors": "0x0000",
+        "capture_result": "ESP_OK",
+        "lora_recovery": "ESP_OK"
+      },
+      {
+        "requested_ms": 1000,
+        "elapsed_us": 1000144,
+        "bytes": 1151912,
+        "max_fifo_level": 422,
+        "max_service_gap_us": 365,
+        "fifo_flags": "0x04",
+        "chip_errors": "0x0000",
+        "capture_result": "ESP_OK",
+        "lora_recovery": "ESP_OK"
+      },
+      {
+        "requested_ms": 1000,
+        "elapsed_us": 1000102,
+        "bytes": 1151852,
+        "max_fifo_level": 406,
+        "max_service_gap_us": 353,
+        "fifo_flags": "0x04",
+        "chip_errors": "0x0000",
+        "capture_result": "ESP_OK",
+        "lora_recovery": "ESP_OK"
+      },
+      {
+        "requested_ms": 2000,
+        "elapsed_us": 1784839,
+        "bytes": 2054672,
+        "max_fifo_level": 1028,
+        "max_service_gap_us": 1251,
+        "fifo_flags": "0x1C",
+        "chip_errors": "0x0000",
+        "capture_result": "ESP_ERR_INVALID_SIZE",
+        "lora_recovery": "ESP_OK"
+      }
+    ]
+  }
+}

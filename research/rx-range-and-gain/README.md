@@ -11,6 +11,10 @@ All results come from one LilyGO T-Display-P4 LR2021 board on ROM 1.24, with a
 VHF whip on its external antenna port. Tone levels are relative. Nothing here
 is a calibrated sensitivity figure.
 
+The rate rows below concern the original 16-bit source-2 CPU SPI path. A
+[later receive-only IQ8/DMA test](../community-2026-10/README.md) reached a
+higher bounded rate; it does not change these source-2 measurements.
+
 ## Summary
 
 | Question | Result |
@@ -230,8 +234,9 @@ Tools in [`tools/`](tools/):
 | `plot_tuning.py` | Draws the tuning-range chart from the CSV files |
 | `cw.py` | Sends a HackRF carrier for a fixed time, ISM frequencies only |
 
-Raw results are in [`data/`](data/). Advertising logs are not included
-because they contain nearby devices' addresses and names.
+The tables above summarize the measurements. Raw captures and advertising
+logs are not included because they can contain nearby devices' addresses and
+names.
 
 ## Limits of these results
 

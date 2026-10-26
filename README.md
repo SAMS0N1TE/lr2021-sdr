@@ -22,7 +22,9 @@ P25 voice, pagers, FM, Bluetooth LE and custom transmit from the Semtech LR2021 
 
 *Every dot is a real signal that moved when the receiver was retuned. Shaded areas are the bands the datasheet promises.*
 
-Measured on one LilyGO T-Display-P4 LR2021 board. The range depends on the module's front end and may differ on other boards or module builds. The sample rate ceiling is set by the host link: the chip's SPI tops out at 16 MHz, and this board reads the FIFO with the CPU. A faster read path or a denser sample format could change it.
+Measured on one LilyGO T-Display-P4 LR2021 board. The range depends on the module's front end and may differ on other boards or module builds. The 250k rate above is for the standalone firmware's 16-bit source-2 path. The host link is configured for 16 MHz SPI, and that path reads the FIFO with the CPU. A separate experimental LakeShark build reached a higher rate with 8-bit samples and DMA reads, described below.
+
+**Raw-IQ research update:** [sfowlr](https://github.com/sfowlr) reported faster 8-bit export, a source-0 rate converter, gain-order behavior and native four-level FSK on a Meshnology W12 in [LakeShark discussion #16](https://github.com/SAMS0N1TE/LakeShark/discussions/16). Our [receive-only follow-up](research/community-2026-10/README.md) reproduced bounded ~666k-pair/s IQ8 transport on the LilyGO board with large DMA FIFO reads, and found a different gain-register result after `SetRx`. TX scaling and four-level FSK remain untested here. [GNSS and 2.4 GHz](research/gnss-wifi/README.md) and [L76K](research/l76k/README.md) notes cover the separate signal and GPS-module experiments.
 
 ## How it works
 
