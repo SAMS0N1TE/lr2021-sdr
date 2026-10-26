@@ -35,6 +35,17 @@ class CasicTests(unittest.TestCase):
         self.assertEqual(result["frames"][0]["cls"],6)
         self.assertEqual(result["issues"][0]["issue"],"invalid_length")
 
+    def test_bridge_transfer_integrity(self):
+        import zlib
+        raw=b"$GNX\r\n"+cp.packet(6,4,struct.pack("<I",1000))
+        summary=f"gps-probe: begin name=rate bytes={len(raw)} dropped=0 tx=10 tx_error=ESP_OK complete=1\n"
+        transfer=summary+f"gps-probe-hex: 000000 {raw.hex().upper()}\n"+f"gps-probe: end bytes={len(raw)} crc32={zlib.crc32(raw):08X}\n"
+        self.assertEqual(cp.parse_bridge_output(transfer,"rate"),raw)
+        for damaged in (transfer.replace("dropped=0","dropped=1"),
+                        transfer.replace("000000","000004"),
+                        transfer.replace("crc32=","crc32=F")):
+            with self.assertRaises(ValueError):cp.parse_bridge_output(damaged,"rate")
+
 
 SUMMARY="lrprobe: f=1575420 kHz path=HF bw=31250 rate=125000 gain=13 boost=4 tune=ESP_OK errors=0x0000 bytes=4 buf=int max_level=44 polls=1 elapsed_us=40 flags=0x00 result=ESP_OK recovery=ESP_OK\n"
 HEX="lrprobe-hex: 000000 01000200\nlrprobe-hex: end\n"

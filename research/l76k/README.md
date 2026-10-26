@@ -3,8 +3,9 @@
 [Research index](../../docs/research.md)
 
 2026-10-26. This is research on the **separate GNSS module** in LakeShark,
-not another LR2021 mode. No raw GNSS observations, IQ export, hidden bootloader
-or arbitrary-frequency receiver mode has been demonstrated.
+not another LR2021 mode. A bounded binary UART bridge was tested on COM14.
+No raw GNSS observations, IQ export, hidden bootloader or arbitrary-frequency
+receiver mode has been demonstrated.
 
 ## What is already established
 
@@ -31,12 +32,12 @@ family command works in the module's firmware**.
 
 | Probe | Class, ID | Interpretation and current status |
 | --- | --- | --- |
-| Current port | 06,00 | L76K-documented query; inspect protocol mask without changing it |
-| Current update rate | 06,04 | L76K-documented query; establish baseline |
-| Version | 0A,04 | Broader-family candidate; identify software/hardware if answered |
-| Hardware diagnostics | 0A,09 | Broader-family candidate; preserve unknown fields |
-| Navigation clock | 01,11 | Broader-family candidate; clock bias/drift possibilities need a verified layout |
-| Receiver measurements | 03,10 | RXM-MEASX candidate; the most interesting lead for raw observations |
+| Current port | 06,00 | Two checksum-valid CFG-PRT replies and ACK on this board |
+| Current update rate | 06,04 | One checksum-valid CFG-RATE reply and ACK; payload is 1000 ms |
+| Version | 0A,04 | Explicit NAK; broader-family candidate unsupported as polled |
+| Hardware diagnostics | 0A,09 | Explicit NAK |
+| Navigation clock | 01,11 | Explicit NAK |
+| Receiver measurements | 03,10 | Explicit NAK; no raw observations demonstrated |
 
 All live polls in `tools/casic_probe.py` have empty payloads. It does not send
 configuration setters, persistent saves, firmware writes, restart requests or
@@ -45,6 +46,37 @@ not proven side-effect-free operations on every firmware. Start with passive
 capture and documented port/rate polls. A missing response can mean disabled
 binary input/output, firmware limitations, wiring or capture loss; it is not
 proof that hardware lacks the feature.
+
+### Live CASIC results
+
+The experimental [LakeShark firmware
+branch](https://github.com/SAMS0N1TE/LS_Test1/tree/research/gnss-binary-20261026)
+adds `gps probe <name> [100..2000 ms]` to the existing GPS UART reader. It taps
+raw bytes before NMEA framing, sends only allowlisted empty polls, and exports
+offsets, byte count, overflow count and CRC32 over the console. It also skips
+complete CASIC frames in the text parser. The installed experimental image was
+built from the exact `2.18.0-g026a538409e8` release base. A verified private
+16 MiB flash backup was made before app-only installation.
+
+In 700 ms windows, passive capture contained 778 bytes of NMEA and no CASIC
+frames. `port` returned two 8-byte class `06/00` frames plus `05/01` ACK;
+`rate` returned one 4-byte `06/04` frame plus ACK. Both captures had zero dropped
+bytes and valid frame checksums. Version, hardware, clock, measurements,
+GPS/BDS/GLONASS info and binary position polls each returned a checksum-valid
+`05/00` NAK naming the request. This rules out **those empty-payload polls on
+this firmware**, while leaving other message variants and interfaces open.
+The GPS receiver retained a fix and normal NMEA output after testing. Full UART
+captures, including location-bearing NMEA, stay private.
+
+To repeat against the experimental firmware, use the console bridge parser:
+
+```text
+python tools/casic_probe.py bridge --port COM14 --poll passive --ms 700 --out local-passive
+python tools/casic_probe.py bridge --port COM14 --poll rate --ms 700 --out local-rate
+```
+
+The tool checks console block offsets and CRC before writing `uart-private.bin`
+and `report-private.json`. Its terminal summary omits payloads and coordinates.
 
 ## The important distinctions
 
@@ -67,10 +99,9 @@ or spoofing detections.
 ## How to test without discarding the response
 
 COM14 is LakeShark's **console**, not the GPS UART. Sending a CASIC frame there
-does not send it to the module. The current console exposes `gps`, `gps sky`,
-`gps raw`, `gps baud` and `gps reset`; it has no arbitrary binary UART bridge.
-The live session used status/text observation only. It did **not** send binary
-polls to the onboard GNSS receiver.
+does not send it to the module. Stock firmware exposes line-oriented GPS
+commands; the experimental `gps probe` command above queues the named binary
+query through the existing UART owner.
 
 For a direct 3.3 V UART connection, keep one UART transmitter/reader owner and
 avoid connecting a second output driver to the module RX while the P4 drives it.
@@ -84,12 +115,11 @@ python tools/casic_probe.py listen --port DIRECT_GNSS_UART --poll version --seco
 python tools/casic_probe.py inspect local-version/uart.bin
 ```
 
-For an on-device follow-up, add a bounded **binary byte tap before text
-framing** and queue named queries to the existing GPS reader task. That task
-must remain UART owner. Capture response bytes and overflow counts for a fixed
-window, preserve NMEA parsing, and print/export only after the window closes.
-Do not replace `gps raw` or race a second `uart_read_bytes` against the parser.
-This firmware addition has not been implemented or flashed in this change.
+The on-device bridge implements a bounded **binary byte tap before text
+framing** and queues named queries to the existing GPS reader task. That task
+remains UART owner; `gps raw` remains a separate text-only command. A first
+live run exposed binary bytes entering the NMEA parser, so the follow-up image
+filters CASIC frames from that parser while preserving their raw capture.
 
 The host tool recognizes `BA CE`, validates aligned bounded payload length and
 the little-endian word checksum, and retains unknown payload bytes. It reports

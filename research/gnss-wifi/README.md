@@ -83,6 +83,44 @@ lose signal energy and code-delay resolution. The new source-1 report therefore
 makes **assisted narrowband acquisition** worth testing; it does not make a
 normal full-band GPS SDR stream fit over this SPI interface.
 
+### Live FSK source-1 route
+
+An experimental receive-only `lora lrlab` command in the [LakeShark research
+branch](https://github.com/SAMS0N1TE/LS_Test1/tree/research/gnss-binary-20261026)
+sets FSK receive bandwidth, manual gain after `SetRx`, and the ROM raw-FIFO
+source selector, then restores the normal LoRa receive state. The source-1
+route (`0x09`) is inferred from the ROM bitfield and contributor report; its
+sample meaning still needs an external reference. One example is:
+
+```text
+lora lrlab 1575420 fsk 1 163 100 13
+```
+
+The configured FSK bandwidths below are table values, **not measured analog
+passbands**. Byte counts include stream start and end timing jitter.
+
+| FSK BW code / nominal bandwidth | Source | Validated capture | Byte count | Approximate pair rate | Result |
+| --- | ---: | ---: | ---: | ---: | --- |
+| 164 / 33,333 Hz | 1 | 10 ms | 2,000 | 100k/s | No reported overflow |
+| 163 / 66,667 Hz | 1 | 100 ms | 39,992 | 200k/s | No reported overflow |
+| 163 / 66,667 Hz | 2 | 10 ms | 8,004 | 200k/s | No reported overflow |
+| 162 / 133,333 Hz | 1 | 50 ms, repeated | 39,984 / 39,968 | 400k/s | No reported overflow |
+| 161 / 266,667 Hz | 1 | 10 ms requested | 3,004 before stop | Unknown | FIFO full/overflow; rejected |
+
+These paired rates are inferred from bytes divided by elapsed time, assuming
+two bytes per pair for source 1 and four for source 2. The factor-of-two byte
+count at code 163 supports the proposed 8-bit versus 16-bit format. Source-1
+components observed on short captures were within -32..+31, with both putative
+I and Q positions varying. Their physical meaning, order, signedness, rate
+accuracy, and continuity need a known RF signal or an independent simultaneous
+receiver. LoRa-mode source 1 yielded no bytes in a 20 ms test. All tests were
+receive-only and recovery reported normal LoRa operation afterward. The LR2021
+antenna route was not read back, and no GNSS-specific antenna was attached.
+
+The 133 kHz FSK setting could retain more C/A energy than the earlier 31.25 kHz
+LoRa trial, but its analog response is unmeasured and this is still a severe
+GPS L1 bandwidth cut. No satellite acquisition is claimed from these captures.
+
 ### Exploratory correlation
 
 `tools/gnss_acquire.py` generates GPS PRNs 1..32, models a rectangular filter
@@ -106,6 +144,23 @@ Doppler; repeat on held-out captures. Require repeatable PRN/code-phase/Doppler
 behavior and false-alarm controls before saying a satellite was received. A
 position fix additionally requires observables, timing, ephemerides and a solver.
 
+### PocketSDR as a reference receiver
+
+[PocketSDR](https://github.com/tomojitakasu/PocketSDR) is a useful open-source
+reference for the *host-side* search: its [algorithm
+description](https://github.com/tomojitakasu/PocketSDR/blob/master/doc/algo_desc.md#3-signal-acquisition-algorithm)
+uses FFT code-phase/Doppler search, 2 ms zero padding for a 1 ms GPS C/A code
+period, noncoherent power sums, and separate unaided/assisted acquisition
+windows. Its [command
+reference](https://github.com/tomojitakasu/PocketSDR/blob/master/doc/command_ref.md)
+accepts interleaved signed 8-bit IQ (`INT8X2`) from a file, which could give
+us an independent check once LR2021 source 1's I/Q order, signedness, sample
+clock, and continuity are measured. We should use the L76K's satellite list to
+narrow the PRN search and compare repeated on-frequency captures with shifted
+frequency controls. PocketSDR's normal GNSS RF front ends have far wider
+bandwidth and much faster sampling than the current LR2021 export, so its
+acquisition thresholds cannot be adopted as LR2021 sensitivity claims.
+
 ## Wi-Fi analysis: useful narrow slices
 
 The LR2021 covers 2.4 GHz, but ordinary 20 MHz 802.11 captures are far wider
@@ -121,6 +176,36 @@ including offsets from channel center: a center null or spur can mislead.
 Repeat at fixed gain and check clipping, full/overflow flags and recovery.
 Report energy in the sampled slice and capture interval, not whole-channel
 utilization. Sequential sweeps do not observe all frequencies simultaneously.
+
+The FSK source-1 route also returned about 200k candidate complex pairs/s at
+2412 MHz with code 163 and no reported overflow in a 10 ms capture. The
+putative 8-bit components had standard deviations near 4.2 counts in both
+positions, compared with about 1.3 counts at L1 in a separate capture. This
+uncontrolled difference is **not a Wi-Fi detection**: antenna routing, gain,
+nearby signals and timing were not calibrated. A HackRF reference receiver and
+a controlled AP traffic pattern are the next useful checks.
+
+### HackRF receive-only comparison
+
+A separately attached HackRF One with a second Wi-Fi antenna was read through
+the official `hackrf_sweep` host utility (no HackRF transmission). Two 300-sweep
+surveys of 2400–2484 MHz, each about 3.8 seconds with 100 kHz nominal bins,
+repeatedly had their strongest high-percentile bursts around 2434–2438 MHz.
+At 2436.3 and 2437.7 MHz, the first survey's median power was near -61 dB and
+its 95th percentile near -21 to -20 dB in the utility's uncalibrated scale.
+At 2412 and 2462 MHz, the 95th percentiles were near -56 to -57 dB. The
+second survey showed the same broad ordering. These are relative observations
+from a sweeping receiver, not synchronized packet detections.
+
+In twelve interleaved, 20 ms LR2021 source-1 captures at FSK BW code 163,
+the slices at 2436.3 and 2437.7 MHz sometimes had much stronger 1 ms power
+windows than their baselines. A 2462 MHz slice also spiked in later captures,
+while 2412 MHz stayed quieter. Every capture returned bytes and recovery
+success, with no reported FIFO overflow. The two receivers were not time
+synchronized, their antennas and gain chains differ, and the LR2021 input
+route was not read back. This supports further **narrowband burst sensing**
+work but does not identify Wi-Fi packets or validate the source-1 I/Q scale.
+Keep the HackRF and LR2021 RF captures local until reviewed.
 
 Promising extension: use the C6 Wi-Fi radio for packet/channel identity while
 the LR2021 measures narrowband energy and BLE activity. Timestamp both streams
