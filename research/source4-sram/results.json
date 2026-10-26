@@ -1,0 +1,304 @@
+{
+  "credit": "sfowlr original LR2021 route, ROM, register and patch research; source supplied privately. Local LakeShark follow-up.",
+  "date": "2026-10-26",
+  "scope": "Public sanitized aggregate results; raw captures and private supplied notes excluded.",
+  "nominal_sample_rate_hz": 8000000,
+  "continuous_capture_claimed": false,
+  "sf_tests": [
+    {
+      "label": "sf7",
+      "sha256": "1d4771e0292fec6b1e09246a615399baa4e74a6ddbd3dfbbb2232770785317a1",
+      "raw_rms_counts": 6695.41145113577,
+      "fold128_residual_rms_counts": 147.04135077250655,
+      "correlation_magnitude_to_sf7_bw62p5": 0.9999999999999999,
+      "registers_before_capture": {
+        "0xF30124": 5488000,
+        "0xF40200": 25730,
+        "0xF40204": 45
+      }
+    },
+    {
+      "label": "sf8",
+      "sha256": "6e9b5cf9fa1447fc0f6e37c999a3cbe87438d30355d98e9cf3b0cc3138d73197",
+      "raw_rms_counts": 6698.620268383632,
+      "fold128_residual_rms_counts": 146.13947893752925,
+      "correlation_magnitude_to_sf7_bw62p5": 0.9994878198081952,
+      "registers_before_capture": {
+        "0xF30124": 5488000,
+        "0xF40200": 25730,
+        "0xF40204": 45
+      }
+    },
+    {
+      "label": "sf9",
+      "sha256": "93e304935ff62675a0864aa0d2ffb19be9ba2469e46034b834773a628ab94f23",
+      "raw_rms_counts": 6697.673625968945,
+      "fold128_residual_rms_counts": 142.47292227382437,
+      "correlation_magnitude_to_sf7_bw62p5": 0.9995062615723795,
+      "registers_before_capture": {
+        "0xF30124": 5488000,
+        "0xF40200": 25730,
+        "0xF40204": 45
+      }
+    }
+  ],
+  "bw_tests": [
+    {
+      "label": "bw31p25",
+      "sha256": "b63eeb734495297871e39e019a08b22d5d0588a597d067bd39318a6faf90d604",
+      "raw_rms_counts": 6707.023781082038,
+      "fold128_residual_rms_counts": 143.25894387890725,
+      "correlation_magnitude_to_sf7_bw62p5": 0.9994933882451421,
+      "registers_before_capture": {
+        "0xF30124": 5488000,
+        "0xF40200": 25730,
+        "0xF40204": 45
+      }
+    },
+    {
+      "label": "bw125",
+      "sha256": "e772c62a83f2586d3f13726b551fc30a0f32d08f46ca96d05b36e8b6b4ddee4c",
+      "raw_rms_counts": 6688.564868490101,
+      "fold128_residual_rms_counts": 141.82724944432206,
+      "correlation_magnitude_to_sf7_bw62p5": 0.9994979998627768,
+      "registers_before_capture": {
+        "0xF30124": 5488000,
+        "0xF40200": 25730,
+        "0xF40204": 45
+      }
+    },
+    {
+      "label": "bw250",
+      "sha256": "35a52305a39d94cf79956abd4e5d8b8c858a78f658b49d46a98af615375e4499",
+      "raw_rms_counts": 192.3720353897624,
+      "fold128_residual_rms_counts": 149.60830617561356,
+      "correlation_magnitude_to_sf7_bw62p5": 0.015835563131126534,
+      "registers_before_capture": {
+        "0xF30124": 5488000,
+        "0xF40200": 25730,
+        "0xF40204": 0
+      }
+    }
+  ],
+  "archive_off_correlation_min": 0.9993510687316535,
+  "archive_off_heldout_template_residual_rms_range": [
+    156.01687408738837,
+    171.75561126204875
+  ],
+  "lag_stats": [
+    {
+      "lag": 1,
+      "correlation_magnitude": 0.5054620315571066,
+      "phase_degrees": 164.82082700872286,
+      "raw_difference_rms": 11556.334968883668,
+      "rotation_compensated_difference_rms": 6662.5993265788375
+    },
+    {
+      "lag": 2,
+      "correlation_magnitude": 0.23787381417166933,
+      "phase_degrees": 150.20120520066612,
+      "raw_difference_rms": 10406.258725816004,
+      "rotation_compensated_difference_rms": 8271.01057439317
+    },
+    {
+      "lag": 3,
+      "correlation_magnitude": 0.24802040888436175,
+      "phase_degrees": -45.19907983630636,
+      "raw_difference_rms": 8607.220942559465,
+      "rotation_compensated_difference_rms": 8216.324535503223
+    },
+    {
+      "lag": 64,
+      "correlation_magnitude": 0.029476074923539385,
+      "phase_degrees": -60.151520042487086,
+      "raw_difference_rms": 9404.348287344394,
+      "rotation_compensated_difference_rms": 9333.426155173123
+    },
+    {
+      "lag": 128,
+      "correlation_magnitude": 0.9995122112109993,
+      "phase_degrees": -119.99059671743653,
+      "raw_difference_rms": 11602.24631123933,
+      "rotation_compensated_difference_rms": 209.25834983559906
+    },
+    {
+      "lag": 256,
+      "correlation_magnitude": 0.9995286174539395,
+      "phase_degrees": 120.01672566179887,
+      "raw_difference_rms": 11603.035095550278,
+      "rotation_compensated_difference_rms": 205.70141102070022
+    },
+    {
+      "lag": 384,
+      "correlation_magnitude": 0.9995267058166677,
+      "phase_degrees": 0.029366072999532627,
+      "raw_difference_rms": 206.091839124809,
+      "rotation_compensated_difference_rms": 206.0632620252089
+    },
+    {
+      "lag": 512,
+      "correlation_magnitude": 0.999512977873558,
+      "phase_degrees": -119.96421656410892,
+      "raw_difference_rms": 11597.286636680727,
+      "rotation_compensated_difference_rms": 209.06164001741328
+    },
+    {
+      "lag": 768,
+      "correlation_magnitude": 0.999540564791939,
+      "phase_degrees": 0.06442854663586799,
+      "raw_difference_rms": 203.2043306625132,
+      "rotation_compensated_difference_rms": 203.06470238791036
+    }
+  ],
+  "single_capture_cancellation_synthetic_transfer": [
+    {
+      "hz": -1000000.0,
+      "remaining_rms_fraction": 0.9980449639169569,
+      "remaining_coherent_amplitude_fraction": 0.9960937499999999
+    },
+    {
+      "hz": -500000.0,
+      "remaining_rms_fraction": 0.9980449639169569,
+      "remaining_coherent_amplitude_fraction": 0.9960937499999999
+    },
+    {
+      "hz": 50000.0,
+      "remaining_rms_fraction": 0.998044963916957,
+      "remaining_coherent_amplitude_fraction": 0.9960937500000001
+    },
+    {
+      "hz": 250000.0,
+      "remaining_rms_fraction": 0.998044963916957,
+      "remaining_coherent_amplitude_fraction": 0.99609375
+    },
+    {
+      "hz": 500000.0,
+      "remaining_rms_fraction": 0.998044963916957,
+      "remaining_coherent_amplitude_fraction": 0.99609375
+    },
+    {
+      "hz": 1000000.0,
+      "remaining_rms_fraction": 0.9980449639169571,
+      "remaining_coherent_amplitude_fraction": 0.99609375
+    },
+    {
+      "hz": 1250000.0,
+      "remaining_rms_fraction": 0.9980449639169567,
+      "remaining_coherent_amplitude_fraction": 0.9960937499999997
+    },
+    {
+      "hz": 1500000.0,
+      "remaining_rms_fraction": 0.9980449639169571,
+      "remaining_coherent_amplitude_fraction": 0.9960937500000002
+    },
+    {
+      "hz": 1750000.0,
+      "remaining_rms_fraction": 0.9980449639169571,
+      "remaining_coherent_amplitude_fraction": 0.9960937500000003
+    },
+    {
+      "hz": 2000000.0,
+      "remaining_rms_fraction": 0.998044963916957,
+      "remaining_coherent_amplitude_fraction": 0.99609375
+    },
+    {
+      "hz": 41666.6666667,
+      "remaining_rms_fraction": 1.544460655132401e-11,
+      "remaining_coherent_amplitude_fraction": 2.284931135469713e-17
+    },
+    {
+      "hz": 1791666.666667,
+      "remaining_rms_fraction": 1.5441414561633188e-10,
+      "remaining_coherent_amplitude_fraction": 2.8225127324120004e-17
+    },
+    {
+      "hz": 49000,
+      "remaining_rms_fraction": 0.9978720752490889,
+      "remaining_coherent_amplitude_fraction": 0.9957486785619233
+    },
+    {
+      "hz": 51000,
+      "remaining_rms_fraction": 0.9915184770382744,
+      "remaining_coherent_amplitude_fraction": 0.9831088903082993
+    }
+  ],
+  "off_real_axis_diagnostics": [
+    {
+      "carrier_cycles_per_pair": 0,
+      "noncircularity": 0.00526673329779635,
+      "minor_axis_to_major_rms": 0.9947470631834522
+    },
+    {
+      "carrier_cycles_per_pair": -0.041666666666666664,
+      "noncircularity": 0.9992728577213945,
+      "minor_axis_to_major_rms": 0.01907100866110144
+    },
+    {
+      "carrier_cycles_per_pair": 0.3333333333333333,
+      "noncircularity": 0.0465019068968298,
+      "minor_axis_to_major_rms": 0.9545307032886451
+    },
+    {
+      "carrier_cycles_per_pair": -0.3333333333333333,
+      "noncircularity": 0.004328697339162369,
+      "minor_axis_to_major_rms": 0.9956806310475143
+    },
+    {
+      "carrier_cycles_per_pair": -0.16666666666666666,
+      "noncircularity": 0.046501906896825485,
+      "minor_axis_to_major_rms": 0.9545307032886493
+    },
+    {
+      "carrier_cycles_per_pair": -0.0026041666666666665,
+      "noncircularity": 0.07943086174934712,
+      "minor_axis_to_major_rms": 0.9234870085872731
+    }
+  ],
+  "tone_tests": [
+    {
+      "offset_khz": 50,
+      "raw_on_rms_counts": 206.71598873817186,
+      "raw_off_rms_counts": 195.50447565209345,
+      "line_hz_assuming_8M": 50781.25,
+      "raw_on_line_amplitude": 86.30394332151565,
+      "raw_off_same_bin_amplitude": 5.716513100497951,
+      "on_minus_off_line_amplitude": 80.73328268037115,
+      "line_above_nearby_median_db": 24.593886920463216,
+      "on_sha256": "110e9505740470dd9264297fc94968a0a67e5fda2bf03e495f5ee39b39d5793f",
+      "off_sha256": "d2466987ae07ac1ff91ca862f372ade9ee1ed84157a02768589c1276544734e9"
+    },
+    {
+      "offset_khz": 1000,
+      "raw_on_rms_counts": 225.4573130328666,
+      "raw_off_rms_counts": 219.8158320048854,
+      "line_hz_assuming_8M": 1000000.0,
+      "raw_on_line_amplitude": 40.56007618979257,
+      "raw_off_same_bin_amplitude": 4.765987472863167,
+      "on_minus_off_line_amplitude": 40.08946056783031,
+      "line_above_nearby_median_db": 18.76779385026363,
+      "on_sha256": "8c619ca98e6e7fe3f282697ff4c0c22993ea7c2a13ea8f73cb27d4be29ba6c1c",
+      "off_sha256": "4b11b9f9cb719c7d33c26db5f0b8d1d4ebc2306a26ca23bbee8420d53e122708"
+    },
+    {
+      "offset_khz": -1000,
+      "raw_on_rms_counts": 155.0919082350849,
+      "raw_off_rms_counts": 230.1249660510567,
+      "line_hz_assuming_8M": -1000000.0,
+      "raw_on_line_amplitude": 85.08333057644317,
+      "raw_off_same_bin_amplitude": 7.042479568771119,
+      "on_minus_off_line_amplitude": 78.10690243386426,
+      "line_above_nearby_median_db": 24.265950131857124,
+      "on_sha256": "bc3d84af8ce46e0ac34b4d249888e4358897775ccb200e8831807caaa942f6b5",
+      "off_sha256": "688bf03f8d0bb3fbcbcb9e6d902f692fe9a7676ceadaeb1e994655dda3213814"
+    }
+  ],
+  "restoration": {
+    "all_completed_sessions_original_restored": true,
+    "all_completed_sessions_source_files_unchanged": true,
+    "hackrf_exit_codes": [
+      0,
+      0,
+      0
+    ]
+  }
+}
