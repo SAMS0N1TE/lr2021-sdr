@@ -33,19 +33,22 @@ family command works in the module's firmware**.
 | Probe | Class, ID | Interpretation and current status |
 | --- | --- | --- |
 | Current port | 06,00 | Two checksum-valid CFG-PRT replies and ACK on this board |
+| Current message rates | 06,01 | 38 checksum-valid CFG-MSG records and ACK; includes `03/10` and `03/11`, both disabled |
 | Current update rate | 06,04 | One checksum-valid CFG-RATE reply and ACK; payload is 1000 ms |
 | Version | 0A,04 | Explicit NAK; broader-family candidate unsupported as polled |
 | Hardware diagnostics | 0A,09 | Explicit NAK |
 | Navigation clock | 01,11 | Explicit NAK |
-| Receiver measurements | 03,10 | Explicit NAK; no raw observations demonstrated |
+| Receiver measurements | 03,10 | Empty poll explicitly NAKed; message-rate entry exists, but enabling it produced no measurement frames |
 
-All live polls in `tools/casic_probe.py` have empty payloads. It does not send
-configuration setters, persistent saves, firmware writes, restart requests or
-arbitrary numeric command IDs. Broader-family polls are optional named probes,
-not proven side-effect-free operations on every firmware. Start with passive
-capture and documented port/rate polls. A missing response can mean disabled
-binary input/output, firmware limitations, wiring or capture loss; it is not
-proof that hardware lacks the feature.
+The named `port`, `messages`, `rate` and broader-family direct polls have empty
+payloads. The tool also encodes fixed CFG-MSG one-shot requests and the bridge
+exposes a timed `03/10` stream test; those do change a message rate while the
+test runs. It does not send persistent saves, firmware writes, restart requests
+or arbitrary numeric command IDs. Broader-family polls are optional named
+probes, not proven side-effect-free operations on every firmware. Start with
+passive capture and documented port/rate polls. A missing response can mean
+firmware limitations, wiring or capture loss; it is not proof that hardware
+lacks the feature.
 
 ### Live CASIC results
 
@@ -65,18 +68,42 @@ bytes and valid frame checksums. Version, hardware, clock, measurements,
 GPS/BDS/GLONASS info and binary position polls each returned a checksum-valid
 `05/00` NAK naming the request. This rules out **those empty-payload polls on
 this firmware**, while leaving other message variants and interfaces open.
-The GPS receiver retained a fix and normal NMEA output after testing. Full UART
-captures, including location-bearing NMEA, stay private.
+
+The `messages` inventory yielded 38 `06/01` records. GPS/BeiDou/GLONASS NMEA
+sentences have configured rates of one per fix; the candidate binary `03/10`
+and `03/11` rates were zero. The `port` reply reported protocol mask `FF` and
+115200 baud for port 0, including binary input/output bits. Thus an explicit
+binary-output disable is not an explanation for the empty measurement capture.
+The inventory is evidence of configured message IDs, not evidence that a
+particular payload is implemented or contains useful raw observations.
+
+Fixed CFG-MSG one-shot requests for `03/10`, `03/11`, navigation clock and
+position were ACKed but yielded no corresponding binary frames. A GGA one-shot
+control was also ACKed without a separately identifiable extra sentence in
+the short capture window, so the one-shot result is inconclusive. A bounded
+`03/10` rate-one stream test captured 1594 UART bytes over 1800 ms and an ACK,
+but no `03/10` frame. The firmware automatically sent a rate-zero stop frame
+after the window (`cleanup_tx=14`, `cleanup_error=ESP_OK`). An immediate second
+`messages` query verified that `03/10` had returned to rate zero. All these
+captures had zero dropped bytes and valid CASIC checksums. Passive capture
+afterward contained only NMEA. The GPS receiver retained normal NMEA output;
+full UART captures, including location-bearing NMEA, stay private. **No
+undocumented measurement output has been demonstrated on this board.**
 
 To repeat against the experimental firmware, use the console bridge parser:
 
 ```text
 python tools/casic_probe.py bridge --port COM14 --poll passive --ms 700 --out local-passive
 python tools/casic_probe.py bridge --port COM14 --poll rate --ms 700 --out local-rate
+python tools/casic_probe.py bridge --port COM14 --poll messages --ms 1000 --out local-messages
+python tools/casic_probe.py bridge --port COM14 --poll measurements_stream --ms 1800 --out local-measurements
 ```
 
 The tool checks console block offsets and CRC before writing `uart-private.bin`
 and `report-private.json`. Its terminal summary omits payloads and coordinates.
+The stream command requires the experimental firmware's automatic stop and
+rejects a capture without confirmed cleanup. Requery `messages` afterward to
+verify rate zero; `measurements_stop` is also available for recovery.
 
 ## The important distinctions
 
@@ -136,7 +163,9 @@ Captures and decoded payloads can contain location; review before publication.
    replies before enabling any new stream.
 3. Query documented baseline settings, then optional version/hardware/clock and
    measurement candidates individually. Compare NMEA cadence and fix health
-   before/after. Preserve an explicit no-response outcome.
+   before/after. This board's CFG-MSG inventory/stream result narrows the next
+   step to another firmware revision or a matching chipset data sheet before
+   further command guesses. Preserve explicit NAK/no-response outcomes.
 4. If measurements exist, validate against known stationary geometry and an
    independent GNSS receiver; derive units/epochs from a matching protocol
    revision and verify invalid-value behavior. Do not infer carrier phase from

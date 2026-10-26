@@ -16,6 +16,24 @@ class CasicTests(unittest.TestCase):
     def test_vendor_empty_port_poll_vector(self):
         self.assertEqual(cp.packet(6,0).hex(),"bace0000060000000600")
 
+    def test_documented_configuration_decode(self):
+        port=cp.packet(6,0,bytes.fromhex("00ffc00800c20100"))
+        msg=cp.packet(6,1,bytes.fromhex("4e000100"))
+        rate=cp.packet(6,4,struct.pack("<I",1000))
+        ack=cp.packet(5,1,bytes.fromhex("06010000"))
+        frames=cp.inspect(port+msg+rate+ack)["frames"]
+        self.assertEqual(frames[0]["port"]["baud"],115200)
+        self.assertTrue(frames[0]["port"]["binary_output"])
+        self.assertEqual(frames[1]["message_rate"],dict(cls=0x4e,id=0,every_n_fixes=1))
+        self.assertEqual(frames[2]["position_interval_ms"],1000)
+        self.assertEqual(frames[3]["ack_for"],dict(cls=6,id=1,accepted=True))
+
+    def test_one_shot_measurement_query_vector(self):
+        self.assertEqual(cp.named_query("measurements_once").hex(),
+                         "bace040006010310ffff07100501")
+        self.assertEqual(cp.named_query("measurements_stream").hex(),
+                         "bace040006010310010007100701")
+
     def test_mixed_nmea_and_binary(self):
         ver=b"TEST_SW\0".ljust(32,b"\0")+b"TEST_HW\0".ljust(32,b"\0")
         data=b"$GNTXT,unrelated*00\r\n"+cp.packet(10,4,ver)
@@ -45,6 +63,12 @@ class CasicTests(unittest.TestCase):
                         transfer.replace("000000","000004"),
                         transfer.replace("crc32=","crc32=F")):
             with self.assertRaises(ValueError):cp.parse_bridge_output(damaged,"rate")
+        stream=transfer.replace("name=rate", "name=measurements_stream").replace(
+            "tx=10", "tx=14 cleanup_tx=14 cleanup_error=ESP_OK")
+        self.assertEqual(cp.parse_bridge_output(stream,"measurements_stream"),raw)
+        with self.assertRaises(ValueError):
+            cp.parse_bridge_output(stream.replace("cleanup_tx=14","cleanup_tx=0"),
+                                   "measurements_stream")
 
 
 SUMMARY="lrprobe: f=1575420 kHz path=HF bw=31250 rate=125000 gain=13 boost=4 tune=ESP_OK errors=0x0000 bytes=4 buf=int max_level=44 polls=1 elapsed_us=40 flags=0x00 result=ESP_OK recovery=ESP_OK\n"

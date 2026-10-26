@@ -17,11 +17,26 @@ import zlib
 
 # Quectel L76K V1.1: CFG-PRT/CFG-RATE. Broader chipset protocol/gpsd:
 # MON-VER, MON-HW, NAV-CLOCK, RXM-MEASX. Availability is unverified on this L76K.
-QUERIES = {"port": (0x06, 0x00), "rate": (0x06, 0x04),
+QUERIES = {"port": (0x06, 0x00), "messages": (0x06, 0x01), "rate": (0x06, 0x04),
            "version": (0x0A, 0x04), "hardware": (0x0A, 0x09),
            "clock": (0x01, 0x11), "measurements": (0x03, 0x10),
            "gpsinfo": (0x01, 0x20), "bdsinfo": (0x01, 0x21),
            "glninfo": (0x01, 0x22), "position": (0x01, 0x03)}
+ONE_SHOTS = {"gga_once": (0x4E, 0x00), "clock_once": (0x01, 0x11),
+             "measurements_once": (0x03, 0x10), "measurements2_once": (0x03, 0x11),
+             "position_once": (0x01, 0x03)}
+STREAM_CONTROL = {"measurements_stream": (0x03, 0x10, 1),
+                  "measurements_stop": (0x03, 0x10, 0)}
+
+
+def named_query(name):
+    if name in STREAM_CONTROL:
+        cls, ident, rate = STREAM_CONTROL[name]
+        return packet(6, 1, struct.pack("<BBH", cls, ident, rate))
+    if name in ONE_SHOTS:
+        cls, ident = ONE_SHOTS[name]
+        return packet(6, 1, struct.pack("<BBH", cls, ident, 0xFFFF))
+    return packet(*QUERIES[name])
 
 
 def checksum(header_payload):
@@ -64,6 +79,19 @@ def inspect(data):
             continue
         payload = data[i+6:end-4]
         record = dict(offset=i, cls=cls, id=ident, payload_bytes=size, payload_hex=payload.hex())
+        if (cls, ident) == (6, 0) and size == 8:
+            port_id, mask, mode, baud = struct.unpack("<BBHI", payload)
+            record["port"] = dict(id=port_id, protocol_mask=mask, mode=mode, baud=baud,
+                                  binary_input=bool(mask & 1), text_input=bool(mask & 2),
+                                  binary_output=bool(mask & 16), text_output=bool(mask & 32))
+        if (cls, ident) == (6, 1) and size == 4:
+            msg_cls, msg_id, rate = struct.unpack("<BBH", payload)
+            record["message_rate"] = dict(cls=msg_cls, id=msg_id, every_n_fixes=rate)
+        if (cls, ident) == (6, 4) and size == 4:
+            record["position_interval_ms"] = struct.unpack("<I", payload)[0]
+        if cls == 5 and ident in (0, 1) and size == 4:
+            record["ack_for"] = dict(cls=payload[0], id=payload[1],
+                                     accepted=ident == 1)
         if (cls, ident) == QUERIES["version"] and size >= 64:
             record["software"] = payload[:32].split(b"\0", 1)[0].decode("ascii", errors="replace")
             record["hardware"] = payload[32:64].split(b"\0", 1)[0].decode("ascii", errors="replace")
@@ -93,9 +121,12 @@ def parse_bridge_output(output, name):
         raise ValueError("Transferred byte count differs from firmware")
     if zlib.crc32(data) != int(ends[0][1], 16):
         raise ValueError("Transfer CRC differs from firmware")
-    expected_tx = 0 if name == "passive" else 10
+    expected_tx = 0 if name == "passive" else len(named_query(name))
     if int(fields.get("tx", "-1")) != expected_tx:
         raise ValueError("Incomplete query write")
+    if name == "measurements_stream" and (fields.get("cleanup_tx") != "14" or
+                                           fields.get("cleanup_error") != "ESP_OK"):
+        raise ValueError("Firmware did not confirm automatic stream stop")
     return bytes(data)
 
 
@@ -103,7 +134,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     sub = p.add_subparsers(dest="action", required=True)
     q = sub.add_parser("query")
-    q.add_argument("name", choices=QUERIES)
+    q.add_argument("name", choices=(*QUERIES, *ONE_SHOTS))
     f = sub.add_parser("inspect")
     f.add_argument("file", type=Path)
     l = sub.add_parser("listen")
@@ -111,25 +142,28 @@ def main():
     l.add_argument("--baud", type=int, choices=(9600, 19200, 38400, 57600, 115200), default=115200)
     l.add_argument("--seconds", type=int, choices=range(1, 31), default=5)
     l.add_argument("--out", type=Path, required=True)
-    l.add_argument("--poll", choices=QUERIES)
+    l.add_argument("--poll", choices=(*QUERIES, *ONE_SHOTS))
     b = sub.add_parser("bridge", help="LakeShark research firmware gps probe over its console")
     b.add_argument("--port", required=True, help="LakeShark console, not direct GNSS UART")
-    b.add_argument("--poll", choices=("passive", *QUERIES), required=True)
+    b.add_argument("--poll", choices=("passive", *QUERIES, *ONE_SHOTS, *STREAM_CONTROL), required=True)
     b.add_argument("--ms", type=int, choices=range(100, 2001), default=700)
     b.add_argument("--out", type=Path, required=True)
     a = p.parse_args()
     if a.action == "query":
-        print(packet(*QUERIES[a.name]).hex(" "))
+        print(named_query(a.name).hex(" "))
     elif a.action == "inspect":
         print(json.dumps(inspect(a.file.read_bytes()), indent=2))
     elif a.action == "bridge":
         from lr2021_research import Console
-        a.out.mkdir(parents=True, exist_ok=False)
         c = Console(a.port)
         try:
+            # The stock GPS task starts on the first `gps` command after boot.
+            # Keep its status (which may contain location) off stdout.
+            c.command("gps", timeout=15)
             output = c.command(f"gps probe {a.poll} {a.ms}", timeout=15)
         finally:
             c.close()
+        a.out.mkdir(parents=True, exist_ok=False)
         (a.out / "console-private.txt").write_text(output, encoding="utf-8")
         data = parse_bridge_output(output, a.poll)
         (a.out / "uart-private.bin").write_bytes(data)
@@ -148,7 +182,7 @@ def main():
         try:
             s.open()
             if a.poll:
-                s.write(packet(*QUERIES[a.poll]))
+                s.write(named_query(a.poll))
             end = time.monotonic() + a.seconds
             while time.monotonic() < end and len(data) < 400000:
                 data.extend(s.read(min(max(1, s.in_waiting), 4096)))
