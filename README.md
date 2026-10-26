@@ -24,7 +24,7 @@ P25 voice, pagers, FM, Bluetooth LE and custom transmit from the Semtech LR2021 
 
 Measured on one LilyGO T-Display-P4 LR2021 board. The range depends on the module's front end and may differ on other boards or module builds. The sample rate ceiling is set by the host link: the chip's SPI tops out at 16 MHz, and this board reads the FIFO with the CPU. A faster read path or a denser sample format could change it.
 
-**Research update, October 2026:** [sfowlr reports faster 8-bit export, gain-order behavior and native 4-FSK on another ROM 1.24 board](research/community-2026-10/README.md). Our receive-only follow-up reproduces the source-width and moving-tone behavior and reaches intermittent clean ~500k-pair/s windows; the reported 664.8k loss-free stream, gain reset, TX scaling and native 4-FSK remain unverified on our board. [GNSS, 2.4 GHz and L76K research](research/gnss-wifi/README.md) records the other checks, limits and next experiments.
+**Research update, October 2026:** [sfowlr reports faster 8-bit export, gain-order behavior and native 4-FSK on another ROM 1.24 board](research/community-2026-10/README.md). Our receive-only follow-up reproduces the source-width and moving-tone behavior and reaches intermittent clean ~500k-pair/s windows. A pre/post-`SetRx` level comparison did not show the reported gain reset in our FSK or LoRa sequence. The 664.8k loss-free stream, TX scaling and native 4-FSK remain unverified on our board. [GNSS, 2.4 GHz and L76K research](research/gnss-wifi/README.md) records the other checks, limits and next experiments.
 
 ## How it works
 

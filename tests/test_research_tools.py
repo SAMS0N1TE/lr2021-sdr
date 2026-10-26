@@ -109,6 +109,9 @@ class CaptureTests(unittest.TestCase):
             with self.assertRaises(ValueError):lab.parse_lab(damaged,1,"hex")
         discard=summary.replace("buf=int","buf=discard")
         self.assertIsNone(lab.parse_lab(discard,1,"discard")[1])
+        pre=transfer.replace("post_rx_gain=1","post_rx_gain=0")
+        self.assertEqual(lab.parse_lab(pre,1,"hexpre")[1],data)
+        with self.assertRaises(ValueError):lab.parse_lab(pre,1,"hex")
 
 
 @unittest.skipIf(numpy is None, "NumPy is needed for GNSS tools")

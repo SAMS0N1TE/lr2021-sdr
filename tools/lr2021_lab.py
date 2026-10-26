@@ -26,7 +26,8 @@ def parse_lab(output, source, mode):
     for key in ("flags", "errors"):
         fields[key] = int(fields[key], 16)
     if fields["source"] != source or (mode == "discard" and fields["buf"] != "discard") or \
-       (mode == "hex" and fields["buf"] not in ("int", "psram")):
+       (mode != "discard" and fields["buf"] not in ("int", "psram")) or \
+       int(fields["post_rx_gain"]) != (0 if mode == "hexpre" else 1):
         raise ValueError("Wrong source or capture mode")
     if fields["result"] != "ESP_OK" or fields["recovery"] != "ESP_OK" or \
        fields["errors"] or fields["flags"] & 0x30 or fields["stopped"] != "0":
@@ -86,7 +87,7 @@ def capture(a):
     if not 104000 <= a.khz <= 2740000 or not 0 <= a.gain <= 13 or \
        not 0 <= a.bw <= 255 or not 1 <= a.ms <= (250 if a.mode == "discard" else 100):
         raise ValueError("Frequency, bandwidth code, gain or duration outside firmware bounds")
-    if a.assumed_rate is not None and (a.assumed_rate <= 0 or a.mode != "hex"):
+    if a.assumed_rate is not None and (a.assumed_rate <= 0 or a.mode == "discard"):
         raise ValueError("Assumed rate requires a positive Hz value and hex capture")
     a.out.mkdir(parents=True, exist_ok=False)
     c = Console(a.port)
@@ -128,7 +129,7 @@ def main():
     p.add_argument("--bw", type=int, required=True, help="FSK rx_bw byte, validated by firmware")
     p.add_argument("--ms", type=int, required=True)
     p.add_argument("--gain", type=int, default=13)
-    p.add_argument("--mode", choices=("hex", "discard"), default="hex")
+    p.add_argument("--mode", choices=("hex", "hexpre", "discard"), default="hex")
     p.add_argument("--assumed-rate", type=int, help="Hz for exploratory FFT; not a clock measurement")
     p.add_argument("--out", type=Path, required=True)
     capture(p.parse_args())

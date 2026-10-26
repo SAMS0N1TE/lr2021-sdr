@@ -38,7 +38,7 @@ board status showed no chip errors. All raw IQ and console logs remain local.
 | `rx_bw` controls source-1 export rate | Supported for selected codes: 163 delivered ~200k candidate pairs/s, 162 ~400k, and 154 and 26 ~500k. Codes 154 and 26 have different listed FSK bandwidths (166,667 and 192,308 Hz) yet the same observed export rate. The full `32 MHz/(mode × decimation)` mapping is not established. |
 | Source 1 is IQ8, source 2 IQ16 | Supported by their two versus four bytes per candidate complex pair and by the same moving RF-associated tone in both, using interleaved signed 8-bit versus little-endian 16-bit interpretation. Source-1 component values stayed within −32..+31. Pair order and sign on the frequency axis are supported; absolute amplitude scale and the claimed ≥50 dB dynamic-range difference need calibrated input levels. |
 | 664.8k pairs/s without loss at 16 MHz SPI | **Not reproduced on this board.** A code-225 high-rate candidate overflowed in all five 20 ms count-only runs. Removing the PSRAM sample copy did not fix it. The precise code-to-rate mapping of sfowlr's setup has not been supplied, so this does not refute their W12 result. |
-| `SetRx` resets manual gain | Our probe explicitly writes manual gain after `SetRx`; it does not read the gain back or compare pre/post order under a calibrated signal. This claim is still unverified locally. |
+| `SetRx` resets manual gain | **Not observed in our tested command sequence.** Bounded pre-only versus post-RX gain experiments in FSK and LoRa showed the same low/high marker levels for steps 1/13. There is no direct gain-register readback, and the W12 command sequence may differ. |
 | Selector-1 TX scaling and reset-free transitions | Not tested in this receive-only pass. |
 | Native 4-FSK and DMR delivery | Not tested; no 4-FSK TX or DMR decode claimed here. |
 
@@ -69,6 +69,33 @@ shared export rate independently of the byte counts. Their different
 listed FSK bandwidths are **not** yet independently measured filter shapes:
 the strong internal marker remained visible even beyond those nominal
 half-bandwidths, where leakage may bypass the external analog path.
+
+### Gain command order
+
+The research firmware's `hexpre` variant sends `SetAgcGainManual` before
+`SetRx` and deliberately omits the usual post-RX gain write. At 920.010 MHz
+with FSK source 1, we alternated pre-only and post-RX step 1 and step 13 in
+twelve 10 ms captures, using the same board-associated marker. Each capture
+had valid serial framing, no reported FIFO overflow and successful recovery.
+
+| Requested gain | Write order | Captures | Median marker above spectrum median | Median IQ component RMS |
+| --- | --- | ---: | ---: | ---: |
+| Step 1 | Before RX only | 3 | 30.44 dB | 1.16 counts |
+| Step 1 | After RX | 3 | 31.10 dB | 1.16 counts |
+| Step 13 | Before RX only | 3 | 59.85 dB | 11.06 counts |
+| Step 13 | After RX | 3 | 60.14 dB | 11.06 counts |
+
+A LoRa source-2 pilot at the same marker gave about 25 dB above median for
+step 1 in both orders and about 58 dB for step 13 in both orders. Thus our
+`SetRx` path did **not visibly replace pre-set step 1 with step 13** in either
+modem. This tests received levels, not an internal gain register; it cannot
+explain why the contributor saw a reset on the Meshnology W12. The firmware
+keeps the conservative post-RX write in its normal lab path.
+
+```text
+python tools/lr2021_lab.py --port COM14 --khz 920010 --source 1 --bw 163 --ms 10 --gain 1 --mode hexpre --assumed-rate 200000 --out local-gain-pre
+python tools/lr2021_lab.py --port COM14 --khz 920010 --source 1 --bw 163 --ms 10 --gain 1 --mode hex --assumed-rate 200000 --out local-gain-post
+```
 
 ### Frequency-axis pass beyond the specified bands
 
@@ -109,6 +136,19 @@ The first two commands make a spectral check, not an RF-calibrated gain test.
 continuity. The host parser rejects missing hex blocks, reported FIFO loss,
 transport errors and failed recovery. The capture command itself is RX-only.
 
+### RadioFoundry as a future 4-FSK reference
+
+[RadioFoundry](https://github.com/RadioFoundry/RadioFoundry) does not contain
+LR2021 drivers or the reported `0x023B` command. It does provide a useful
+independent DMR reference: its [modem specification](https://github.com/RadioFoundry/RadioFoundry/blob/main/docs/spec/dmr-modem.md)
+states the 4800-symbol/s, 12.5 kHz-channel four-level waveform and nominal
+deviations of ±648 and ±1944 Hz, and its [SDR bench monitor](https://github.com/RadioFoundry/RadioFoundry/blob/main/tools/bench/sdrmon.py)
+describes burst timing, sync/FEC and level checks from captured IQ. Its
+board-specific HR_C6000/HR_C7000 commands do not transfer to LR2021. If we
+later test native LR2021 4-FSK, an independent receiver should measure those
+four deviation levels and decode complete DMR bursts; a successful `0x023B`
+command response alone would not demonstrate modulation or interoperability.
+
 ## What changes in our interpretation
 
 Our **250 kpair/s clean source-2 result** remains a measurement of our IQ16
@@ -121,9 +161,11 @@ polling and scheduling consume the remaining budget. This is calculated capacity
 not a reproduced loss-free stream.
 
 The rate formula alone does not identify which `rx_bw` encodings select each
-mode/decimation pair. Do not invent that table, source-1 route bytes or sample
-order from the summary. Obtain them, then verify with positive/negative offset
-tones and a nonrepeating sequence before changing an API or file format.
+mode/decimation pair. The local source-1 route byte `0x09` and moving-marker
+captures support one interpretation on ROM 1.24, but do not establish the
+entire table, analog filter, amplitude scale or sample-sequence continuity.
+Verify those against positive/negative offset signals and a nonrepeating
+sequence before changing the portable API or file format.
 
 The TX result concerns **selector 1's frequency-deviation interpretation**. The
 existing IQ playback/replay measurements used their own selectors, initialization
@@ -136,8 +178,9 @@ recommendation or call native 4-FSK an amplitude/phase I/Q transmitter.
    sequence. Keep portable source-2 behavior unchanged until comparison passes.
 2. Run the same RF tone at matched analog bandwidth, gain and input level through
    both sources. Establish pair order, sign, scale, saturation and filter shape.
-3. Test gain immediately before and after `SetRx`, then repeat after RX restart.
-   Read back gain where supported and retain the actual command order.
+3. Resolve the disagreement on gain reset with the W12's exact RX command
+   sequence, and read back gain if a matching register/API exists. Our
+   pre-only/post-RX comparison did not show a reset on this LakeShark board.
 4. Increase the FSK export rate in steps. Record raw byte counts, FIFO flags,
    occupancy and longest service gap. Verify sample ordering with a known
    sequence, including under UI/audio load and through FIFO wrap.
