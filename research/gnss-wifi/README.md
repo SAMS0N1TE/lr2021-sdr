@@ -117,6 +117,12 @@ receiver. LoRa-mode source 1 yielded no bytes in a 20 ms test. All tests were
 receive-only and recovery reported normal LoRa operation afterward. The LR2021
 antenna route was not read back, and no GNSS-specific antenna was attached.
 
+The [follow-up source-1 rate and moving-marker pass](../community-2026-10/README.md#what-we-reproduced-on-the-lakeshark-board)
+supports the interleaved IQ8 interpretation across 120 MHz to 2.72 GHz and
+found intermittent 250 ms captures near 500k candidate pairs/s. A higher-rate
+candidate overflowed in every 20 ms count-only trial. This does not establish
+the analog passband or a viable GNSS acquisition path.
+
 The 133 kHz FSK setting could retain more C/A energy than the earlier 31.25 kHz
 LoRa trial, but its analog response is unmeasured and this is still a severe
 GPS L1 bandwidth cut. No satellite acquisition is claimed from these captures.

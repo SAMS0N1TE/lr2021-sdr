@@ -6,6 +6,7 @@ import unittest
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"tools"))
 import casic_probe as cp
 import lr2021_research as lr
+import lr2021_lab as lab
 try:
     import numpy
 except ImportError:
@@ -93,9 +94,37 @@ class CaptureTests(unittest.TestCase):
                      SUMMARY.replace("recovery=ESP_OK","recovery=ESP_FAIL")+HEX):
             with self.assertRaises(ValueError):lr.parse_capture(text)
 
+    def test_lab_capture_integrity_and_discard(self):
+        summary=("lrlab: f=2320010 modem=fsk source=1 bw=163 gain=13 post_rx_gain=1 "
+                 "bytes=4 elapsed_us=10 max_level=20 max_gap_us=5 flags=0x00 "
+                 "errors=0x0000 stopped=0 buf=int result=ESP_OK recovery=ESP_OK\n")
+        transfer=summary+"lrlab-hex: 000000 0102FEFD\nlrlab-hex: end\n"
+        fields,data=lab.parse_lab(transfer,1,"hex")
+        self.assertEqual(data,b"\x01\x02\xfe\xfd")
+        self.assertEqual(fields["pairs"],2)
+        self.assertFalse(fields["rate_verified"])
+        for damaged in (transfer.replace("000000","000002"),
+                        transfer.replace("flags=0x00","flags=0x10"),
+                        transfer.replace("lrlab-hex: end", "")):
+            with self.assertRaises(ValueError):lab.parse_lab(damaged,1,"hex")
+        discard=summary.replace("buf=int","buf=discard")
+        self.assertIsNone(lab.parse_lab(discard,1,"discard")[1])
+
 
 @unittest.skipIf(numpy is None, "NumPy is needed for GNSS tools")
 class GnssTests(unittest.TestCase):
+    def test_lab_spectrum_known_complex_tone(self):
+        import numpy as np
+        rate=200000
+        t=np.arange(2000)/rate
+        tone=20*np.exp(-2j*np.pi*20000*t)
+        iq=np.empty(4000,dtype=np.int8)
+        iq[0::2]=np.rint(tone.real).astype(np.int8)
+        iq[1::2]=np.rint(tone.imag).astype(np.int8)
+        result=lab.spectral_peaks(iq.tobytes(),1,rate)
+        self.assertLess(abs(result["peaks"][0]["hz"]+20000),200)
+        self.assertFalse(result["analog_passband_measured"])
+
     def test_capacity_and_energy_bounds(self):
         rows=lr.budget()["rows"]
         self.assertTrue(all(0<r["ca_power_fraction"]<1 for r in rows))
