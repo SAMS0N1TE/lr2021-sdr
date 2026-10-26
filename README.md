@@ -10,6 +10,10 @@ P25 voice, pagers, FM, Bluetooth LE and custom transmit from the Semtech LR2021 
 
 [Getting started](docs/getting-started.md) · [All guides](docs/README.md) · [LakeShark](https://github.com/SAMS0N1TE/LakeShark)
 
+## Research credit: sfowlr / RadioFoundry
+
+**[sfowlr](https://github.com/sfowlr) shared his LR2021 research directly with this project.** On a Meshnology W12 with ROM 1.24, he reported sustained high-rate 8-bit I/Q receive, the source-0 rate converter, gain-order behavior, and native four-level FSK results. Those W12 findings and measurements are his. See his [RadioFoundryGateway hardware notes](https://github.com/RadioFoundry/RadioFoundryGateway/blob/e2a85653aab8ef13a497ed2b8891f102fac711c4/docs/spec/lr2021-iq.md), [LakeShark discussion #16](https://github.com/SAMS0N1TE/LakeShark/discussions/16), and our separate [LilyGO follow-up](research/community-2026-10/README.md). His additional privately shared notes are not included in this repository.
+
 | | |
 | --- | --- |
 | **100 MHz to 2.74 GHz** | Continuous receive, well past the datasheet's 150 to 960 MHz and 1.5 to 2.5 GHz. Airband, the top of FM and 2.5 to 2.7 GHz included. |
@@ -24,7 +28,7 @@ P25 voice, pagers, FM, Bluetooth LE and custom transmit from the Semtech LR2021 
 
 Measured on one LilyGO T-Display-P4 LR2021 board. The range depends on the module's front end and may differ on other boards or module builds. The 250k rate above is for the standalone firmware's 16-bit source-2 path. The host link is configured for 16 MHz SPI, and that path reads the FIFO with the CPU. A separate experimental LakeShark build reached a higher rate with 8-bit samples and DMA reads, described below.
 
-**Raw-IQ research update:** [sfowlr](https://github.com/sfowlr) reported faster 8-bit export, a source-0 rate converter, gain-order behavior and native four-level FSK on a Meshnology W12 in [LakeShark discussion #16](https://github.com/SAMS0N1TE/LakeShark/discussions/16). Our [receive-only follow-up](research/community-2026-10/README.md) reproduced bounded ~666k-pair/s IQ8 transport on the LilyGO board with large DMA FIFO reads, and found a different gain-register result after `SetRx`. TX scaling and four-level FSK remain untested here. [GNSS and 2.4 GHz](research/gnss-wifi/README.md) and [L76K](research/l76k/README.md) notes cover the separate signal and GPS-module experiments.
+**Raw-IQ follow-up:** Our LilyGO board reproduced bounded ~666k-pair/s IQ8 transport with large DMA FIFO reads and gave a different gain-register result after `SetRx`. TX scaling and four-level FSK remain untested here. The [follow-up](research/community-2026-10/README.md) keeps these results separate from sfowlr's W12 measurements. [GNSS and 2.4 GHz](research/gnss-wifi/README.md) and [L76K](research/l76k/README.md) notes cover the signal and GPS-module experiments.
 
 ## How it works
 
