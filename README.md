@@ -24,6 +24,8 @@ P25 voice, pagers, FM, Bluetooth LE and custom transmit from the Semtech LR2021 
 
 Measured on one LilyGO T-Display-P4 LR2021 board. The range depends on the module's front end and may differ on other boards or module builds. The sample rate ceiling is set by the host link: the chip's SPI tops out at 16 MHz, and this board reads the FIFO with the CPU. A faster read path or a denser sample format could change it.
 
+**Research update, October 2026:** [sfowlr reports faster 8-bit export, gain-order behavior and native 4-FSK on another ROM 1.24 board](research/community-2026-10/README.md). These findings are attributed and awaiting local reproduction. [GNSS, 2.4 GHz and L76K research](research/gnss-wifi/README.md) records the first receive-only checks, limits and next experiments.
+
 ## How it works
 
 The [Semtech LR2021](https://www.semtech.com/products/wireless-rf/lora-plus/lr2021) normally demodulates LoRa, FSK, FLRC and other modes internally. An undocumented command in its ROM hands over the raw baseband instead: 16-bit I and Q samples, with amplitude and phase intact. That turns the chip into an SDR, so receivers can be written in software.
@@ -113,7 +115,7 @@ The recorder waits for a signal 10 dB over the floor and keeps 10 ms from before
 
 [![Measured complex sample rates follow four times the configured LoRa bandwidth](docs/images/sample-rates.png)](docs/technical-overview.md#hardware)
 
-Known-tone estimates for four tested bandwidths ranged from about **125,000 to 1,000,000 complex samples per second**. These are short-window measurements, not continuous-streaming rate limits. Clean captures run at up to **250,000 samples per second**; faster rates overflow the chip FIFO because the 16 MHz SPI bus cannot carry them.
+Known-tone estimates for four tested bandwidths ranged from about **125,000 to 1,000,000 complex samples per second**. These are short-window measurements, not continuous-streaming rate limits. Clean captures run at up to **250,000 samples per second**; faster IQ16 rates overflow the FIFO on that transport. [A contributor reports a faster source-1 format](research/community-2026-10/README.md), which has not yet been reproduced here.
 
 ### I/Q orientation
 

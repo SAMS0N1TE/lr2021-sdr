@@ -116,6 +116,8 @@ behaves the same for OOK and works for FSK at the rates below.
 - Send OOK at 19,200 samples/s with a constant on level (about 48) and exact zeros
   when off.
 
+A later [contributor report](../research/community-2026-10/README.md) describes selector-1 frequency-deviation scaling across 31.25..250 ksample/s and reset-free switching on a different board. It has not been locally reproduced and does not replace these IQ-playback recommendations. Native 4-FSK is a separate modem experiment.
+
 ## Replaying received captures
 
 Raw IQ16 captures from the same chip at 125,000 samples/s can be sent back

@@ -119,6 +119,8 @@ offers one, could move it.
 
 ## Gain and boost
 
+**Reproduction note, 2026-10-26:** [sfowlr reports](../community-2026-10/README.md) that `SetRx` resets manual gain and the setting must follow RX entry. The tables below remain historical measurements; audit actual command order before interpreting a requested gain as effective. The reported source-1/FSK export also makes the source-2 throughput ceiling above specific to that transport.
+
 `SetAgcGainManual` takes steps 1 to 13 (0 is the chip's AGC). `SetRxPath`
 boost takes 0 to 7 and, per the datasheet, only acts at steps 12 and 13.
 

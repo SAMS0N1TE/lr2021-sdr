@@ -49,8 +49,13 @@ Nominal source-2 rates measured with known tones:
 Measurements used SF7 at 910.525 MHz and agreed within about 0.5%. They are
 not clock or amplitude calibration. The FIFO API only supports the first row.
 
+## Other source formats and modem-dependent rates
+
+[Discussion #16 reports](../research/community-2026-10/README.md) a post-channel-filter source-1 IQ8 export, FSK-controlled rates and manual gain applied after RX starts. This is external evidence on another ROM 1.24 board. Source-1 route encoding, ordering and the FSK rate-code map are not established by this repository. Existing APIs continue to use source 2 and their stated rate limits.
+
 ## TX research
 
 Command `0x0293` provides a separately verified TX sample path on ROM 1.24.
 See [TX formats and RF measurements](tx-discovery.md). RX IQ16 layout does
-not describe the TX I8/Q8 input, and amplitude-preserving TX is unproven.
+not describe the TX I8/Q8 input. Amplitude-and-phase playback has since been
+verified in the separate LakeShark integration; see [TX playback](tx-playback.md).

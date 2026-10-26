@@ -6,6 +6,9 @@ Follow the measurements behind the features, or reproduce an experiment.
 
 | Topic | Report |
 | --- | --- |
+| Contributor-reported source-1 rate/format, gain order, TX selector 1 and native 4-FSK | [October 2026 community findings](../research/community-2026-10/README.md) |
+| GNSS acquisition feasibility, 2.4 GHz slices and first hardware checks | [GNSS and Wi-Fi research](../research/gnss-wifi/README.md) |
+| Separate GNSS module: CASIC diagnostics and measurement candidates | [L76K research](../research/l76k/README.md) |
 | Capabilities, rates, and implementation overview | [Technical overview](technical-overview.md) |
 | Raw receive commands and sample layout | [RX protocol](protocol.md) |
 | Sustained reception | [Live-streaming results](live-streaming.md) |
