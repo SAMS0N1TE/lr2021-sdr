@@ -207,6 +207,15 @@ route was not read back. This supports further **narrowband burst sensing**
 work but does not identify Wi-Fi packets or validate the source-1 I/Q scale.
 Keep the HackRF and LR2021 RF captures local until reviewed.
 
+One simultaneous 100 ms LR2021 / 2 s HackRF receive attempt at 2436.3 MHz
+produced complete local files. After filtering and decimating the HackRF to a
+nominal 200k complex samples/s, their 1 ms power envelopes correlated at about
+0.72 near the expected time overlap, but an unrelated lag scored about 0.77.
+A short-window complex lag/carrier-offset search did not rise above off-time
+controls. The result therefore **does not validate** source-1 quadrature order,
+sample clock, or common-signal identity. A shared attenuated signal or an
+operator-controlled AP pattern would make the comparison decisive.
+
 Promising extension: use the C6 Wi-Fi radio for packet/channel identity while
 the LR2021 measures narrowband energy and BLE activity. Timestamp both streams
 explicitly. This could reveal non-Wi-Fi interferers and coexistence effects;
