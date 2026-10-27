@@ -105,7 +105,7 @@ lr2021_tcp -d serial=COM5,baud=4000000,format=cs12
 
 [Install, device arguments, rates, gain and TX limits](docs/host-sdr.md) · [rtl_tcp server](docs/rtl-tcp.md) · [Bridge protocol](docs/bridge-protocol.md) · [Bridge firmware](firmware/esp32p4/README.md) · [SoapySDR module](soapy/README.md) · [Rust crates](rust/README.md) · [udev rules](udev/60-lr2021-sdr.rules)
 
-Hardware results come from a LilyGO T-Display-P4 LR2021 board; the automated tests run against the simulator. [What is tested where](docs/host-sdr.md#what-is-tested-where).
+Hardware results come from a LilyGO T-Display-P4 LR2021 board; the automated tests run against the simulator. [What is tested where](docs/host-sdr.md#measurements-and-tests).
 
 ## P25 receive and transmit
 
