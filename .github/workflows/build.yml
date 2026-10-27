@@ -35,6 +35,13 @@ jobs:
       - run: cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
       - run: cmake --build build --parallel
       - run: ctest --test-dir build --output-on-failure
+      - name: Windows programs (rtl_tcp server, bridge simulator)
+        uses: actions/upload-artifact@v4
+        with:
+          name: lr2021-windows-tools
+          path: |
+            build/lr2021_tcp.exe
+            build/lr2021_bridge_sim.exe
   rust:
     strategy:
       matrix:
