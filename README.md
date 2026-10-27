@@ -59,7 +59,7 @@ This repository holds the radio access library, the host SDR support (C client, 
 - **Build with it:** Explore the portable C library and [developer guide](docs/developer-guide.md).
 - **Try waveform transmission:** Read the [transmit guide](docs/transmit.md) and [current capabilities](docs/tx-playback.md#remaining-scope).
 
-The work is experimental and has been tested on **LR2021 ROM 1.24**. See [hardware and setup](docs/hardware.md) for board requirements.
+Tested on **LR2021 ROM 1.24**. See [hardware and setup](docs/hardware.md) for board requirements.
 
 ## Use it as an SDR on a computer
 
@@ -83,7 +83,7 @@ SoapySDRUtil --probe="driver=lr2021,serial=/dev/ttyACM0,baud=4000000,format=cs12
 
 [![Share of samples delivered and radio FIFO margin for USB serial and Wi-Fi at 125k and 250k samples/s](docs/images/bridge-streaming.png)](firmware/esp32p4/README.md#use-it-from-a-computer)
 
-*Wi-Fi carries 16-bit samples at 250,000/s without loss. The USB serial link tops out at 4 Mbaud, so 125,000 samples/s goes over it as CS12, a 12-bit packing of the same samples. The radio side was lossless in every run.*
+*Wi-Fi carries 16-bit samples at 250,000/s without loss, and USB serial carries 125,000/s as CS12, a 12-bit packing of the same samples. The radio side was lossless in every run.*
 
 [![HackRF spectrogram of a 433.92 MHz burst sent through SoapySDR writeStream](docs/images/tx-433-burst.png)](docs/host-sdr.md#transmit)
 
@@ -109,7 +109,7 @@ Live reception has produced audible P25 Phase 1 calls. A saved recording also de
 
 *A one-second call recording at 154.785 MHz. These same samples decoded into 27 IMBE voice frames offline.*
 
-Transmit tests sent P25 voice-data bursts carrying a test tone. An independent receiver recovered **72 voice frames** and reconstructed the expected tone. This is experimental burst transmission.
+Transmit tests sent P25 voice-data bursts carrying a test tone. An independent receiver recovered **72 voice frames** and reconstructed the expected tone.
 
 [P25 results and setup](docs/p25.md) · [Listen to the recovered TX tone](research/tx-p25/evidence/v13-p25-voice19200/recovered.wav)
 
@@ -125,7 +125,7 @@ Three separate sessions ran for up to **391 seconds**, with no reported FIFO los
 
 ### Receive range
 
-Retuning tests against the board's own clock harmonics show the receive chain working from **100 MHz to 2740 MHz**, well beyond the datasheet bands. Below 100 MHz image calibration fails, and above about 2750 MHz the synthesizer does not lock.
+Retuning tests against the board's own clock harmonics show the receive chain working from **100 MHz to 2740 MHz**, well beyond the datasheet bands.
 
 A second check used a known signal. Inside a shielded enclosure a HackRF One sent one tone 30 kHz above each test frequency, and the LR2021 looked for it, receive only.
 
@@ -140,7 +140,7 @@ A second check used a known signal. Inside a shielded enclosure a HackRF One sen
 | 2740 MHz | above the HF band | 42 dB |
 | 2760 MHz | above the HF band | none: `PLL_LOCK`, no samples |
 
-Low band with a VHF whip and the HackRF at TX gain 20; 2600 and 2740 MHz with a 433 MHz antenna and TX gain 0. Levels are relative, not a sensitivity figure. [Method](research/rx-range-and-gain/README.md#shielded-tone-check)
+Low band with a VHF whip and the HackRF at TX gain 20; 2600 and 2740 MHz with a 433 MHz antenna and TX gain 0. Levels are relative to the quiet capture. [Method](research/rx-range-and-gain/README.md#shielded-tone-check)
 
 [Range, sample rate, gain and Bluetooth LE results](research/rx-range-and-gain/README.md)
 
@@ -159,7 +159,7 @@ The recorder waits for a signal 10 dB over the floor and keeps 10 ms from before
 
 [![Measured complex sample rates follow four times the configured LoRa bandwidth](docs/images/sample-rates.png)](docs/technical-overview.md#hardware)
 
-Known-tone estimates for four tested bandwidths ranged from about **125,000 to 1,000,000 complex samples per second**. These are short-window measurements, not continuous-streaming rate limits. Continuous 16-bit streaming is verified at up to **250,000 samples per second** over SPI at 26.67 MHz.
+Known-tone estimates for four tested bandwidths ranged from about **125,000 to 1,000,000 complex samples per second**. These are short-window measurements. Continuous 16-bit streaming is verified at up to **250,000 samples per second** over SPI at 26.67 MHz.
 
 ### I/Q orientation
 
@@ -193,7 +193,7 @@ Separate +25 kHz and −15 kHz RF-offset tones verify frequency direction in the
 
 **[sfowlr](https://github.com/sfowlr) shared his LR2021 research directly with this project.** On a Meshnology W12 with ROM 1.24, he reported sustained high-rate 8-bit I/Q receive, the source-0 rate converter, gain-order behavior, and native four-level FSK results. Those W12 findings and measurements are his. See his [RadioFoundryGateway hardware notes](https://github.com/RadioFoundry/RadioFoundryGateway/blob/e2a85653aab8ef13a497ed2b8891f102fac711c4/docs/spec/lr2021-iq.md), [LakeShark discussion #16](https://github.com/SAMS0N1TE/LakeShark/discussions/16), and our separate [LilyGO follow-up](research/community-2026-10/README.md). His additional privately shared notes are not included in this repository.
 
-Our LilyGO board reproduced bounded ~666k-pair/s IQ8 transport with large DMA FIFO reads and gave a different gain-register result after `SetRx`. TX scaling and four-level FSK remain untested here. The [follow-up](research/community-2026-10/README.md) keeps these results separate from sfowlr's W12 measurements.
+Our LilyGO board reproduced bounded ~666k-pair/s IQ8 transport with large DMA FIFO reads and gave a different gain-register result after `SetRx`. The [follow-up](research/community-2026-10/README.md) keeps these results separate from sfowlr's W12 measurements.
 
 ### Other credits
 

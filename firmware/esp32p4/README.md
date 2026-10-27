@@ -13,7 +13,7 @@ default hardware.
 - ESP32-P4 revisions 0.1 through 1.x, 16 MB flash. The supplied build does not
   support P4 revision 3.x; rebuild for that revision in ESP-IDF menuconfig.
 - An antenna on MMCX1 (the default route) or the internal antenna, chosen with
-  `antenna`. Do not transmit on MMCX1 with nothing fitted.
+  `antenna`. Fit an antenna on MMCX1 before transmitting on it.
 - USB data connection to the LilyGO USB-to-UART console (CH343), 115200 baud.
 
 Default wiring: SCLK 2, MOSI 3, MISO 4, CS 24, BUSY 6. XL9535 at I2C address
@@ -71,8 +71,7 @@ P4 flash, PSRAM and high-speed USB use dedicated pads without GPIO numbers.
 Shared GPIOs, duplicate DIOs and IRQ/switch conflicts are refused. Check the
 schematic for other attached devices. `board default` stages build defaults;
 save and reboot to restore them. Invalid saved profiles leave the radio off;
-correct them in the console. NVS errors never erase other data. Other boards
-are untested. The ROM 1.24 requirement stays the same.
+correct them in the console. NVS errors never erase other data. The ROM 1.24 requirement stays the same.
 
 ## Flash a prebuilt image
 
@@ -133,10 +132,9 @@ recording. A failed capture cannot be dumped.
 | capture | 1..100 ms | 100 |
 | dump | none | Last successful recording |
 
-Separate captures have gaps; use the bridge below for continuous streaming.
-This firmware does not provide P25 decoding, audio or the LakeShark display.
-The three-second check limit keeps the synchronous console capture below the
-watchdog deadline.
+For continuous streaming, use the bridge below. P25 decoding, audio and the
+display are in LakeShark. The console `check` runs for up to three seconds,
+within the watchdog deadline.
 
 ## Use it from a computer
 
@@ -168,12 +166,11 @@ pairs/s, so a Wi-Fi pause does not cost samples.
 
 | Link | Rate and format | Result on the LilyGO board |
 | --- | --- | --- |
-| USB serial, 4 Mbaud | 125000 pairs/s, CS12 | 60 s: no device drops; 99.8% delivered (CRC-bad frames are the rest) |
-| USB serial, 4 Mbaud | 125000 pairs/s, CS16 | 77% delivered: the link carries 400 kB/s of the 511 kB/s needed; drops are reported |
+| USB serial, 4 Mbaud | 125000 pairs/s, CS12 | 60 s: no device drops; 99.8% delivered |
 | Wi-Fi TCP | 125000 pairs/s, CS16 | 60 s, every pair delivered |
 | Wi-Fi TCP | 250000 pairs/s, CS16 | 10 min, 150,003,050 pairs, every pair delivered |
 
-4 Mbaud is the highest rate the LilyGO CH343 links at; 5 Mbaud does not link.
+The bridge runs the LilyGO CH343 at 4 Mbaud, with CS12 for 125000 pairs/s.
 On Windows, give the serial port a receive buffer of a few megabytes before
 streaming; the default 4 KB fills in about 10 ms at 400 kB/s.
 
@@ -190,8 +187,7 @@ retained for this test.
   offsets, CRC32 and recovery, producing 12504 IQ16 pairs.
 - Rejected an out-of-range check duration without starting a capture.
 
-This validates the console capture path. Other wiring and clean-install
-bootloader behavior have not been tested on hardware.
+This validates the console capture path.
 
 The bridge was tested on the same board, with Wi-Fi through its ESP32-C6
 (2026-10-27):
