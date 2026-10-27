@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: MIT */
 /* Windows side of the host operating system layer (host_io.c is the POSIX
  * one): Win32 threads, slim reader/writer locks and condition variables,
  * Winsock, and COM ports through the Win32 communications API. */

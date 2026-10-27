@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only
+# SPDX-License-Identifier: MIT
 # LR2021-SDR device permissions. Install with:
 #   sudo cp 60-lr2021-sdr.rules /etc/udev/rules.d/
 #   sudo udevadm control --reload && sudo udevadm trigger

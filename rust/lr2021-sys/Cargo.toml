@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only
+# SPDX-License-Identifier: MIT
 [package]
 name = "lr2021-sys"
 description = "Raw bindings to the LR2021-SDR C library (radio, simulator, bridge codec, host client)"

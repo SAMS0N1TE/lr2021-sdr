@@ -29,4 +29,4 @@ command `bridge <baud>`, then pass the port to `Client::new`. The C host client
 used by `lr2021::Host` does all of that itself.
 
 `lr2021-sys` builds from the repository's `src/` directory; set
-`LR2021_SDR_SRC` to build against another checkout. All crates are GPL-3.0.
+`LR2021_SDR_SRC` to build against another checkout. All crates are MIT licensed.

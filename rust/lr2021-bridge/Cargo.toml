@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only
+# SPDX-License-Identifier: MIT
 [package]
 name = "lr2021-bridge"
 description = "Pure-Rust client for the LR2021-SDR bridge protocol (TCP or any byte stream)"

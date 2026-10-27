@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only
+# SPDX-License-Identifier: MIT
 [package]
 name = "lr2021"
 description = "Safe Rust API for LR2021-SDR: simulator-backed device, receive sessions, TX bursts and the host client"

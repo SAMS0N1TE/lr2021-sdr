@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: MIT
 // SoapySDR module for LR2021-SDR. Chip and protocol logic live in the C
 // library (include/lr2021_host.h); this file maps the SoapySDR API onto it.
 #include <SoapySDR/Device.hpp>

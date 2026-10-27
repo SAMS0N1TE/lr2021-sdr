@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: MIT
 //! Raw FFI bindings to the LR2021-SDR C library: the radio HAL types, the
 //! generic SPI device, receive sessions, the 0x0293 TX burst, the simulator,
 //! the bridge protocol codec and, on Unix, the host client

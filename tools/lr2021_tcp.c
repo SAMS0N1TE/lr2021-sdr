@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: MIT */
 /* rtl_tcp-compatible server for the LR2021, so rtl_tcp clients (SDR++, SDR#,
  * gqrx, OpenWebRX, GNU Radio) can receive with it without SoapySDR.
  *   lr2021_tcp -d serial=COM5 [-a 127.0.0.1] [-p 1234] [-f 433.92M] ...

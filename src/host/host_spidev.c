@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: MIT */
 /* LR2021 on the host's own SPI (Linux spidev) and GPIO (libgpiod v1 or v2)
  * lines, for example a Raspberry Pi. BUSY is an input, NRESET an output driven
  * low to reset. NSS is the spidev chip select. */

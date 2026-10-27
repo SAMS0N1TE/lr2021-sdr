@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: MIT */
 /* Allocation, accessors and layout checks for the Rust bindings. Large or
  * caller-allocated C structs stay opaque on the Rust side. */
 #include "lr2021_bridge.h"

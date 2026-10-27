@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: MIT */
 /* Bridge protocol server on TCP backed by the LR2021 simulator, for host tests,
  * SoapySDR and Rust client development without hardware.
  *   lr2021_bridge_sim [--port 51021] [--pattern counter|tone] [--tone HZ] [--once]

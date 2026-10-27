@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: MIT
 use crate::*;
 use std::collections::VecDeque;
 use std::fmt;

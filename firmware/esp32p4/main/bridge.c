@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: MIT */
 #include "bridge.h"
 #include "radio.h"
 #include "lr2021_bridge_server.h"

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: MIT
 //! Pure-Rust implementation of the LR2021-SDR bridge protocol, version 1
 //! (`docs/bridge-protocol.md`): frame codec, resynchronizing parser, message
 //! records, CS16/CS12 sample formats and a blocking [`Client`].

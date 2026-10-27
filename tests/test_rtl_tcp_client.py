@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only
+# SPDX-License-Identifier: MIT
 """Runs the lr2021_tcp program on the in-process simulator and checks it the
 way an rtl_tcp client sees it: the 12-byte header, commands, then the u8 I/Q
 stream with the simulated tone where it should be.

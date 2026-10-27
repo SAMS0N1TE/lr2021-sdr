@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: MIT
 //! Safe Rust API over the LR2021-SDR C library.
 //!
 //! * [`Simulator`]: the library's LR2021 model behind the real device code

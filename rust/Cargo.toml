@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only
+# SPDX-License-Identifier: MIT
 [workspace]
 resolver = "2"
 members = ["lr2021-sys", "lr2021", "lr2021-bridge"]
@@ -6,6 +6,6 @@ members = ["lr2021-sys", "lr2021", "lr2021-bridge"]
 [workspace.package]
 version = "0.3.0"
 edition = "2021"
-license = "GPL-3.0-only"
+license = "MIT"
 repository = "https://github.com/SAMS0N1TE/lr2021-sdr"
 rust-version = "1.70"

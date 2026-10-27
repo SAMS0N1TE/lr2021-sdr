@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: MIT
 // Compiles the repository's C sources. LR2021_SDR_SRC may point at another
 // checkout; by default the crate builds from the workspace's repository root.
 use std::path::PathBuf;

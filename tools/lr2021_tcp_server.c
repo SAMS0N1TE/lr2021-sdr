@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: MIT */
 /* rtl_tcp-compatible server over the LR2021 host client; see lr2021_tcp.h and
  * docs/rtl-tcp.md. Single threaded: one loop reads client commands, applies
  * them between reads of the receive stream, converts CS16 to u8 and sends. */

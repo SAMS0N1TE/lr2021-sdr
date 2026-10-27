@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: MIT */
 /* Host client against the simulator: in-process, over TCP and over a pty
  * standing in for the USB serial port (not on Windows or macOS). Real time,
  * about 6 seconds. */

@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: MIT */
 /* Arbitrary UART rates (3..6 Mbaud on a CH343) need termios2 with BOTHER,
  * which cannot share a translation unit with <termios.h>. */
 #ifdef __linux__

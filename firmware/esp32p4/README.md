@@ -242,4 +242,4 @@ python tools/package_firmware.py
 ```
 
 The ZIP includes the application, bootloader, partition table, instructions
-and checksums. Source is GPL-3.0; the ESP-IDF dependency retains its own licenses.
+and checksums. Source is MIT licensed; the ESP-IDF dependency retains its own licenses.

@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: MIT */
 #ifndef LR2021_BRIDGE_SERVER_H
 #define LR2021_BRIDGE_SERVER_H
 /* Device side of the bridge protocol, portable C11 with <stdatomic.h>.

@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: MIT */
 /* POSIX-only helpers: heap host arguments and a simulator bridge server on a
  * caller-supplied file descriptor (used by the Rust cross tests). */
 #include "../../../src/host/host_internal.h"

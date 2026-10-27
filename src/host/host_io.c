@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: MIT */
 #define _DEFAULT_SOURCE
 #define _DARWIN_C_SOURCE
 #include "host_internal.h"

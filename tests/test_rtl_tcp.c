@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: MIT */
 /* rtl_tcp server against the simulator: the mappings, the command line, then
  * a real server on a TCP bridge simulator with a test client that checks the
  * header, sends rtl_tcp commands, watches the simulated chip take them and

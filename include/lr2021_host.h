@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: MIT */
 #ifndef LR2021_HOST_H
 #define LR2021_HOST_H
 #include "lr2021_bridge.h"

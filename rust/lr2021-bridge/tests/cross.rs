@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: MIT
 //! Cross tests: the pure-Rust codec and client against the C implementation
 //! (lr2021-sys): frames both ways, every record both ways, CS12 packing, and
 //! a live session with the C bridge server and simulator.

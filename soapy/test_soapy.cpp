@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: MIT
 // The lr2021 SoapySDR module against the in-process simulator.
 #include <SoapySDR/Device.hpp>
 #include <SoapySDR/Formats.hpp>

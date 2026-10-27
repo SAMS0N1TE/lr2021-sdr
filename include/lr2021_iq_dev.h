@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: MIT */
 #ifndef LR2021_IQ_DEV_H
 #define LR2021_IQ_DEV_H
 #include "lr2021_iq.h"
