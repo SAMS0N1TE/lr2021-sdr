@@ -13,6 +13,7 @@ Learn what the radio can do, pick a setup, or follow an experiment from waveform
 | How did a LoRa chip do P25? | [The P25 story](p25.md) |
 | How do I use this in my own software? | [Developer guide](developer-guide.md) |
 | Can I use it with SoapySDR, GQRX or GNU Radio? | [Use the LR2021 as an SDR](host-sdr.md) |
+| Can I use it with SDR++, SDR# or another rtl_tcp client? | [rtl_tcp server](rtl-tcp.md) |
 | Where are the measurements and discoveries? | [Research index](research.md) |
 
 ## Technical reference

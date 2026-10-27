@@ -69,7 +69,13 @@ A SoapySDR module (`driver=lr2021`) and Rust crates make the LR2021 an ordinary 
 SoapySDRUtil --probe="driver=lr2021,serial=/dev/ttyACM0,baud=4000000,format=cs12"
 ```
 
-[Install, device arguments, rates, gain and TX limits](docs/host-sdr.md) · [Bridge protocol](docs/bridge-protocol.md) · [SoapySDR module](soapy/README.md) · [Rust crates](rust/README.md) · [udev rules](udev/60-lr2021-sdr.rules)
+Programs that read `rtl_tcp` (SDR++, SDR#, gqrx, OpenWebRX) can receive with it too, on Windows as well, through the `lr2021_tcp` server:
+
+```bash
+lr2021_tcp -d serial=COM5,baud=4000000,format=cs12
+```
+
+[Install, device arguments, rates, gain and TX limits](docs/host-sdr.md) · [rtl_tcp server](docs/rtl-tcp.md) · [Bridge protocol](docs/bridge-protocol.md) · [SoapySDR module](soapy/README.md) · [Rust crates](rust/README.md) · [udev rules](udev/60-lr2021-sdr.rules)
 
 Hardware results come from a LilyGO T-Display-P4 LR2021 board; the automated tests run against the simulator. [What is tested where](docs/host-sdr.md#what-is-tested-where).
 

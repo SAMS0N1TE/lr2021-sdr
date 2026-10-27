@@ -29,8 +29,8 @@ firmware, the local Linux backend and the simulator alike.
 
 Linux (Debian, Ubuntu, Fedora, Raspberry Pi OS) and macOS. Windows (MinGW-w64)
 builds the host client with its serial (`serial=COM5`), TCP and simulator
-backends and the bridge simulator tool, but not the SoapySDR module or the
-local spidev backend.
+backends, the bridge simulator tool and the [rtl_tcp server](rtl-tcp.md),
+but not the SoapySDR module or the local spidev backend.
 
 ```bash
 sudo apt-get install cmake g++ libsoapysdr-dev soapysdr-tools libgpiod-dev
@@ -235,6 +235,19 @@ The in-process server runs the radio loop in its own thread with `SCHED_FIFO`
 when the process has `CAP_SYS_NICE` (or runs as root), which keeps the FIFO
 serviced within its 2 ms window at 125000 samples/s.
 
+## rtl_tcp clients
+
+[`lr2021_tcp`](rtl-tcp.md) serves the board to rtl_tcp clients (SDR++, SDR#,
+gqrx, OpenWebRX, GNU Radio) on Windows, Linux and macOS without SoapySDR. It
+takes the same device arguments:
+
+```bash
+lr2021_tcp -d serial=COM5,baud=4000000,format=cs12
+```
+
+Set the client to 250000 samples/s; the [rtl_tcp page](rtl-tcp.md) has the
+command, gain and sample-format mapping.
+
 ## Rust
 
 [`rust/`](../rust/README.md) has three crates: `lr2021-sys` (bindings to this C
@@ -246,7 +259,8 @@ blocking client, cross-tested against the C code).
 
 Hardware results come from a LilyGO T-Display-P4 LR2021 board (ROM 1.24),
 2026-10-27. The automated tests run every part below against the chip
-simulator on Linux and macOS; the C library tests also run on Windows.
+simulator on Linux and macOS; the C library, host client and rtl_tcp tests also
+run on Windows.
 
 | Part | Automated tests | Measured on the board |
 | --- | --- | --- |
@@ -257,3 +271,5 @@ simulator on Linux and macOS; the C library tests also run on Windows.
 | Raw routes, 500000 and 1000000 S/s source 2 | `device_session_tx`, `bridge_protocol`, `soapy_module`, Rust cross tests | raw-route results above (lab build) |
 | Local spidev/libgpiod backend | builds with libgpiod 1.6 in CI | |
 | HF PA, `tx_simo` | `device_session_tx` | |
+| Windows host client (TCP, simulator) | `host_client` | COM ports build but are not tested |
+| rtl_tcp server | `rtl_tcp_server`, `rtl_tcp_client` | no rtl_tcp client program run against the board yet |
