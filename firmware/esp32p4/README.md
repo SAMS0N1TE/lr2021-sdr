@@ -160,9 +160,15 @@ or MMCX1 for receive and transmit and is saved.
 | wifi | `set <ssid> <password>`, `clear`, or none for status | Joins the saved network at boot |
 | antenna | `internal` or `external` | external (MMCX1) |
 
-The radio worker runs on core 1. The radio SPI bus runs at 26.67 MHz through
-the ESP32-P4's SPI registers in 64-byte pieces, and the FIFO is read in frames of
-up to 1,020 bytes. `spibench` times the bus and `spiclk` sets its clock. A
+The radio worker runs on core 1. The radio SPI bus runs at 26.67 MHz. The FIFO
+is read in frames of up to 1,020 bytes: the cache-line multiple of a long read
+goes by DMA from aligned buffers and the rest through the ESP32-P4's SPI
+registers, under one chip select. Other frames, TX FIFO writes included, use
+the registers in 64-byte pieces; a TX FIFO write sent as one continuous DMA
+burst lost data. At 2 MB/s (500000 pairs/s CS16 and 1000000 pairs/s IQ8), six
+60 s runs with DMA reads peaked at 686-870 FIFO bytes with service gaps of
+377-433 us, against 900-956 bytes and 462-481 us on the registers alone.
+`spibench` times the bus and `spiclk` sets its clock. A
 PSRAM output queue (8 MiB) holds about 8 s of 16-bit samples at 250000
 pairs/s, so a Wi-Fi pause does not cost samples.
 

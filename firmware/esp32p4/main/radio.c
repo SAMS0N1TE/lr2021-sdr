@@ -43,14 +43,19 @@ static int xl_output(unsigned pin, bool high)
     w[0] = reg; w[1] = value & ~(1u << (pin % 8));
     return i2c_master_transmit(xl, w, 2, 100);
 }
-/* SPI without DMA: on the ESP32-P4 a DMA transaction whose buffer or length is
- * not cache-line aligned gets a bounce buffer, a copy and a cache sync each time
- * (about 35-40 us), which held FIFO service near 1.3 MB/s. Outside a session the
- * driver sends 64-byte pieces with chip select held. Inside a session, with the
- * bus owned, frames go straight to the SPI registers, one 64-byte piece at a
- * time with chip select kept between pieces: about 1 us of overhead a piece. */
+/* On the ESP32-P4 a DMA transaction whose buffer or length is not cache-line
+ * aligned gets a bounce buffer, a copy and a cache sync each time (about 35-40
+ * us), which held FIFO service near 1.3 MB/s. Outside a session the driver sends
+ * 64-byte pieces with chip select held. Inside a session, with the bus owned,
+ * a long FIFO read sends its cache-line multiple by DMA from aligned buffers and
+ * the rest straight through the SPI registers, all under one chip select; other
+ * frames use the registers only, one 64-byte piece at a time. */
 #define SPI_PIECE 64
+#define SPI_DMA_ALIGN 64
+#define SPI_DMA_MIN 256
+#define SPI_DMA_MAX 1024
 static DRAM_ATTR uint32_t piece_buf[SPI_PIECE / 4 + 1];
+static uint8_t *dma_tx, *dma_rx;
 static void IRAM_ATTR ll_piece(spi_dev_t *hw, uint8_t *b, size_t m, bool keep)
 {
     memcpy(piece_buf, b, m);
@@ -74,7 +79,19 @@ static int IRAM_ATTR bus_transfer(void *ctx, uint8_t *b, size_t n)
     (void)ctx;
     if(bus_owned) {
         spi_dev_t *hw = SPI_LL_GET_HW(SPI2_HOST);
-        for(size_t off = 0; off < n; off += SPI_PIECE) {
+        size_t off = 0;
+        /* TX FIFO writes (0x0002) stay on the registers: sent as one continuous
+         * DMA burst they lost data and the packet underflowed. */
+        if(n >= SPI_DMA_MIN && n <= SPI_DMA_MAX && dma_tx && !(b[0] == 0 && b[1] == 2)) {
+            off = n & ~(size_t)(SPI_DMA_ALIGN - 1);
+            memcpy(dma_tx, b, off);
+            spi_transaction_t t = {.flags=SPI_TRANS_DMA_BUFFER_ALIGN_MANUAL |
+                (off < n ? SPI_TRANS_CS_KEEP_ACTIVE : 0),
+                .length=off*8, .tx_buffer=dma_tx, .rx_buffer=dma_rx};
+            if(spi_device_polling_transmit(spi, &t)) return LR2021_IQ_IO;
+            memcpy(b, dma_rx, off);
+        }
+        for(; off < n; off += SPI_PIECE) {
             const size_t m = n - off > SPI_PIECE ? SPI_PIECE : n - off;
             ll_piece(hw, b + off, m, off + m < n);
         }
@@ -200,8 +217,13 @@ int radio_init(void)
     if(!e && board->irq >= 0) e = gpio_set_direction(board->irq, GPIO_MODE_INPUT);
     if(e) return e;
     spi_bus_config_t sb = {.mosi_io_num=board->mosi, .miso_io_num=board->miso,
-        .sclk_io_num=board->sclk, .quadwp_io_num=-1, .quadhd_io_num=-1, .max_transfer_sz=SPI_PIECE};
-    e = spi_bus_initialize(SPI2_HOST, &sb, SPI_DMA_DISABLED);
+        .sclk_io_num=board->sclk, .quadwp_io_num=-1, .quadhd_io_num=-1, .max_transfer_sz=SPI_DMA_MAX};
+    e = spi_bus_initialize(SPI2_HOST, &sb, SPI_DMA_CH_AUTO);
+    if(!e) {
+        dma_tx = spi_bus_dma_memory_alloc(SPI2_HOST, SPI_DMA_MAX, 0);
+        dma_rx = spi_bus_dma_memory_alloc(SPI2_HOST, SPI_DMA_MAX, 0);
+        if(!dma_tx || !dma_rx) { free(dma_tx); free(dma_rx); dma_tx = dma_rx = NULL; }
+    }
     if(!e) e = add_device(spi_hz);
     if(e) return e;
     chip_board = (lr2021_iq_board){.tcxo=board->tcxo, .tcxo_voltage=board->tcxo_voltage,
