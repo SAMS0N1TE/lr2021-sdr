@@ -5,7 +5,9 @@
 #define TX_FIFO 1024u
 #define TX_PREFILL 896u
 #define TX_REFILL_AT 768u
-#define TX_WRITE 128u
+/* Measured on the LilyGO T-Display-P4: TX FIFO frames with more than 62 data
+ * bytes lose data, and the burst then underflows without TX_DONE. */
+#define TX_WRITE 62u
 #define IRQ_TX_DONE (1u<<19)
 #define IRQ_TIMEOUT (1u<<21)
 

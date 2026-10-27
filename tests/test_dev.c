@@ -118,6 +118,8 @@ int main(void)
     CHECK(sim.resets==resets+1 && dev.profile.configured && sim.packet_type==0 && sim.lora_bw==2);
     CHECK(tr.elapsed_us>=240000 && tr.elapsed_us<300000);
 
+    /* TX FIFO frames are limited to 62 data bytes. */
+    CHECK(dev.hal.write_fifo(dev.hal.context,(const uint8_t *)iq,63)==LR2021_IQ_ARGUMENT);
     /* SIMO flag: same burst with the DC-DC regulator requested. */
     sim.tx_captured=0;
     t=(lr2021_iq_tx){iq,960,1,9600,433920000,-18,0,0,LR2021_IQ_TX_SIMO};

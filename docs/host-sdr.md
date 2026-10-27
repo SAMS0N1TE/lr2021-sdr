@@ -204,10 +204,10 @@ repository's automated tests use the simulator.
 
 | Part | Simulator / CI | On hardware |
 | --- | --- | --- |
-| Library: configure, sessions, live gain, TX burst | yes (`device_session_tx`) | receive paths as in the existing research; the TX sequence written for this library is not yet on air |
+| Library: configure, sessions, live gain, TX burst | yes (`device_session_tx`) | receive paths as in the existing research; TX bursts at 915 and 433.92 MHz, 19200 and 125000 S/s, up to 32767 samples, end with TX_DONE, and a 433.92 MHz burst was received by a HackRF at the expected offset and length (LilyGO T-Display-P4 LR2021, 2026-10-27, over the serial bridge). TX FIFO frames must carry at most 62 bytes |
 | Bridge protocol, server, CS12 | yes (`bridge_protocol`, Rust cross tests) | serial CS12 at 4 Mbaud, 60 s at 125000/s: no device drops, about 0.2% frames lost to CRC errors (LilyGO T-Display-P4 LR2021, 2026-10-27); CS16 at 4 Mbaud drops about 21%, all reported |
-| Host client: serial (pty), TCP, in-process | yes (`host_client`) | not yet run against the board |
-| SoapySDR module | yes (`soapy_module`, SoapySDRUtil in CI) | not yet run against the board |
+| Host client: serial (pty), TCP, in-process | yes (`host_client`) | TCP over the board's Wi-Fi, through the SoapySDR module (below); serial not yet run through this client |
+| SoapySDR module | yes (`soapy_module`, SoapySDRUtil in CI) | RX over TCP: 60 s at 125000 and 250000 S/s with no overflows and exact timestamp steps, a 10 min run at 250000 S/s with every pair delivered, live STEP changes without a gap, one overflow per retune (LilyGO T-Display-P4 LR2021, 2026-10-27). TX through writeStream not yet run |
 | Local spidev/libgpiod backend | builds (libgpiod 1.6 in CI) | not tested; libgpiod 2.x path compiles only where 2.x is installed |
 | macOS | CI builds and runs the tests | no hardware |
-| Timed TX, unchecked TX, HF PA | simulator only | not tested |
+| Timed TX, unchecked TX, HF PA, `tx_simo` | simulator only | not tested |

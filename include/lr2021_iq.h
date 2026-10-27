@@ -26,7 +26,8 @@ typedef struct {
  * fast(true) owns the SPI bus at 16 MHz; fast(false) releases/restores it.
  * Hooks have bounded timeouts. No hook may transmit RF.
  * write_fifo is optional and only used by lr2021_iq_transmit (lr2021_iq_tx.h):
- * it writes 1..256 bytes to the TX FIFO with command 0x0002. */
+ * it writes 1..62 bytes to the TX FIFO with command 0x0002 (longer frames
+ * lost data on the tested board). */
 typedef struct {
     void *context;
     void (*lock)(void *);
