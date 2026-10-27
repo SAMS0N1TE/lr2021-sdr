@@ -185,6 +185,7 @@ pub struct lr2021_bridge_parser { _private: [u8; 0] }
 extern "C" {
     pub fn lr2021_iq_rate(bandwidth_hz: u32) -> c_uint;
     pub fn lr2021_iq_bandwidth(rate: c_uint) -> u32;
+    pub fn lr2021_iq_input_rate(code: u8) -> c_uint;
     pub fn lr2021_iq_path(hz: u32, path: c_uint) -> c_uint;
     pub fn lr2021_iq_rx_check(rx: *const lr2021_iq_rx) -> c_int;
     pub fn lr2021_iq_strerror(e: c_int) -> *const c_char;

@@ -126,6 +126,13 @@ int main()
     std::fprintf(stderr,"source 0: %llu pairs in 0.3 s\n",(unsigned long long)pairs);
     CHECK(!gaps && pairs>50000);
     d->deactivateStream(rx); d->closeStream(rx);
+    // Source 1: the rate selects the FSK filter code.
+    d->writeSetting("route","source1");
+    d->setSampleRate(SOAPY_SDR_RX,0,800000);
+    CHECK(d->getSampleRate(SOAPY_SDR_RX,0)==800000 && d->readSetting("input_code")=="33");
+    d->setSampleRate(SOAPY_SDR_RX,0,124000);
+    CHECK(d->getSampleRate(SOAPY_SDR_RX,0)==125000 && d->readSetting("input_code")=="28");
+    CHECK(d->listSampleRates(SOAPY_SDR_RX,0).size()>=10);
     d->writeSetting("route","source2");
     d->setSampleRate(SOAPY_SDR_RX,0,250000);
 

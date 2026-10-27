@@ -113,7 +113,7 @@ build/lr2021_bridge_sim --port 51021 --pattern tone --tone 433950000
 | --- | --- | --- |
 | Frequency | 100 MHz to 2740 MHz; antenna `AUTO` picks LF below 1.5 GHz, HF above; `LF`/`HF` select a path | [receive range](../research/rx-range-and-gain/README.md) |
 | Source 2 rates | 125000, 250000, 500000 and 1000000 complex samples/s: 4 x LoRa BW 31.25, 62.5, 125 and 250 kHz | [protocol](protocol.md) |
-| Raw-route rates | any output rate from 1000 to 4000000 samples/s | [raw routes](#raw-receive-routes) |
+| Raw-route rates | sources 0 and 6: any output rate from 1000 to 4000000 samples/s; source 1: the input rate of its FSK filter code, for example 800000 (code 33) or 125000 (code 28) | [raw routes](#raw-receive-routes) |
 | Format | CS16 native (I low halfword, positive frequency above the tuned frequency), CF32 | |
 | Gain | `STEP` 1..13, `BOOST` 0..7 (acts at steps 12 and 13); overall gain 1..20 = step, then boost; AGC mode = chip AGC (step 0) | [gain table](../research/rx-range-and-gain/README.md#gain-and-boost) |
 | Timestamps | every `readStream` has `SOAPY_SDR_HAS_TIME`: device time of the stream's first sample plus index / nominal rate | |
@@ -143,9 +143,11 @@ Source 2 carries 4 bytes per pair, so the radio's FIFO has to be drained at
 firmware drives the SPI registers directly at 26.67 MHz: a two-frame FIFO
 level query takes 32 us and a 256-byte read 110 us. Over Wi-Fi, 30-second
 runs delivered every pair with FIFO peaks of 68 bytes at 125000, 220 bytes at
-250000 and 266 bytes for source 0 at 576000 pairs/s. With 1020-byte reads,
-source 2 at 500000 samples/s carried 1.93 MB/s with every pair delivered for
-1.39 s per session.
+250000 and 266 bytes for source 0 at 576000 pairs/s. With 1020-byte reads and
+a flag check per 4 KiB, source 2 streams 500000 samples/s: 60 s, 30001910
+pairs at 2.0 MB/s, every pair delivered, FIFO peak 904 bytes, largest service
+gap 465 us; through SoapySDR, 30 s with no overflow and exact timestamps.
+1000000 samples/s needs 4 MB/s, above the 26.67 MHz bus.
 
 Each session can raise its FIFO read size to 1020 bytes and check the FIFO
 flags once per 4 KiB instead of once per 1 KiB (`lr2021_iq_session.max_read`,
@@ -164,7 +166,7 @@ deviation, RX filter code `input_code`):
 | Route | Source | Bytes per pair | Stream format |
 | --- | --- | --- | --- |
 | `source0` | 0 | 2 | IQ8: int8 I, Q |
-| `source1` | 1 | 2 | IQ8: int8 I, Q, at the source's own rate (about 740000 pairs/s; the route's rate field does not change it) |
+| `source1` | 1 | 2 | IQ8: int8 I, Q, at the converter input rate of the FSK filter code |
 | `source6` | 6 | 2 | IQ6G: signed 6-bit I and Q in bits 7..2 of each byte, gain step in the low bits |
 
 The module scales IQ8 by 256 and IQ6 by 1024 into CS16 (CF32 full scale is
@@ -178,7 +180,15 @@ bridge firmware over Wi-Fi TCP with SPI at 26.67 MHz:
 | --- | --- | --- |
 | Source 0 | input code 17, 576000 pairs/s, route `11 00 08 CA 00 08 00 00 00 00 01` | 60 s: 34561720 pairs, every pair delivered, device rate 575984 pairs/s, FIFO peak 538 bytes, largest service gap 476 us, flags `0x04`. Through SoapySDR, 60 s of `readStream` gave 34562880 samples with no overflow and timestamp steps exact to 1 ns |
 | Source 0 | rate and orientation | a fixed RF line from the board moved 49.99 kHz for a 50.000 kHz retune (rate within 0.02% of 576000), positive frequency is RF above the tuned frequency, and the line passes at +203.66 kHz, 20.1 dB over its surroundings |
+| Source 1 | input code 33 | 799958 pairs/s for 60 s, 48000354 pairs, every pair delivered, FIFO peak 440 bytes, largest service gap 334 us |
+| Source 1 | input code 28 | 124795 pairs/s |
 | Source 6 | input code 28 (`0x1C`), 50000 pairs/s, route `1C 00 00 C3 50 0E 00 00 00 00 01` | 49897 pairs/s; every pair tagged with the manual gain step (249884 pairs at step 9, 250076 at step 4) |
+
+Source 1 delivers pairs at 2.6 times the RX filter bandwidth of its FSK code
+(datasheet Table 11-4): 307.7 kHz for code 33 gives 800000, 48.1 kHz for code
+28 gives 125000. The library computes that rate for every code
+(`lr2021_iq_input_rate`), and the SoapySDR module picks the code whose rate is
+closest to the one requested.
 
 In earlier bounded lab captures on the same board, source 0 at 576000 pairs/s
 with input code 17 kept a +200 kHz tone within 0.91 dB of the +50 kHz level,
@@ -280,8 +290,8 @@ run on Windows.
 | Bridge protocol, server, CS12 | `bridge_protocol`, Rust cross tests | USB serial at 4 Mbaud, CS12, 60 s at 125000/s: every pair delivered by the radio side, 99.8% received by the host |
 | SoapySDR module over TCP | `soapy_module`, SoapySDRUtil in CI | RX 60 s at 125000 and 250000 S/s with exact timestamp steps; 10 minutes at 250000 S/s with every pair delivered; live STEP changes without a gap; one overflow per retune. TX: a CF32 writeStream burst of 16000 samples at 125000 S/s lasted 129 ms on a HackRF (128 nominal); a HAS_TIME burst 2 s ahead started 11 us after the requested time; receive at 250000 S/s resumed 0.4 s after a burst with one overflow |
 | Host client: serial (pty), TCP, in-process | `host_client` | TCP over Wi-Fi |
-| Raw routes | `device_session_tx`, `bridge_protocol`, `soapy_module`, Rust cross tests | source 0 at 576000 pairs/s for 60 s over Wi-Fi and through SoapySDR, every pair delivered; source 6 gain tags match the manual step |
-| Source 2 at 500000 S/s | same | 1.93 MB/s with every pair delivered for 1.39 s per session, with 1020-byte reads |
+| Raw routes | `device_session_tx`, `bridge_protocol`, `soapy_module`, Rust cross tests | source 0 at 576000 and source 1 at 800000 pairs/s, 60 s each over Wi-Fi with every pair delivered, source 0 also through SoapySDR; source 6 gain tags match the manual step |
+| Source 2 at 500000 S/s | same | 60 s at 2.0 MB/s with every pair delivered; 30 s through SoapySDR with no overflow |
 | Local spidev/libgpiod backend | builds with libgpiod 1.6 in CI | |
 | HF PA, `tx_simo` | `device_session_tx` | |
 | Windows host client (TCP, simulator) | `host_client` | COM ports build but are not tested |

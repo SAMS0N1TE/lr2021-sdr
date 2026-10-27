@@ -6,8 +6,17 @@ unsigned lr2021_iq_rate(uint32_t bw)
 { return bw==31250 || bw==62500 || bw==125000 || bw==250000 ? 4*bw : 0; }
 uint32_t lr2021_iq_bandwidth(unsigned rate)
 { return lr2021_iq_rate(rate/4)==rate ? rate/4 : 0; }
+unsigned lr2021_iq_input_rate(uint8_t code)
+{
+    static const unsigned num[4]={1,13,13,13}, den[4]={1,14,15,18};
+    uint64_t d=(uint64_t)den[code>>6]*(((code>>3)&7u)+1u)<<(code&7u);
+    return (unsigned)((8000000ull*num[code>>6]+d/2)/d);
+}
 unsigned lr2021_iq_rx_rate(const lr2021_iq_rx *c)
-{ return c->route ? c->rate_hz : lr2021_iq_rate(c->bandwidth_hz); }
+{
+    if(c->route==LR2021_IQ_ROUTE_SOURCE1)return lr2021_iq_input_rate(c->input_code);
+    return c->route ? c->rate_hz : lr2021_iq_rate(c->bandwidth_hz);
+}
 unsigned lr2021_iq_rx_pair_bytes(const lr2021_iq_rx *c) { return c->route ? 2u : 4u; }
 unsigned lr2021_iq_path(uint32_t hz, unsigned path)
 { return path==LR2021_IQ_PATH_AUTO ? (hz>=LR2021_IQ_HF_HZ ? 1u : 0u) : path; }
@@ -15,7 +24,8 @@ int lr2021_iq_rx_check(const lr2021_iq_rx *c)
 {
     return c && c->frequency_hz>=LR2021_IQ_MIN_HZ && c->frequency_hz<=LR2021_IQ_MAX_HZ &&
         c->route<=LR2021_IQ_ROUTE_SOURCE6 &&
-        (c->route ? c->rate_hz>=1000 && c->rate_hz<=4000000u : lr2021_iq_rate(c->bandwidth_hz)!=0) &&
+        (c->route==LR2021_IQ_ROUTE_SOURCE1 ||
+         (c->route ? c->rate_hz>=1000 && c->rate_hz<=4000000u : lr2021_iq_rate(c->bandwidth_hz)!=0)) &&
         c->gain_step<=13 && c->boost<=7 && c->path<=LR2021_IQ_PATH_AUTO ? 0 : LR2021_IQ_ARGUMENT;
 }
 const char *lr2021_iq_strerror(int e)
@@ -211,7 +221,7 @@ static int configure(lr2021_iq_dev *d, const lr2021_iq_rx *c)
         p->spreading_factor=7; p->exclusive_lora=true; p->configured=true;
         p->rx_path=(uint8_t)lr2021_iq_path(c->frequency_hz,c->path);
         p->gain_step=c->gain_step; p->rx_boost=c->boost;
-        p->route=c->route; p->input_code=c->input_code; p->route_rate_hz=c->route?c->rate_hz:0;
+        p->route=c->route; p->input_code=c->input_code; p->route_rate_hz=c->route?lr2021_iq_rx_rate(c):0;
     }
     return e;
 }

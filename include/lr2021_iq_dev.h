@@ -31,8 +31,9 @@ typedef struct {
 } lr2021_iq_board;
 /* route 0: LoRa source 2, IQ16 at 4 x bandwidth (BW 31250, 62500, 125000 or
  * 250000 Hz). Routes 1, 2, 3: sources 0, 1 and 6 from an FSK setup whose RX
- * filter code is input_code, two bytes per pair at rate_hz (IQ8 for sources 0
- * and 1, gain-tagged IQ6 for source 6). */
+ * filter code is input_code, two bytes per pair (IQ8 for sources 0 and 1,
+ * gain-tagged IQ6 for source 6). Sources 0 and 6 run at rate_hz; source 1 at
+ * lr2021_iq_input_rate(input_code). */
 enum { LR2021_IQ_ROUTE_SOURCE2=0, LR2021_IQ_ROUTE_SOURCE0=1, LR2021_IQ_ROUTE_SOURCE1=2,
        LR2021_IQ_ROUTE_SOURCE6=3 };
 typedef struct {
@@ -67,6 +68,12 @@ typedef struct {
  * rows of docs/protocol.md; 0 for anything else. */
 unsigned lr2021_iq_rate(uint32_t bandwidth_hz);
 uint32_t lr2021_iq_bandwidth(unsigned rate);
+/* Converter input rate selected by an FSK RX filter code: 2.6 x the filter
+ * bandwidth of datasheet Table 11-4, which the code packs as
+ * 8 MHz x K[code >> 6] / (((code >> 3) & 7) + 1) / 2^(code & 7) with
+ * K = 1, 13/14, 13/15, 13/18. Source 1 delivers pairs at this rate (measured:
+ * code 33 at 799958, code 28 at 124795 pairs/s); rate_hz does not set it. */
+unsigned lr2021_iq_input_rate(uint8_t code);
 /* Pairs/s and bytes per pair of a receive configuration. */
 unsigned lr2021_iq_rx_rate(const lr2021_iq_rx *);
 unsigned lr2021_iq_rx_pair_bytes(const lr2021_iq_rx *);

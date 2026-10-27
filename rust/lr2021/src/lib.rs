@@ -36,6 +36,8 @@ pub const TX_MAX_SAMPLES: u32 = sys::LR2021_IQ_TX_MAX_SAMPLES;
 pub fn rate_for_bandwidth(bandwidth_hz: u32) -> Option<u32> {
     match unsafe { sys::lr2021_iq_rate(bandwidth_hz) } { 0 => None, r => Some(r) }
 }
+/// Pairs/s of the converter input an FSK filter code selects; source 1 runs at it.
+pub fn input_rate(code: u8) -> u32 { unsafe { sys::lr2021_iq_input_rate(code) } }
 pub fn bandwidth_for_rate(rate: u32) -> Option<u32> {
     match unsafe { sys::lr2021_iq_bandwidth(rate) } { 0 => None, b => Some(b) }
 }
@@ -61,7 +63,11 @@ impl Default for RxConfig {
 }
 impl RxConfig {
     pub fn sample_rate(&self) -> Option<u32> {
-        if self.route == Route::Source2 { rate_for_bandwidth(self.bandwidth_hz) } else { Some(self.rate_hz) }
+        match self.route {
+            Route::Source2 => rate_for_bandwidth(self.bandwidth_hz),
+            Route::Source1 => Some(input_rate(self.input_code)),
+            _ => Some(self.rate_hz),
+        }
     }
     fn raw(&self) -> sys::lr2021_iq_rx {
         sys::lr2021_iq_rx { frequency_hz: self.frequency_hz, bandwidth_hz: self.bandwidth_hz,
@@ -301,6 +307,7 @@ mod tests {
         assert_eq!(rate_for_bandwidth(250_000), Some(1_000_000));
         assert_eq!(rate_for_bandwidth(100_000), None);
         assert_eq!(RxConfig { route: Route::Source0, ..Default::default() }.sample_rate(), Some(576_000));
+        assert_eq!(RxConfig { route: Route::Source1, input_code: 33, ..Default::default() }.sample_rate(), Some(800_000));
         assert_eq!(bandwidth_for_rate(250_000), Some(62_500));
         assert!(RxConfig { frequency_hz: 99_000_000, ..Default::default() }.validate().is_err());
         assert!(RxConfig { frequency_hz: 2_740_000_000, ..Default::default() }.validate().is_ok());

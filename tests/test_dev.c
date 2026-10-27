@@ -121,6 +121,16 @@ int main(void)
     CHECK(!lr2021_iq_stream_session(&dev.hal,&s,iq8_count,&raw_pairs,&r) && sim.route_rate==50000);
     CHECK(r.nominal_rate_hz==50000 && raw_pairs>2000 && raw_pairs<3000);
     raw.rate_hz=0; CHECK(lr2021_iq_dev_configure(&dev,&raw)==LR2021_IQ_ARGUMENT);
+    /* Source 1 runs at the input rate of its code, whatever rate_hz says. */
+    CHECK(lr2021_iq_input_rate(33)==800000 && lr2021_iq_input_rate(28)==125000);
+    CHECK(lr2021_iq_input_rate(17)==1333333 && lr2021_iq_input_rate(0)==8000000);
+    CHECK(lr2021_iq_input_rate(226)==288889 && lr2021_iq_input_rate(64)==7428571);
+    raw.route=LR2021_IQ_ROUTE_SOURCE1; raw.input_code=28; raw.rate_hz=0;
+    CHECK(lr2021_iq_rx_rate(&raw)==125000 && !lr2021_iq_dev_configure(&dev,&raw));
+    raw_pairs=0;
+    CHECK(!lr2021_iq_stream_session(&dev.hal,&s,iq8_count,&raw_pairs,&r) && r.nominal_rate_hz==125000);
+    CHECK(raw_pairs>5000 && raw_pairs<7000 && sim.route_rate==125000);
+    raw.route=LR2021_IQ_ROUTE_SOURCE6; raw.rate_hz=50000;
     /* Legacy streams stay source-2 only. */
     raw.rate_hz=576000; raw.route=1; CHECK(!lr2021_iq_dev_configure(&dev,&raw));
     CHECK(lr2021_iq_stream_checked(&dev.hal,10,iq8_count,&raw_pairs,&r)==LR2021_IQ_STATE);

@@ -24,6 +24,8 @@ const double TX_FULL_SCALE=56.0; // tested radius limit; CF32 magnitude 1.0 maps
 const long long NS=1000000000LL;
 
 bool truthy(const std::string &v) { return v=="1" || v=="true" || v=="yes" || v=="on"; }
+// FSK filter codes offered for source 1 (the 17..39 family holds the measured 28 and 33).
+const uint8_t SOURCE1_CODES[]={17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39};
 const char *const ROUTES[]={"source2","source0","source1","source6"};
 int route_index(const std::string &v)
 {
@@ -112,18 +114,26 @@ public:
     double getFrequency(const int dir, const size_t) const override
     { return dir==SOAPY_SDR_TX?tx_hz:rx.frequency_hz; }
 
-    // Sample rates. Source 2 is 4 x LoRa bandwidth (docs/protocol.md); the raw
-    // routes take an explicit output rate. TX lists the measured rates.
+    // Sample rates. Source 2 is 4 x LoRa bandwidth (docs/protocol.md); sources 0
+    // and 6 take an explicit output rate; source 1 runs at the input rate of its
+    // FSK filter code. TX lists the measured rates.
     std::vector<double> listSampleRates(const int dir, const size_t) const override
     {
         if(dir==SOAPY_SDR_TX)return {4800,9600,19200,38400,76800,125000};
+        if(rx.route==LR2021_IQ_ROUTE_SOURCE1) {
+            std::vector<double> v;
+            for(uint8_t c : SOURCE1_CODES)v.push_back(lr2021_iq_input_rate(c));
+            std::sort(v.begin(),v.end());
+            v.erase(std::unique(v.begin(),v.end()),v.end());
+            return v;
+        }
         if(rx.route)return {50000,125000,250000,500000,576000,1000000};
         return {125000,250000,500000,1000000};
     }
     SoapySDR::RangeList getSampleRateRange(const int dir, const size_t ch) const override
     {
         if(dir==SOAPY_SDR_TX && !checked)return {SoapySDR::Range(1,1000000)};
-        if(dir==SOAPY_SDR_RX && rx.route)return {SoapySDR::Range(1000,4000000)};
+        if(dir==SOAPY_SDR_RX && rx.route && rx.route!=LR2021_IQ_ROUTE_SOURCE1)return {SoapySDR::Range(1000,4000000)};
         SoapySDR::RangeList l;
         for(double r : listSampleRates(dir,ch))l.push_back(SoapySDR::Range(r,r));
         return l;
@@ -138,7 +148,13 @@ public:
             tx_rate=r; return;
         }
         lr2021_iq_rx next=rx;
-        if(rx.route) {
+        if(rx.route==LR2021_IQ_ROUTE_SOURCE1) {
+            /* The closest rate an input code gives. */
+            unsigned best=SOURCE1_CODES[0];
+            for(uint8_t c : SOURCE1_CODES)
+                if(std::llabs((long long)lr2021_iq_input_rate(c)-r)<std::llabs((long long)lr2021_iq_input_rate((uint8_t)best)-r))best=c;
+            next.input_code=(uint8_t)best;
+        } else if(rx.route) {
             if(r<1000 || r>4000000)throw std::invalid_argument("lr2021: raw-route rate must be 1000..4000000");
             next.rate_hz=r;
         } else {
