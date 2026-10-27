@@ -116,7 +116,7 @@ lr2021_tcp -d serial=COM5,baud=4000000,format=cs12
 
 [Install, device arguments, rates, gain and TX limits](docs/host-sdr.md) · [rtl_tcp server](docs/rtl-tcp.md) · [Bridge protocol](docs/bridge-protocol.md) · [Bridge firmware](firmware/esp32p4/README.md) · [SoapySDR module](soapy/README.md) · [Rust crates](rust/README.md) · [udev rules](udev/60-lr2021-sdr.rules)
 
-Hardware results come from a LilyGO T-Display-P4 LR2021 board; the automated tests run against the simulator. [What is tested where](docs/host-sdr.md#what-is-tested-where).
+Hardware results come from a LilyGO T-Display-P4 LR2021 board; the automated tests run against the simulator. [What is tested where](docs/host-sdr.md#measurements-and-tests).
 
 ## P25 receive and transmit
 
@@ -205,14 +205,6 @@ Separate +25 kHz and −15 kHz RF-offset tones verify frequency direction in the
 [support@terminalbay.com](mailto:support@terminalbay.com)
 
 ## Credits and license
-
-### Research credit: sfowlr / RadioFoundry
-
-**[sfowlr](https://github.com/sfowlr) shared his LR2021 research directly with this project.** On a Meshnology W12 with ROM 1.24, he reported sustained high-rate 8-bit I/Q receive, the source-0 rate converter, gain-order behavior, and native four-level FSK results. Those W12 findings and measurements are his. See his [RadioFoundryGateway hardware notes](https://github.com/RadioFoundry/RadioFoundryGateway/blob/e2a85653aab8ef13a497ed2b8891f102fac711c4/docs/spec/lr2021-iq.md), [LakeShark discussion #16](https://github.com/SAMS0N1TE/LakeShark/discussions/16), and our separate [LilyGO follow-up](research/community-2026-10/README.md). His additional privately shared notes are not included in this repository.
-
-Our LilyGO board reproduced bounded ~666k-pair/s IQ8 transport with large DMA FIFO reads and gave a different gain-register result after `SetRx`. The [follow-up](research/community-2026-10/README.md) keeps these results separate from sfowlr's W12 measurements.
-
-### Other credits
 
 Inspired by [ESP-SDR](https://github.com/ESPARGOS/esp-sdr) and the ESPARGOS team's work exposing raw radio access. No ESP-SDR code is included.
 
