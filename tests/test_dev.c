@@ -79,7 +79,7 @@ int main(void)
     /* TX contract checks. */
     static int8_t iq[2*32767];
     for(unsigned i=0;i<32767;i++){ iq[2*i]=(int8_t)(i%97-48); iq[2*i+1]=(int8_t)(i%31-15); }
-    lr2021_iq_tx t={iq,1000,1,9600,433920000,LR2021_IQ_TX_DEFAULT_POWER,0};
+    lr2021_iq_tx t={iq,1000,1,9600,433920000,LR2021_IQ_TX_DEFAULT_POWER,0,0,0};
     CHECK(!lr2021_iq_tx_check(&t));
     t.rate_hz=10000; CHECK(lr2021_iq_tx_check(&t)); t.rate_hz=9600;
     t.pairs=32767; t.rate_hz=125000; CHECK(!lr2021_iq_tx_check(&t));
@@ -89,6 +89,18 @@ int main(void)
     t.pairs=2000; t.repeats=17; CHECK(lr2021_iq_tx_check(&t)); t.repeats=1;
     t.frequency_hz=1000000000u; CHECK(lr2021_iq_tx_check(&t)); t.frequency_hz=915000000;
     t.power_half_db=21; CHECK(lr2021_iq_tx_check(&t)); t.power_half_db=-18;
+    /* Unchecked: only hardware limits, the rest reported as untested. */
+    t.flags=LR2021_IQ_TX_UNCHECKED; t.rate_hz=10000; t.frequency_hz=2440000000u; t.pa=LR2021_IQ_PA_AUTO;
+    t.power_half_db=24; t.repeats=16; t.pairs=2047;
+    CHECK(!lr2021_iq_tx_check(&t) && lr2021_iq_tx_pa(&t)==1);
+    CHECK(lr2021_iq_tx_untested(&t)==(LR2021_IQ_TX_UNTESTED_RATE|LR2021_IQ_TX_UNTESTED_FREQUENCY|
+        LR2021_IQ_TX_UNTESTED_HF_PA|LR2021_IQ_TX_UNTESTED_POWER|LR2021_IQ_TX_UNTESTED_DURATION));
+    t.power_half_db=25; CHECK(lr2021_iq_tx_check(&t)); t.power_half_db=0;
+    t.pairs=2048; CHECK(lr2021_iq_tx_check(&t)); t.pairs=2047;       /* ROM 16-bit count */
+    t.frequency_hz=2741000000u; CHECK(lr2021_iq_tx_check(&t));
+    t=(lr2021_iq_tx){iq,32767,1,4800,433920000,-18,0,0,LR2021_IQ_TX_UNCHECKED};
+    CHECK(!lr2021_iq_tx_check(&t) && lr2021_iq_tx_untested(&t)==LR2021_IQ_TX_UNTESTED_DURATION);
+    t=(lr2021_iq_tx){iq,1000,1,9600,915000000,-18,0,0,0};
     iq[10]=40; iq[11]=40; CHECK(lr2021_iq_tx_check(&t)); iq[10]=39; iq[11]=39;
     CHECK(!lr2021_iq_tx_check(&t));
 
@@ -97,7 +109,7 @@ int main(void)
     static uint8_t captured[65536];
     sim.tx_capture=captured; sim.tx_capacity=sizeof(captured); sim.tx_captured=0;
     lr2021_iq_tx_result tr;
-    t=(lr2021_iq_tx){iq,3001,10,125000,915000000,-18,0};
+    t=(lr2021_iq_tx){iq,3001,10,125000,915000000,-18,0,0,0};
     unsigned resets=sim.resets;
     CHECK(!lr2021_iq_transmit(&dev.hal,&board,&t,&tr));
     CHECK(sim.tx_captured==60020 && tr.queued_bytes==60020 && !(tr.tx_flags&0x30));
@@ -109,7 +121,7 @@ int main(void)
     /* Timed burst waits for the requested device time before SetTx. */
     sim.tx_captured=0;
     uint64_t when=lr2021_sim_now_us(&sim)+200000;
-    t=(lr2021_iq_tx){iq,960,1,9600,433920000,-18,when};
+    t=(lr2021_iq_tx){iq,960,1,9600,433920000,-18,when,0,0};
     CHECK(!lr2021_iq_transmit(&dev.hal,NULL,&t,&tr));
     CHECK(tr.started_us>=when && tr.started_us<when+2000 && sim.tx_captured==1920);
     t.start_us=lr2021_sim_now_us(&sim)+20000000u;

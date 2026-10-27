@@ -9,7 +9,7 @@ typedef struct {
     lr2021_bridge_parser parser;
     lr2021_bridge_frame last; uint8_t last_payload[LR2021_BRIDGE_MAX_PAYLOAD];
     unsigned frames, data_frames, rx_end, tx_end, wakes;
-    uint64_t pairs, next_pair; uint32_t last_value, gaps;
+    uint64_t pairs, next_pair; uint32_t last_value, gaps; unsigned shifted;
     lr2021_bridge_rx_end end; lr2021_bridge_tx_end tx;
 } host;
 static void on_frame(void *ctx, const lr2021_bridge_frame *f)
@@ -17,14 +17,17 @@ static void on_frame(void *ctx, const lr2021_bridge_frame *f)
     host *h=ctx; h->frames++;
     if(f->type==LR2021_BRIDGE_RX_DATA) {
         lr2021_bridge_rx_data d;
-        if(lr2021_bridge_unpack_rx_data(f->payload,f->length,&d) || d.first_pair!=h->next_pair)h->gaps++;
-        const uint8_t *p=f->payload+LR2021_BRIDGE_RX_DATA_HEADER;
-        for(size_t i=0;i+4<=f->length-LR2021_BRIDGE_RX_DATA_HEADER;i+=4) {
-            uint32_t v=(uint32_t)(p[i]|p[i+1]<<8)|((uint32_t)(p[i+2]|p[i+3]<<8)<<16);
-            if(h->pairs && v!=h->last_value+1)h->gaps++;
+        static int16_t iq[2*LR2021_BRIDGE_RX_MAX_PAIRS];
+        if(lr2021_bridge_unpack_rx_data(f->payload,f->length,&d) || d.first_pair!=h->next_pair ||
+           lr2021_bridge_unpack_samples(iq,d.format,d.shift,f->payload+LR2021_BRIDGE_RX_DATA_HEADER,
+               f->length-LR2021_BRIDGE_RX_DATA_HEADER,d.pairs)){ h->gaps++; return; }
+        for(size_t i=0;i<d.pairs;i++) {
+            uint32_t v=(uint16_t)iq[2*i]|(uint32_t)(uint16_t)iq[2*i+1]<<16;
+            if(d.format==LR2021_BRIDGE_CS16 && h->pairs && v!=h->last_value+1)h->gaps++;
             h->last_value=v; h->pairs++;
         }
-        h->next_pair=d.first_pair+(f->length-LR2021_BRIDGE_RX_DATA_HEADER)/4;
+        if(d.format)h->shifted|=d.shift;
+        h->next_pair=d.first_pair+d.pairs;
         h->data_frames++; return;
     }
     if(f->type==LR2021_BRIDGE_RX_END){ h->rx_end++; lr2021_bridge_unpack_rx_end(f->payload,f->length,&h->end); return; }
@@ -70,10 +73,24 @@ int main(void)
     lr2021_bridge_hello hello={-2,1,3,1,24,2048,1000000,65534,"name","board-id"}, hello2;
     CHECK(lr2021_bridge_pack_hello(pay,&hello)==84 && !lr2021_bridge_unpack_hello(pay,84,&hello2));
     CHECK(hello2.status==-2 && hello2.rom_minor==24 && !strcmp(hello2.id,"board-id") && hello2.tx_capacity==65534);
-    lr2021_bridge_tx_begin tb={10,0xDEADBEEF,125000,915000000,-18,3,0x0102030405060708ull}, tb2;
-    CHECK(lr2021_bridge_pack_tx_begin(pay,&tb)==26 && !lr2021_bridge_unpack_tx_begin(pay,26,&tb2));
-    CHECK(tb2.power_half_db==-18 && tb2.start_time==tb.start_time && tb2.crc32==tb.crc32);
-    CHECK(lr2021_bridge_unpack_rx_data(pay,28,&(lr2021_bridge_rx_data){0})==-1);
+    lr2021_bridge_tx_begin tb={10,0xDEADBEEF,125000,915000000,-18,3,0x0102030405060708ull,0,0}, tb2;
+    tb.pa=1; tb.flags=1;
+    CHECK(lr2021_bridge_pack_tx_begin(pay,&tb)==28 && !lr2021_bridge_unpack_tx_begin(pay,28,&tb2));
+    CHECK(tb2.power_half_db==-18 && tb2.start_time==tb.start_time && tb2.crc32==tb.crc32 && tb2.pa==1 && tb2.flags==1);
+    lr2021_bridge_rx_data rd={1,125000,5,6,7,3,LR2021_BRIDGE_CS12,2}, rd2;
+    CHECK(lr2021_bridge_pack_rx_data(pay,&rd)==32 && !lr2021_bridge_unpack_rx_data(pay,32+9,&rd2));
+    CHECK(rd2.pairs==3 && rd2.shift==2 && rd2.format==1 && lr2021_bridge_unpack_rx_data(pay,32+12,&rd2)==-1);
+    /* CS12 block floating point: exact below 2048, else truncated by 2^shift. */
+    const int16_t small[6]={2047,-2048,0,-1,1000,-999}, big[6]={32767,-32768,100,-100,16,-17};
+    int16_t back[6]; uint8_t sh, packed[32]; uint8_t raw[24];
+    for(unsigned i=0;i<6;i++)lr2021_bridge_put16(raw+2*i,(uint16_t)small[i]);
+    CHECK(lr2021_bridge_pack_samples(packed,LR2021_BRIDGE_CS12,raw,3,&sh)==9 && sh==0);
+    CHECK(!lr2021_bridge_unpack_samples(back,LR2021_BRIDGE_CS12,sh,packed,9,3) && !memcmp(back,small,12));
+    for(unsigned i=0;i<6;i++)lr2021_bridge_put16(raw+2*i,(uint16_t)big[i]);
+    CHECK(lr2021_bridge_pack_samples(packed,LR2021_BRIDGE_CS12,raw,3,&sh)==9 && sh==4);
+    CHECK(!lr2021_bridge_unpack_samples(back,LR2021_BRIDGE_CS12,sh,packed,9,3));
+    for(unsigned i=0;i<6;i++)CHECK(back[i]<=big[i] && big[i]-back[i]<16);
+    CHECK(lr2021_bridge_unpack_samples(back,LR2021_BRIDGE_CS16,1,raw,12,3)==-1);
 
     /* Server over the simulator in virtual time, single-threaded. */
     static lr2021_sim sim; lr2021_sim_init(&sim);
@@ -114,6 +131,12 @@ int main(void)
     lr2021_bridge_put32(p+2,200);
     CHECK(call(&h,LR2021_BRIDGE_RX_START,15,p,6)==0);
     CHECK(h.rx_end==2 && h.end.dropped>0 && h.pairs<h.end.pairs && h.end.generation==2 && !h.end.capture_error);
+    /* CS12 stream: 3 bytes per pair; the counter's large values force a shift. */
+    memset(&h.end,0,sizeof(h.end)); h.pairs=0; h.next_pair=0; h.gaps=0; h.shifted=0;
+    lr2021_bridge_put32(p+2,20); p[6]=LR2021_BRIDGE_CS12;
+    CHECK(call(&h,LR2021_BRIDGE_RX_START,17,p,7)==0);
+    CHECK(h.rx_end==3 && !h.gaps && h.pairs==h.end.pairs && h.shifted && !h.end.dropped);
+    p[6]=2; CHECK(call(&h,LR2021_BRIDGE_RX_START,18,p,7)==LR2021_IQ_ARGUMENT);
     lr2021_bridge_put16(p,512);
     CHECK(call(&h,LR2021_BRIDGE_RX_START,16,p,6)==LR2021_IQ_ARGUMENT);
 
@@ -121,7 +144,7 @@ int main(void)
     static int8_t iq[4000]; static uint8_t cap[8000];
     for(unsigned i=0;i<4000;i++)iq[i]=(int8_t)((int)(i%73)-36);
     sim.tx_capture=cap; sim.tx_capacity=sizeof(cap);
-    lr2021_bridge_tx_begin b={4000,lr2021_bridge_crc32(0,(const uint8_t *)iq,4000),19200,433920000,-18,2,0};
+    lr2021_bridge_tx_begin b={4000,lr2021_bridge_crc32(0,(const uint8_t *)iq,4000),19200,433920000,-18,2,0,0,0};
     CHECK(call(&h,LR2021_BRIDGE_TX_COMMIT,20,NULL,0)==LR2021_BRIDGE_ESTATE);
     len=lr2021_bridge_pack_tx_begin(p,&b);
     CHECK(call(&h,LR2021_BRIDGE_TX_BEGIN,21,p,len)==0);
@@ -149,8 +172,16 @@ int main(void)
     lr2021_bridge_put32(chunk,0); memcpy(chunk+4,iq,2);
     CHECK(call(&h,LR2021_BRIDGE_TX_DATA,37,chunk,6)==0);
     CHECK(call(&h,LR2021_BRIDGE_TX_COMMIT,38,NULL,0)==LR2021_BRIDGE_ERANGE);
-    b.rate_hz=10000; len=lr2021_bridge_pack_tx_begin(p,&b);
-    CHECK(call(&h,LR2021_BRIDGE_TX_BEGIN,39,p,len)==LR2021_BRIDGE_ERANGE);
+    /* Unchecked mode: the same over-range sample at an untested rate is sent
+     * and reported in TX_END.untested. */
+    b.rate_hz=10000; b.flags=LR2021_IQ_TX_UNCHECKED; len=lr2021_bridge_pack_tx_begin(p,&b);
+    CHECK(call(&h,LR2021_BRIDGE_TX_BEGIN,39,p,len)==0);
+    CHECK(call(&h,LR2021_BRIDGE_TX_DATA,42,chunk,6)==0);
+    sim.tx_captured=0;
+    CHECK(call(&h,LR2021_BRIDGE_TX_COMMIT,43,NULL,0)==0 && h.tx_end==3 && !h.tx.error);
+    CHECK(h.tx.untested==(LR2021_IQ_TX_UNTESTED_RATE|LR2021_IQ_TX_UNTESTED_RADIUS) && sim.tx_captured==4);
+    b.pa=3; len=lr2021_bridge_pack_tx_begin(p,&b);
+    CHECK(call(&h,LR2021_BRIDGE_TX_BEGIN,44,p,len)==LR2021_BRIDGE_ERANGE);
 
     CHECK(call(&h,LR2021_BRIDGE_GET_TIME,40,NULL,0)==0 && lr2021_bridge_get64(h.last.payload+4)>0);
     CHECK(call(&h,LR2021_BRIDGE_BYE,41,NULL,0)==0 && lr2021_bridge_server_exit_requested(&srv));

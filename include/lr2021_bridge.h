@@ -29,8 +29,9 @@ extern "C" {
 #define LR2021_BRIDGE_HEADER 8u
 #define LR2021_BRIDGE_MAX_PAYLOAD 2048u
 #define LR2021_BRIDGE_MAX_FRAME (LR2021_BRIDGE_HEADER+LR2021_BRIDGE_MAX_PAYLOAD+4u)
-#define LR2021_BRIDGE_RX_DATA_HEADER 28u
-#define LR2021_BRIDGE_RX_MAX_BYTES 1280u
+#define LR2021_BRIDGE_RX_DATA_HEADER 32u
+#define LR2021_BRIDGE_RX_MAX_PAIRS 480u
+#define LR2021_BRIDGE_RX_MAX_BYTES (4u*LR2021_BRIDGE_RX_MAX_PAIRS)
 #define LR2021_BRIDGE_TX_CHUNK 1024u
 #define LR2021_BRIDGE_TX_CAPACITY 65534u
 #define LR2021_BRIDGE_TCP_PORT 51021u
@@ -40,7 +41,8 @@ extern "C" {
 enum {
     LR2021_BRIDGE_HELLO=0x01,    /* u16 host version */
     LR2021_BRIDGE_SET_RX=0x02,   /* lr2021_bridge_rx */
-    LR2021_BRIDGE_RX_START=0x03, /* u16 fifo capacity, u32 duration ms (0 = until stop) */
+    LR2021_BRIDGE_RX_START=0x03, /* u16 fifo capacity, u32 duration ms (0 = until stop),
+                                  * optional u8 sample format */
     LR2021_BRIDGE_RX_STOP=0x04,  /* empty */
     LR2021_BRIDGE_SET_GAIN=0x05, /* u8 step (0 AGC, 1..13), u8 boost (0..7) */
     LR2021_BRIDGE_TX_BEGIN=0x06, /* lr2021_bridge_tx_begin */
@@ -69,8 +71,16 @@ enum {
 /* HELLO capability bits. */
 enum {
     LR2021_BRIDGE_CAP_RX=1u, LR2021_BRIDGE_CAP_TX=2u, LR2021_BRIDGE_CAP_TIMED_TX=4u,
-    LR2021_BRIDGE_CAP_LIVE_GAIN=8u, LR2021_BRIDGE_CAP_RATE_250K=16u
+    LR2021_BRIDGE_CAP_LIVE_GAIN=8u, LR2021_BRIDGE_CAP_RATE_250K=16u,
+    LR2021_BRIDGE_CAP_CS12=32u, LR2021_BRIDGE_CAP_TX_UNCHECKED=64u
 };
+/* RX_DATA sample formats. Both carry the radio's source-2 int16 pairs.
+ * CS16: 4 bytes per pair, I then Q, int16 little endian.
+ * CS12: 3 bytes per pair, block floating point for slow links: every value of
+ * the frame is arithmetically shifted right by the header's shift (0..4, the
+ * smallest that fits -2048..2047), then the 24-bit word I12 | Q12 << 12 is
+ * stored little endian. A host multiplies by 2^shift. Exact when shift is 0. */
+enum { LR2021_BRIDGE_CS16=0, LR2021_BRIDGE_CS12=1 };
 /* RX_END reasons. */
 enum {
     LR2021_BRIDGE_END_REQUEST=0,  /* RX_STOP or duration reached */
@@ -101,14 +111,18 @@ typedef struct {
     int8_t power_half_db;       /* SetTxParams units */
     uint8_t repeats;
     uint64_t start_time;        /* device time units, 0 = immediately */
-} lr2021_bridge_tx_begin;       /* 26 bytes */
+    uint8_t pa;                 /* 0 LF, 1 HF, 2 by frequency */
+    uint8_t flags;              /* bit 0: unchecked, hardware limits only */
+} lr2021_bridge_tx_begin;       /* 28 bytes */
 typedef struct {
     uint32_t generation;        /* increments on every RX_START */
     uint32_t rate_hz;
     uint64_t first_pair;        /* index of the first pair since stream start */
     uint64_t start_time;        /* device time of pair 0 (nominal) */
-    uint32_t dropped;           /* blocks dropped by the device queue so far */
-} lr2021_bridge_rx_data;        /* 28 bytes, then 4..1280 data bytes */
+    uint32_t dropped;           /* pairs dropped by the device queue so far */
+    uint16_t pairs;             /* 1..480 */
+    uint8_t format, shift;
+} lr2021_bridge_rx_data;        /* 32 bytes, then the packed pairs */
 typedef struct {
     uint32_t generation;
     int32_t capture_error, recovery_error;
@@ -123,7 +137,8 @@ typedef struct {
     uint16_t final_level, min_level;
     uint32_t irq, samples;
     uint64_t start_time, elapsed_us, max_service_gap_us;
-} lr2021_bridge_tx_end;         /* 49 bytes */
+    uint32_t untested;          /* LR2021_IQ_TX_UNTESTED_* bits */
+} lr2021_bridge_tx_end;         /* 53 bytes */
 
 typedef struct {
     uint8_t type;
@@ -164,6 +179,14 @@ int lr2021_bridge_unpack_rx_end(const uint8_t *, size_t, lr2021_bridge_rx_end *)
 size_t lr2021_bridge_pack_tx_end(uint8_t *, const lr2021_bridge_tx_end *);
 int lr2021_bridge_unpack_tx_end(const uint8_t *, size_t, lr2021_bridge_tx_end *);
 
+/* Sample packing for RX_DATA. pack returns the byte count and the shift used;
+ * unpack writes 2*pairs int16 values and returns 0, or -1 on a bad format,
+ * shift or length. */
+size_t lr2021_bridge_sample_bytes(unsigned format, size_t pairs);
+size_t lr2021_bridge_pack_samples(uint8_t *out, unsigned format, const uint8_t *cs16, size_t pairs,
+                                  uint8_t *shift);
+int lr2021_bridge_unpack_samples(int16_t *out, unsigned format, unsigned shift,
+                                 const uint8_t *data, size_t bytes, size_t pairs);
 void lr2021_bridge_put16(uint8_t *, uint16_t);
 void lr2021_bridge_put32(uint8_t *, uint32_t);
 void lr2021_bridge_put64(uint8_t *, uint64_t);

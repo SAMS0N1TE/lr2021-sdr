@@ -104,7 +104,10 @@ int lr2021_iq_stream_checked_fifo(const lr2021_iq_hal *, unsigned duration_ms,
  * block reaches the sink. gain, when set, is polled between FIFO reads and may
  * request a new gain step (0 AGC, 1..13) and boost (0..7); the library applies
  * it with SetAgcGainManual/SetRxPath without restarting reception. The
- * callback must not call radio functions itself. */
+ * callback must not call radio functions itself. The loop busy-polls the
+ * FIFO: on an RTOS, run it on a core whose idle task is not watched by a task
+ * watchdog. The bus clock is the adapter's choice (16 MHz is the datasheet
+ * figure; faster clocks are board measurements). */
 typedef struct {
     unsigned duration_ms, fifo_capacity;
     bool (*gain)(void *context, uint8_t *step, uint8_t *boost);

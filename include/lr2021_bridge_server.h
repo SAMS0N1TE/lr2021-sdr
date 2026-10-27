@@ -64,6 +64,9 @@ typedef struct {
     lr2021_bridge_tx_begin tx;
     uint32_t tx_next;
     atomic_int tx_state;           /* 0 none, 1 uploading, 2 running */
+    lr2021_bridge_slot *cur;       /* RX slot being filled by the worker */
+    uint64_t cur_first; size_t cur_pairs; uint8_t format;
+    uint8_t staging[LR2021_BRIDGE_RX_MAX_BYTES];
     uint8_t reader_frame[64], worker_frame[96], sender_frame[LR2021_BRIDGE_MAX_FRAME];
     uint32_t send_errors;
 } lr2021_bridge_server;

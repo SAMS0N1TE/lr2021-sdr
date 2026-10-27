@@ -11,19 +11,34 @@
 
 bool lr2021_iq_tx_rate_ok(uint32_t r)
 { return r==4800 || r==9600 || r==19200 || r==38400 || r==76800 || r==125000; }
+unsigned lr2021_iq_tx_pa(const lr2021_iq_tx *t)
+{ return t->pa==LR2021_IQ_PA_AUTO ? (t->frequency_hz>=LR2021_IQ_HF_HZ ? 1u : 0u) : t->pa; }
+uint32_t lr2021_iq_tx_untested(const lr2021_iq_tx *t)
+{
+    uint32_t u=0;
+    uint64_t n=(uint64_t)t->pairs*t->repeats;
+    if(!lr2021_iq_tx_rate_ok(t->rate_hz))u|=LR2021_IQ_TX_UNTESTED_RATE;
+    if(t->repeats>LR2021_IQ_TX_MAX_REPEATS)u|=LR2021_IQ_TX_UNTESTED_REPEATS;
+    if(!t->rate_hz || n*1000000u>(uint64_t)LR2021_IQ_TX_MAX_US*t->rate_hz)u|=LR2021_IQ_TX_UNTESTED_DURATION;
+    if(t->frequency_hz<LR2021_IQ_TX_MIN_HZ || t->frequency_hz>LR2021_IQ_TX_MAX_HZ)u|=LR2021_IQ_TX_UNTESTED_FREQUENCY;
+    if(lr2021_iq_tx_pa(t))u|=LR2021_IQ_TX_UNTESTED_HF_PA;
+    if(t->power_half_db<LR2021_IQ_TX_MIN_POWER || t->power_half_db>LR2021_IQ_TX_MAX_POWER)u|=LR2021_IQ_TX_UNTESTED_POWER;
+    for(size_t i=0;t->samples && i<t->pairs;i++) {
+        int a=t->samples[2*i],b=t->samples[2*i+1];
+        if(a*a+b*b>LR2021_IQ_TX_MAX_RADIUS*LR2021_IQ_TX_MAX_RADIUS){ u|=LR2021_IQ_TX_UNTESTED_RADIUS; break; }
+    }
+    return u;
+}
 int lr2021_iq_tx_check(const lr2021_iq_tx *t)
 {
-    if(!t || !t->samples || !t->pairs || !t->repeats || t->repeats>LR2021_IQ_TX_MAX_REPEATS ||
-       !lr2021_iq_tx_rate_ok(t->rate_hz) || t->frequency_hz<LR2021_IQ_TX_MIN_HZ ||
-       t->frequency_hz>LR2021_IQ_TX_MAX_HZ || t->power_half_db<LR2021_IQ_TX_MIN_POWER ||
-       t->power_half_db>LR2021_IQ_TX_MAX_POWER)return LR2021_IQ_ARGUMENT;
+    if(!t || !t->samples || !t->pairs || !t->repeats || t->repeats>255 || !t->rate_hz ||
+       t->rate_hz>1000000u || t->pa>LR2021_IQ_PA_AUTO || t->frequency_hz<LR2021_IQ_MIN_HZ ||
+       t->frequency_hz>LR2021_IQ_MAX_HZ)return LR2021_IQ_ARGUMENT;
     uint64_t n=(uint64_t)t->pairs*t->repeats;
-    if(n>LR2021_IQ_TX_MAX_SAMPLES || n*1000000u>(uint64_t)LR2021_IQ_TX_MAX_US*t->rate_hz)
-        return LR2021_IQ_ARGUMENT;
-    for(size_t i=0;i<t->pairs;i++) {
-        int a=t->samples[2*i],b=t->samples[2*i+1];
-        if(a*a+b*b>LR2021_IQ_TX_MAX_RADIUS*LR2021_IQ_TX_MAX_RADIUS)return LR2021_IQ_ARGUMENT;
-    }
+    bool hf=lr2021_iq_tx_pa(t);
+    if(n>LR2021_IQ_TX_MAX_SAMPLES || t->power_half_db<(hf?-39:-19) || t->power_half_db>(hf?24:44) ||
+       n*1000000u>500000000ull*t->rate_hz)return LR2021_IQ_ARGUMENT;
+    if(!(t->flags&LR2021_IQ_TX_UNCHECKED) && lr2021_iq_tx_untested(t))return LR2021_IQ_ARGUMENT;
     return 0;
 }
 /* Queue a bounded slice of the repeated buffer; positions are bytes. */
@@ -56,8 +71,10 @@ static int setup(const lr2021_iq_hal *h, const lr2021_iq_board *b, const lr2021_
     const uint8_t pkt[6]={0,32,0,(uint8_t)(bytes>>8),(uint8_t)bytes,0};
     const uint8_t sync[5]={0,0,0,0,0};
     /* LF PA, full single-ended; duty 1 / slices 2 is the lowest-power row of the
-     * datasheet 915 MHz table. Ramp code 4 is 32 us. */
-    const uint8_t pa[3]={0x00,0x12,0x10};
+     * datasheet 915 MHz table. HF PA: LF fields at their unused values (6, 7),
+     * HF duty 28 from the 0 dBm row of the 2445 MHz table. Ramp code 4 is 32 us. */
+    const bool hf=lr2021_iq_tx_pa(t);
+    const uint8_t pa[3]={(uint8_t)(hf?0x80:0x00),(uint8_t)(hf?0x67:0x12),(uint8_t)(hf?28:16)};
     const uint8_t power[2]={(uint8_t)(int8_t)t->power_half_db,4}, fallback=1;
     const uint8_t cmd[7]={(uint8_t)(n>>8),(uint8_t)n,(uint8_t)(rate>>24),(uint8_t)(rate>>16),
         (uint8_t)(rate>>8),(uint8_t)rate,0};
@@ -89,6 +106,7 @@ int lr2021_iq_transmit(const lr2021_iq_hal *h, const lr2021_iq_board *b,
     if(!h || !h->lock || !h->unlock || !h->snapshot || !h->read32 || !h->write32 ||
        !h->write || !h->read || !h->standby || !h->reset || !h->restore || !h->fast ||
        !h->write_fifo || !h->now_us || !h->sleep_us || lr2021_iq_tx_check(t))return LR2021_IQ_ARGUMENT;
+    r->untested=lr2021_iq_tx_untested(t);
     const unsigned n=(unsigned)(t->pairs*t->repeats);
     const size_t frame_len=2*t->pairs, total=2*(size_t)n;
     const uint64_t duration=((uint64_t)n*1000000u+t->rate_hz-1)/t->rate_hz;

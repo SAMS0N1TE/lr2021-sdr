@@ -76,21 +76,41 @@ bool lr2021_bridge_server_pump(lr2021_bridge_server *s)
     return true;
 }
 
+/* Pairs accumulate in the open slot up to 480 per frame, then are packed in
+ * the stream's format. A full queue drops whole chunks and counts them. */
+static void flush(lr2021_bridge_server *s)
+{
+    lr2021_bridge_slot *b=s->cur;
+    if(!b)return;
+    s->cur=NULL;
+    if(!s->cur_pairs)return;
+    lr2021_bridge_rx_data d={s->generation,s->rate_hz,s->cur_first,s->start_time,
+        atomic_load(&s->dropped),(uint16_t)s->cur_pairs,s->format,0};
+    size_t m=lr2021_bridge_pack_samples(b->payload+LR2021_BRIDGE_RX_DATA_HEADER,s->format,
+        s->staging,s->cur_pairs,&d.shift);
+    lr2021_bridge_pack_rx_data(b->payload,&d);
+    b->type=LR2021_BRIDGE_RX_DATA; b->sequence=s->seq_data++;
+    b->length=(uint16_t)(LR2021_BRIDGE_RX_DATA_HEADER+m);
+    slot_commit(s);
+}
 static bool sink(void *ctx, const uint8_t *data, size_t n, uint64_t first)
 {
     lr2021_bridge_server *s=ctx;
     if(atomic_load(&s->stop))return false;
-    for(size_t off=0;off<n;off+=LR2021_BRIDGE_RX_MAX_BYTES) {
-        size_t m=n-off>LR2021_BRIDGE_RX_MAX_BYTES?LR2021_BRIDGE_RX_MAX_BYTES:n-off;
-        lr2021_bridge_slot *b=slot_begin(s,1);
-        if(!b){ atomic_fetch_add(&s->dropped,1); continue; }
-        lr2021_bridge_rx_data d={s->generation,s->rate_hz,first+off/4,s->start_time,
-            atomic_load(&s->dropped)};
-        lr2021_bridge_pack_rx_data(b->payload,&d);
-        memcpy(b->payload+LR2021_BRIDGE_RX_DATA_HEADER,data+off,m);
-        b->type=LR2021_BRIDGE_RX_DATA; b->sequence=s->seq_data++;
-        b->length=(uint16_t)(LR2021_BRIDGE_RX_DATA_HEADER+m);
-        slot_commit(s);
+    size_t pairs=n/4, i=0;
+    while(i<pairs) {
+        if(s->cur && s->cur_first+s->cur_pairs!=first+i)flush(s);
+        if(!s->cur) {
+            if(!(s->cur=slot_begin(s,1))) {
+                atomic_fetch_add(&s->dropped,(unsigned)(pairs-i)); return true;
+            }
+            s->cur_first=first+i; s->cur_pairs=0;
+        }
+        size_t take=LR2021_BRIDGE_RX_MAX_PAIRS-s->cur_pairs;
+        if(take>pairs-i)take=pairs-i;
+        memcpy(s->staging+4*s->cur_pairs,data+4*i,4*take);
+        s->cur_pairs+=take; i+=take;
+        if(s->cur_pairs==LR2021_BRIDGE_RX_MAX_PAIRS)flush(s);
     }
     return true;
 }
@@ -112,14 +132,14 @@ static bool session_sink(void *ctx, const uint8_t *data, size_t n, uint64_t firs
 }
 static void rx_start(lr2021_bridge_server *s, uint16_t seq, const uint8_t *p, size_t n)
 {
-    if(n!=6){ WORKER_REPLY(LR2021_BRIDGE_RX_START,seq,LR2021_BRIDGE_ELENGTH,NULL,0); return; }
-    unsigned cap=G16(p); uint32_t ms=G32(p+2);
-    if((cap!=256 && cap!=1024) || ms>60000) {
+    if(n!=6 && n!=7){ WORKER_REPLY(LR2021_BRIDGE_RX_START,seq,LR2021_BRIDGE_ELENGTH,NULL,0); return; }
+    unsigned cap=G16(p); uint32_t ms=G32(p+2); uint8_t format=n==7?p[6]:LR2021_BRIDGE_CS16;
+    if((cap!=256 && cap!=1024) || ms>60000 || format>LR2021_BRIDGE_CS12) {
         WORKER_REPLY(LR2021_BRIDGE_RX_START,seq,LR2021_IQ_ARGUMENT,NULL,0); return;
     }
     s->generation++;
     s->rate_hz=lr2021_iq_rate(s->radio.rx.bandwidth_hz);
-    s->start_time=0;
+    s->start_time=0; s->format=format; s->cur=NULL; s->cur_pairs=0;
     atomic_store(&s->dropped,0); atomic_store(&s->stop,false); atomic_store(&s->gain_request,0);
     atomic_store(&s->streaming,true);
     uint8_t ack[8]; P32(ack,s->generation); P32(ack+4,s->rate_hz);
@@ -128,6 +148,7 @@ static void rx_start(lr2021_bridge_server *s, uint16_t seq, const uint8_t *p, si
     stream_ctx c={s,&session};
     lr2021_iq_result r;
     int e=lr2021_iq_stream_session(s->radio.hal,&session,session_sink,&c,&r);
+    flush(s);
     atomic_store(&s->streaming,false);
     lr2021_bridge_rx_end end={s->generation,r.capture_error,r.recovery_error,
         (uint8_t)(e?LR2021_BRIDGE_END_ERROR:LR2021_BRIDGE_END_REQUEST),r.fifo_flags,
@@ -144,7 +165,8 @@ static void tx_commit(lr2021_bridge_server *s, uint16_t seq)
     if(atomic_load(&s->tx_state)!=1 || s->tx_next!=s->tx.bytes)st=LR2021_BRIDGE_ESTATE;
     else if(lr2021_bridge_crc32(0,s->tx_buf,s->tx.bytes)!=s->tx.crc32)st=LR2021_BRIDGE_ECRC;
     lr2021_iq_tx t={(const int8_t *)s->tx_buf,s->tx.bytes/2,s->tx.repeats,s->tx.rate_hz,
-        s->tx.frequency_hz,s->tx.power_half_db,s->tx.start_time};
+        s->tx.frequency_hz,s->tx.power_half_db,s->tx.start_time,s->tx.pa,
+        (uint8_t)(s->tx.flags&LR2021_IQ_TX_UNCHECKED)};
     if(!st && lr2021_iq_tx_check(&t))st=LR2021_BRIDGE_ERANGE;
     if(st) {
         atomic_store(&s->tx_state,0);
@@ -158,7 +180,7 @@ static void tx_commit(lr2021_bridge_server *s, uint16_t seq)
     atomic_store(&s->tx_state,1);
     lr2021_bridge_tx_end end={r.error,r.stop_error,r.recovery_error,r.tx_flags,
         (uint16_t)r.final_level,(uint16_t)r.min_level,r.irq,(uint32_t)(r.queued_bytes/2),
-        r.started_us,r.elapsed_us,r.max_service_gap_us};
+        r.started_us,r.elapsed_us,r.max_service_gap_us,r.untested};
     uint8_t buf[64];
     size_t len=lr2021_bridge_pack_tx_end(buf,&end);
     slot_wait_put(s,LR2021_BRIDGE_TX_END,s->seq_tx_end++,buf,len);
@@ -218,7 +240,8 @@ static void request(void *ctx, const lr2021_bridge_frame *f)
     case LR2021_BRIDGE_HELLO: {
         lr2021_bridge_hello h={0,LR2021_BRIDGE_VERSION,s->radio.caps,s->radio.rom_major,
             s->radio.rom_minor,LR2021_BRIDGE_MAX_PAYLOAD,1000000,(uint32_t)s->tx_capacity,{0},{0}};
-        if(!s->tx_buf)h.caps&=(uint16_t)~(LR2021_BRIDGE_CAP_TX|LR2021_BRIDGE_CAP_TIMED_TX);
+        h.caps|=LR2021_BRIDGE_CAP_CS12|LR2021_BRIDGE_CAP_TX_UNCHECKED;
+        if(!s->tx_buf)h.caps&=(uint16_t)~(LR2021_BRIDGE_CAP_TX|LR2021_BRIDGE_CAP_TIMED_TX|LR2021_BRIDGE_CAP_TX_UNCHECKED);
         if(s->radio.name)strncpy(h.name,s->radio.name,31);
         if(s->radio.id)strncpy(h.id,s->radio.id,31);
         uint8_t buf[96]; size_t len=lr2021_bridge_pack_hello(buf,&h);
@@ -252,8 +275,8 @@ static void request(void *ctx, const lr2021_bridge_frame *f)
         if(!s->tx_buf)st=LR2021_BRIDGE_EUNSUPPORTED;
         else if(lr2021_bridge_unpack_tx_begin(p,n,&b))st=LR2021_BRIDGE_ELENGTH;
         else if(atomic_load(&s->tx_state)==2)st=LR2021_BRIDGE_EBUSY;
-        else if(b.bytes<2 || b.bytes%2 || b.bytes>s->tx_capacity || !b.repeats ||
-                b.repeats>LR2021_IQ_TX_MAX_REPEATS || !lr2021_iq_tx_rate_ok(b.rate_hz))st=LR2021_BRIDGE_ERANGE;
+        else if(b.bytes<2 || b.bytes%2 || b.bytes>s->tx_capacity || !b.repeats || b.pa>2)
+            st=LR2021_BRIDGE_ERANGE;
         if(!st){ s->tx=b; s->tx_next=0; atomic_store(&s->tx_state,1); }
         else if(st!=LR2021_BRIDGE_EBUSY)atomic_store(&s->tx_state,0);
         P32(x,0);
