@@ -33,7 +33,8 @@ typedef struct {
  * 250000 Hz). Routes 1, 2, 3: sources 0, 1 and 6 from an FSK setup whose RX
  * filter code is input_code, two bytes per pair (IQ8 for sources 0 and 1,
  * gain-tagged IQ6 for source 6). Sources 0 and 6 run at rate_hz; source 1 at
- * lr2021_iq_input_rate(input_code). */
+ * lr2021_iq_input_rate(input_code). Byte 0 of the route command, the input
+ * code, sets these rates; the modem's own filter setting does not. */
 enum { LR2021_IQ_ROUTE_SOURCE2=0, LR2021_IQ_ROUTE_SOURCE0=1, LR2021_IQ_ROUTE_SOURCE1=2,
        LR2021_IQ_ROUTE_SOURCE6=3 };
 typedef struct {

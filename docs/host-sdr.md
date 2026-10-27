@@ -169,6 +169,17 @@ deviation, RX filter code `input_code`):
 | `source1` | 1 | 2 | IQ8: int8 I, Q, at the converter input rate of the FSK filter code |
 | `source6` | 6 | 2 | IQ6G: signed 6-bit I and Q in bits 7..2 of each byte, gain step in the low bits |
 
+The route command's byte 0, the input code, sets the converter rate: with
+source 1, an FLRC or Bluetooth LE modem setup with a different filter still
+ran at the 800000 pairs/s of code 33. Sources 0 and 1 deliver values from -32
+to 31 (6 bits) under FSK and FLRC setups; the fixed-line SNR was the same,
+11.3 to 12.5 dB, under every modem.
+
+Source 3 (route byte 5 `0x0B`) streams two bytes per sample at twice the input
+rate (499479, 249483 and 124488 pairs/s for codes 27, 28 and 29). Both bytes
+carry the same real-valued signal (correlation 0.80) behind the code's
+filter, so it is a real tap rather than I/Q and is not offered as a route.
+
 The module scales IQ8 by 256 and IQ6 by 1024 into CS16 (CF32 full scale is
 the same). The bridge carries these bytes unchanged, up to 960 pairs per
 frame, so 576000 pairs/s is about 1.2 MB/s on the link.
