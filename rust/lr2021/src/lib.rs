@@ -310,7 +310,7 @@ mod tests {
             blocks < 100
         };
         let mut asked = false;
-        let mut gain = || if asked { None } else { asked = true; Some((12u8, 7u8)) };
+        let mut gain = || if asked { None } else { asked = true; Some((12u8, 0u8)) };
         let r = sim.stream(0, 1024, &mut sink, Some(&mut gain)).unwrap();
         assert_eq!(r.nominal_rate_hz, 250_000);
         assert_eq!(r.gain_changes, 1);

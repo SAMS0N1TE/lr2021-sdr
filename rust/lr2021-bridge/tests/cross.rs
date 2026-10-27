@@ -191,7 +191,11 @@ fn rust_client_against_c_server_and_simulator() {
                 last = v; pairs += 1;
             }
             next = Some(b.header.first_pair + b.header.pairs as u64);
-            if !gained && pairs > 50_000 { c.set_gain(12, 7).unwrap(); gained = true; }
+            if !gained && pairs > 50_000 {
+                c.set_gain(12, 0).unwrap();
+                assert!(matches!(c.set_gain(12, 7), Err(ClientError::Status(status::EBUSY))));
+                gained = true;
+            }
         }
         let end = c.rx_stop().unwrap();
         assert_eq!(unflagged, 0);

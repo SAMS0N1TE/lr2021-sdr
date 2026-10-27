@@ -79,7 +79,8 @@ static int exercise(lr2021_host *h, unsigned seconds_ms, bool counter)
     uint64_t pairs=0; unsigned gaps=0, disc=0;
     uint64_t t0=lrh_now_us();
     CHECK(!stream(h,seconds_ms/2,&pairs,&gaps,&disc,counter));
-    CHECK(!lr2021_host_set_gain(h,12,7));
+    CHECK(!lr2021_host_set_gain(h,12,0));
+    CHECK(lr2021_host_set_gain(h,12,7)==LR2021_BRIDGE_EBUSY); /* boost needs a restart */
     CHECK(!stream(h,seconds_ms/2,&pairs,&gaps,&disc,counter));
     double rate=(double)pairs*1e6/(double)(lrh_now_us()-t0);
     lr2021_bridge_rx_end end;

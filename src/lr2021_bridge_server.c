@@ -37,6 +37,7 @@ int lr2021_bridge_server_init(lr2021_bridge_server *s, const lr2021_bridge_io *i
     atomic_init(&s->busy,false); atomic_init(&s->streaming,false);
     atomic_init(&s->stop,false); atomic_init(&s->exit,false);
     atomic_init(&s->gain_request,0); atomic_init(&s->head,0); atomic_init(&s->tail,0);
+    atomic_init(&s->live_boost,radio->rx.boost);
     atomic_init(&s->dropped,0); atomic_init(&s->tx_state,0);
     return 0;
 }
@@ -141,6 +142,7 @@ static void rx_start(lr2021_bridge_server *s, uint16_t seq, const uint8_t *p, si
     s->rate_hz=lr2021_iq_rate(s->radio.rx.bandwidth_hz);
     s->start_time=0; s->format=format; s->cur=NULL; s->cur_pairs=0;
     atomic_store(&s->dropped,0); atomic_store(&s->stop,false); atomic_store(&s->gain_request,0);
+    atomic_store(&s->live_boost,s->radio.rx.boost);
     atomic_store(&s->streaming,true);
     uint8_t ack[8]; P32(ack,s->generation); P32(ack+4,s->rate_hz);
     WORKER_REPLY(LR2021_BRIDGE_RX_START,seq,0,ack,8);
@@ -166,7 +168,7 @@ static void tx_commit(lr2021_bridge_server *s, uint16_t seq)
     else if(lr2021_bridge_crc32(0,s->tx_buf,s->tx.bytes)!=s->tx.crc32)st=LR2021_BRIDGE_ECRC;
     lr2021_iq_tx t={(const int8_t *)s->tx_buf,s->tx.bytes/2,s->tx.repeats,s->tx.rate_hz,
         s->tx.frequency_hz,s->tx.power_half_db,s->tx.start_time,s->tx.pa,
-        (uint8_t)(s->tx.flags&LR2021_IQ_TX_UNCHECKED)};
+        (uint8_t)(s->tx.flags&(LR2021_IQ_TX_UNCHECKED|LR2021_IQ_TX_SIMO))};
     if(!st && lr2021_iq_tx_check(&t))st=LR2021_BRIDGE_ERANGE;
     if(st) {
         atomic_store(&s->tx_state,0);
@@ -263,6 +265,9 @@ static void request(void *ctx, const lr2021_bridge_frame *f)
         if(n!=2){ READER_REPLY(f->type,f->sequence,LR2021_BRIDGE_ELENGTH,NULL,0); break; }
         if(p[0]>13 || p[1]>7){ READER_REPLY(f->type,f->sequence,LR2021_IQ_ARGUMENT,NULL,0); break; }
         if(atomic_load(&s->streaming)) {
+            /* ROM 1.24 refuses SetRxPath during RX, so a boost change cannot be
+             * applied live: the host stops, sets it and restarts. */
+            if(p[1]!=atomic_load(&s->live_boost)){ READER_REPLY(f->type,f->sequence,LR2021_BRIDGE_EBUSY,NULL,0); break; }
             atomic_store(&s->gain_request,0x10000u|(unsigned)p[1]<<8|p[0]);
             lr2021_bridge_rx_ack a={0,0,s->rate_hz}; uint8_t q[16];
             lr2021_bridge_pack_rx_ack(q,&a);

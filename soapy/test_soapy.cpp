@@ -83,6 +83,19 @@ int main()
         else if(n>0)got++;
     }
     CHECK(saw_overflow && got==10);
+    // A STEP change applies live; a BOOST change restarts the stream.
+    d->setGain(SOAPY_SDR_RX,0,"STEP",9);
+    for(int k=0;k<5;k++){ int flags=0; long long ts=0; CHECK(d->readStream(rx,bufs,4096,flags,ts,200000)>0); }
+    d->setGain(SOAPY_SDR_RX,0,"BOOST",2);
+    CHECK(d->getGain(SOAPY_SDR_RX,0,"BOOST")==2 && d->getGain(SOAPY_SDR_RX,0,"STEP")==9);
+    saw_overflow=false; got=0;
+    for(int k=0;k<200 && got<10;k++) {
+        int flags=0; long long ts=0;
+        int n=d->readStream(rx,bufs,4096,flags,ts,200000);
+        if(n==SOAPY_SDR_OVERFLOW)saw_overflow=true;
+        else if(n>0)got++;
+    }
+    CHECK(saw_overflow && got==10);
     d->deactivateStream(rx); d->closeStream(rx);
 
     // CF32 RX in range -1..1.

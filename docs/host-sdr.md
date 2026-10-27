@@ -87,6 +87,7 @@ it and confirm it answers.
 | `sim=tone` or `sim=counter` | simulator | in-process LR2021 model, no hardware |
 | `tone=154810000` | simulator | RF of the simulated tone |
 | `tx_unchecked=true` | any | see [Transmit](#transmit) |
+| `tx_simo=true` | any | run TX bursts with the SIMO DC-DC supplying the PA (experimental) |
 
 A simulator over TCP, for testing applications or other clients:
 
@@ -106,7 +107,9 @@ build/lr2021_bridge_sim --port 51021 --pattern tone --tone 433950000
 
 The measurements say step 12 or 13 is best for weak signals and that the chip
 AGC is about 20 dB worse than a fixed step on strong ones; the default is step
-13 without boost. Gain changes while streaming do not interrupt the samples.
+13 without boost. A `STEP` change while streaming does not interrupt the
+samples. A `BOOST` change needs SetRxPath, which ROM 1.24 refuses during
+reception, so it restarts the stream (one `SOAPY_SDR_OVERFLOW`).
 
 At 100 to 104 MHz the radio still flags IMG_CAL although reception works; the
 module logs the error bits and continues. 250000 samples/s was clean in 40 ms

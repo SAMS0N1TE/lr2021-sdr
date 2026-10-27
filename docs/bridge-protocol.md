@@ -43,7 +43,7 @@ Every response payload starts with an `i32 status`.
 | `02` | SET_RX | RX record (11 bytes) | `u16 radio_errors, u32 rate_hz` | worker |
 | `03` | RX_START | `u16 fifo_capacity, u32 duration_ms`, optional `u8 format` | `u32 generation, u32 rate_hz` | worker |
 | `04` | RX_STOP | empty | none | reader |
-| `05` | SET_GAIN | `u8 step, u8 boost` | `u16 radio_errors, u32 rate_hz` | reader while streaming, else worker |
+| `05` | SET_GAIN | `u8 step, u8 boost` | `u16 radio_errors, u32 rate_hz` | reader while streaming, else worker; while streaming only the step may change (EBUSY otherwise) |
 | `06` | TX_BEGIN | TX record (26 bytes) | `u32 next_offset` (0) | reader |
 | `07` | TX_DATA | `u32 offset`, 2..1024 even bytes | `u32 next_offset` | reader |
 | `08` | TX_COMMIT | empty | none; the burst result follows as TX_END | worker |
@@ -107,7 +107,9 @@ TX record, 28 bytes: `u32 bytes`, `u32 crc32` of the uploaded bytes,
 `u32 rate_hz`, `u32 frequency_hz`, `i8 power_half_db` (SetTxParams units,
 -18 = -9 dBm), `u8 repeats`, `u64 start_time` (device time, 0 = now),
 `u8 pa` (0 LF, 1 HF, 2 by frequency: HF from 1.5 GHz), `u8 flags` (bit 0:
-unchecked, see [Transmit](#transmit)).
+unchecked, see [Transmit](#transmit); bit 1: run the burst with SetRegMode
+SIMO_NORMAL, the DC-DC converter for the PA supply, instead of the LDO the
+receive setup uses; the reset after the burst returns to LDO).
 
 ## Device messages
 

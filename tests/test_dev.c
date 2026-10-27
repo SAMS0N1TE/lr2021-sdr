@@ -23,7 +23,7 @@ static bool gain(void *c, uint8_t *step, uint8_t *boost)
 {
     counter *k=c;
     if(k->blocks!=3 || k->requests)return false;
-    k->requests++; *step=12; *boost=7; return true;
+    k->requests++; *step=12; *boost=0; return true;
 }
 int main(void)
 {
@@ -57,7 +57,7 @@ int main(void)
     CHECK(!lr2021_iq_stream_session(&dev.hal,&s,count,&k,&r));
     CHECK(r.stopped_by_sink && r.nominal_rate_hz==250000 && r.gain_changes==1 && !k.gaps);
     CHECK(k.pairs==r.validated_bytes/4 && k.pairs>=399*256 && s.start_us && s.start_us==r.start_us);
-    CHECK(sim.step==12 && sim.boost==7 && dev.rx.gain_step==12 && dev.rx.boost==7);
+    CHECK(sim.step==12 && !sim.boost && dev.rx.gain_step==12 && !dev.rx.boost);
     CHECK(r.max_fifo_level<1024 && !(r.fifo_flags&0x30) && dev.profile.configured);
 
     /* Bounded session and an injected overflow. */
@@ -118,6 +118,10 @@ int main(void)
     CHECK(sim.resets==resets+1 && dev.profile.configured && sim.packet_type==0 && sim.lora_bw==2);
     CHECK(tr.elapsed_us>=240000 && tr.elapsed_us<300000);
 
+    /* SIMO flag: same burst with the DC-DC regulator requested. */
+    sim.tx_captured=0;
+    t=(lr2021_iq_tx){iq,960,1,9600,433920000,-18,0,0,LR2021_IQ_TX_SIMO};
+    CHECK(!lr2021_iq_tx_check(&t) && !lr2021_iq_transmit(&dev.hal,NULL,&t,&tr) && sim.tx_captured==1920);
     /* Timed burst waits for the requested device time before SetTx. */
     sim.tx_captured=0;
     uint64_t when=lr2021_sim_now_us(&sim)+200000;

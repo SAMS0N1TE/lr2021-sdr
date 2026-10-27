@@ -52,6 +52,7 @@ typedef struct {
     lr2021_bridge_parser parser;
     atomic_bool busy, streaming, stop, exit;
     atomic_uint gain_request;      /* 0 none, else 0x10000 | boost << 8 | step */
+    atomic_uint live_boost;        /* boost of the running stream */
     uint8_t req_type; uint16_t req_seq, req_length;
     uint8_t req[LR2021_BRIDGE_MAX_PAYLOAD];
     atomic_uint head, tail;

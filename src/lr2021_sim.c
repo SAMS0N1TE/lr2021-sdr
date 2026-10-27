@@ -139,7 +139,10 @@ static uint8_t execute(lr2021_sim *s, uint16_t op, const uint8_t *a, size_t n)
         if(s->freq<104000000u)s->errors|=LR2021_IQ_ERR_IMG_CAL;
         if(s->freq>2745000000u)s->errors|=LR2021_IQ_ERR_PLL_LOCK|LR2021_IQ_ERR_IMG_CAL;
         return OK;
-    case 0x0201: if(n!=2 || a[0]>1 || a[1]>7)return PERR; s->path=a[0]; s->boost=a[1]; s->gain_writes++; return OK;
+    case 0x0201:
+        if(n!=2 || a[0]>1 || a[1]>7)return PERR;
+        if(s->mode==RX)return FAIL; /* measured on ROM 1.24: refused during RX */
+        s->path=a[0]; s->boost=a[1]; s->gain_writes++; return OK;
     case 0x0202: return n==3 ? OK : PERR;
     case 0x0203: return n==2 && (int8_t)a[0]>=-19 && (int8_t)a[0]<=44 ? OK : PERR;
     case 0x0207: if(n!=1 || !idle)return FAIL; s->packet_type=a[0]; return OK;

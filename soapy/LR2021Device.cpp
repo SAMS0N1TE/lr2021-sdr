@@ -34,12 +34,14 @@ public:
         lr2021_host_args a;
         lr2021_host_args_init(&a);
         for(const auto &kv : args) {
-            if(kv.first=="driver" || kv.first=="label" || kv.first=="tx_unchecked")continue;
+            if(kv.first=="driver" || kv.first=="label" || kv.first=="tx_unchecked" || kv.first=="tx_simo")continue;
             if(lr2021_host_args_set(&a,kv.first.c_str(),kv.second.c_str())<0)
                 throw std::runtime_error("lr2021: bad value for "+kv.first);
         }
         auto u=args.find("tx_unchecked");
         unchecked=u!=args.end() && truthy(u->second);
+        auto sm=args.find("tx_simo");
+        simo=sm!=args.end() && truthy(sm->second);
         char err[256];
         host=lr2021_host_open(&a,err,sizeof(err));
         if(!host)throw std::runtime_error(std::string("lr2021: ")+err);
@@ -201,12 +203,23 @@ public:
         u.key="tx_unchecked"; u.value=unchecked?"true":"false"; u.name="Unchecked TX";
         u.type=SoapySDR::ArgInfo::BOOL;
         u.description="Only hardware limits for TX; values outside the tested contract are reported, not refused";
-        return {u};
+        SoapySDR::ArgInfo m;
+        m.key="tx_simo"; m.value=simo?"true":"false"; m.name="TX on SIMO";
+        m.type=SoapySDR::ArgInfo::BOOL;
+        m.description="Run TX bursts with the SIMO DC-DC supplying the PA instead of the LDO (experimental)";
+        return {u,m};
     }
     void writeSetting(const std::string &key, const std::string &value) override
-    { if(key=="tx_unchecked")unchecked=truthy(value); }
+    {
+        if(key=="tx_unchecked")unchecked=truthy(value);
+        if(key=="tx_simo")simo=truthy(value);
+    }
     std::string readSetting(const std::string &key) const override
-    { return key=="tx_unchecked"?(unchecked?"true":"false"):""; }
+    {
+        if(key=="tx_unchecked")return unchecked?"true":"false";
+        if(key=="tx_simo")return simo?"true":"false";
+        return "";
+    }
 
     // Streams
     std::vector<std::string> getStreamFormats(const int dir, const size_t) const override
@@ -363,7 +376,7 @@ private:
     uint8_t manual_step=13, tx_pa=LR2021_IQ_PA_AUTO;
     uint32_t tx_hz=433920000, tx_rate=125000;
     int tx_power=LR2021_IQ_TX_DEFAULT_POWER;
-    bool unchecked=false, rx_wanted=false;
+    bool unchecked=false, simo=false, rx_wanted=false;
     long long time_offset=0;
 
     SoapySDR::Range pa_range() const
@@ -398,6 +411,13 @@ private:
     void set_gain_locked(uint8_t step, uint8_t boost)
     {
         int e=lr2021_host_set_gain(host,step,boost);
+        if(e==LR2021_BRIDGE_EBUSY && lr2021_host_rx_active(host)) {
+            /* A boost change needs SetRxPath, which the ROM refuses in RX:
+             * restart the stream around it (one SOAPY_SDR_OVERFLOW). */
+            lr2021_host_rx_stop(host,nullptr);
+            e=lr2021_host_set_gain(host,step,boost);
+            lr2021_host_rx_start(host,0);
+        }
         if(e)throw std::runtime_error(std::string("lr2021: gain: ")+lr2021_host_strerror(e));
         rx.gain_step=step; rx.boost=boost;
     }
@@ -412,7 +432,8 @@ private:
         std::lock_guard<std::mutex> l(mu);
         lr2021_bridge_tx_begin p{};
         p.rate_hz=tx_rate; p.frequency_hz=tx_hz; p.power_half_db=(int8_t)tx_power;
-        p.repeats=(uint8_t)std::min(255u,s->repeats); p.pa=tx_pa; p.flags=unchecked?LR2021_IQ_TX_UNCHECKED:0;
+        p.repeats=(uint8_t)std::min(255u,s->repeats); p.pa=tx_pa;
+        p.flags=(uint8_t)((unchecked?LR2021_IQ_TX_UNCHECKED:0)|(simo?LR2021_IQ_TX_SIMO:0));
         if(s->have_time)p.start_time=(uint64_t)std::max(0LL,(s->time_ns-time_offset)/1000);
         s->have_time=false;
         // Half duplex: stop receive for the burst and resume it afterwards.

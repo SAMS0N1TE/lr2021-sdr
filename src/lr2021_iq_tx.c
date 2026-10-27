@@ -78,7 +78,9 @@ static int setup(const lr2021_iq_hal *h, const lr2021_iq_board *b, const lr2021_
     const uint8_t power[2]={(uint8_t)(int8_t)t->power_half_db,4}, fallback=1;
     const uint8_t cmd[7]={(uint8_t)(n>>8),(uint8_t)n,(uint8_t)(rate>>24),(uint8_t)(rate>>16),
         (uint8_t)(rate>>8),(uint8_t)rate,0};
+    const uint8_t simo=2;
     int e=lr2021_iq_board_rfsw(h,b);
+    if(!e && (t->flags&LR2021_IQ_TX_SIMO))e=put(h,0x0121,&simo,1); /* in standby RC */
     if(!e)e=put(h,0x0111,NULL,0);
     if(!e)e=put(h,0x0207,&type,1);
     if(!e)e=put(h,0x0200,freq,4);

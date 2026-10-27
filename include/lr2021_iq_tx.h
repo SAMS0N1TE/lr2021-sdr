@@ -32,7 +32,10 @@ extern "C" {
 #define LR2021_IQ_TX_MIN_POWER (-19)
 #define LR2021_IQ_TX_MAX_POWER 20
 #define LR2021_IQ_TX_DEFAULT_POWER (-18)
-enum { LR2021_IQ_TX_UNCHECKED=1u };
+/* LR2021_IQ_TX_SIMO: SetRegMode SIMO_NORMAL (DC-DC for VDCC and for VPAX in
+ * TX) for the burst; the reset afterwards returns to LDO. The receive setup
+ * uses LDO; whether this board's PA needs the SIMO is not yet measured. */
+enum { LR2021_IQ_TX_UNCHECKED=1u, LR2021_IQ_TX_SIMO=2u };
 enum { LR2021_IQ_PA_LF=0, LR2021_IQ_PA_HF=1, LR2021_IQ_PA_AUTO=2 };
 /* result.untested bits */
 enum {

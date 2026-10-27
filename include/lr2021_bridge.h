@@ -112,7 +112,7 @@ typedef struct {
     uint8_t repeats;
     uint64_t start_time;        /* device time units, 0 = immediately */
     uint8_t pa;                 /* 0 LF, 1 HF, 2 by frequency */
-    uint8_t flags;              /* bit 0: unchecked, hardware limits only */
+    uint8_t flags;              /* bit 0: unchecked, hardware limits only; bit 1: SIMO for the burst */
 } lr2021_bridge_tx_begin;       /* 28 bytes */
 typedef struct {
     uint32_t generation;        /* increments on every RX_START */
