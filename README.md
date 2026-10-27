@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/images/banner.png" alt="Terminal Bay: LR2021-SDR" width="100%"></p>
+
 # LR2021-SDR
 
 **A LoRa chip that tunes from 100 MHz to 2.74 GHz and streams I/Q at up to 800,000 samples/s.**
