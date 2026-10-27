@@ -61,7 +61,7 @@ config LRIQ_RFSW
     default y
 config LRIQ_SPI_HZ
     int "Radio SPI clock in Hz (26666666 is the tested ceiling on the LilyGO board)"
-    range 1000000 26666667
+    range 1000000 30000000
     default 26666666
 config LRIQ_BRIDGE_BAUD
     int "Default bridge UART baud (4000000 is the tested ceiling on the LilyGO CH343)"

@@ -6,6 +6,8 @@
 #include "sdkconfig.h"
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
+#include "hal/spi_ll.h"
+#include "esp_attr.h"
 #include "driver/i2c_master.h"
 #include "esp_timer.h"
 #include "esp_rom_sys.h"
@@ -41,11 +43,53 @@ static int xl_output(unsigned pin, bool high)
     w[0] = reg; w[1] = value & ~(1u << (pin % 8));
     return i2c_master_transmit(xl, w, 2, 100);
 }
-static int bus_transfer(void *ctx, uint8_t *b, size_t n)
+/* SPI without DMA: on the ESP32-P4 a DMA transaction whose buffer or length is
+ * not cache-line aligned gets a bounce buffer, a copy and a cache sync each time
+ * (about 35-40 us), which held FIFO service near 1.3 MB/s. Outside a session the
+ * driver sends 64-byte pieces with chip select held. Inside a session, with the
+ * bus owned, frames go straight to the SPI registers, one 64-byte piece at a
+ * time with chip select kept between pieces: about 1 us of overhead a piece. */
+#define SPI_PIECE 64
+static DRAM_ATTR uint32_t piece_buf[SPI_PIECE / 4 + 1];
+static void IRAM_ATTR ll_piece(spi_dev_t *hw, uint8_t *b, size_t m, bool keep)
+{
+    memcpy(piece_buf, b, m);
+    spi_ll_dma_rx_enable(hw, false);
+    spi_ll_dma_tx_enable(hw, false);
+    spi_ll_clear_int_stat(hw);
+    spi_ll_enable_mosi(hw, true);
+    spi_ll_enable_miso(hw, true);
+    spi_ll_set_mosi_bitlen(hw, m * 8);
+    spi_ll_set_miso_bitlen(hw, m * 8);
+    spi_ll_master_keep_cs(hw, keep);
+    spi_ll_write_buffer(hw, (const uint8_t *)piece_buf, m * 8);
+    spi_ll_apply_config(hw);
+    spi_ll_user_start(hw);
+    while(!spi_ll_usr_is_done(hw)) { }
+    spi_ll_read_buffer(hw, (uint8_t *)piece_buf, m * 8);
+    memcpy(b, piece_buf, m);
+}
+static int IRAM_ATTR bus_transfer(void *ctx, uint8_t *b, size_t n)
 {
     (void)ctx;
-    spi_transaction_t t = {.length=n*8, .tx_buffer=b, .rx_buffer=b};
-    return spi_device_polling_transmit(spi, &t);
+    if(bus_owned) {
+        spi_dev_t *hw = SPI_LL_GET_HW(SPI2_HOST);
+        for(size_t off = 0; off < n; off += SPI_PIECE) {
+            const size_t m = n - off > SPI_PIECE ? SPI_PIECE : n - off;
+            ll_piece(hw, b + off, m, off + m < n);
+        }
+        return 0;
+    }
+    if(spi_device_acquire_bus(spi, portMAX_DELAY)) return LR2021_IQ_IO;
+    int e = 0;
+    for(size_t off = 0; !e && off < n; off += SPI_PIECE) {
+        const size_t m = n - off > SPI_PIECE ? SPI_PIECE : n - off;
+        spi_transaction_t t = {.flags=off + m < n ? SPI_TRANS_CS_KEEP_ACTIVE : 0,
+            .length=m*8, .tx_buffer=b+off, .rx_buffer=b+off};
+        e = spi_device_polling_transmit(spi, &t);
+    }
+    spi_device_release_bus(spi);
+    return e;
 }
 static int bus_busy(void *ctx) { (void)ctx; return gpio_get_level(board->busy); }
 static int bus_reset(void *ctx, bool asserted)
@@ -60,7 +104,12 @@ static int bus_fast(void *ctx, bool on)
     if(on) {
         if(bus_owned) return LR2021_IQ_STATE;
         int e = spi_device_acquire_bus(spi, portMAX_DELAY);
+        /* One driver transaction loads this device's clock, mode and chip select
+         * into the peripheral before the register path takes over. */
+        spi_transaction_t prime = {0};
+        if(!e) e = spi_device_polling_transmit(spi, &prime);
         if(!e) bus_owned = true;
+        else spi_device_release_bus(spi);
         return e;
     }
     if(bus_owned) { spi_device_release_bus(spi); bus_owned = false; }
@@ -75,10 +124,11 @@ static void bus_sleep(void *ctx, unsigned us)
     if(us >= 2000) vTaskDelay(pdMS_TO_TICKS(us / 1000));
     else esp_rom_delay_us(us);
 }
+static int spi_delay_ns;
 static int add_device(int hz)
 {
     spi_device_interface_config_t sd = {.clock_speed_hz=hz, .mode=0,
-        .spics_io_num=board->cs, .queue_size=1};
+        .spics_io_num=board->cs, .queue_size=1, .input_delay_ns=spi_delay_ns};
     return spi_bus_add_device(SPI2_HOST, &sd, &spi);
 }
 
@@ -88,7 +138,7 @@ const lr2021_iq_board *radio_board(void) { return &chip_board; }
 int radio_spi_hz(void) { return spi_hz; }
 int radio_set_spi_hz(int hz)
 {
-    if(hz < 1000000 || hz > 26666667) return LR2021_IQ_ARGUMENT;
+    if(hz < 1000000 || hz > 30000000) return LR2021_IQ_ARGUMENT;
     bus_lock(NULL);
     int e = bus_owned ? LR2021_IQ_STATE : spi_bus_remove_device(spi);
     if(!e) e = add_device(hz);
@@ -150,8 +200,8 @@ int radio_init(void)
     if(!e && board->irq >= 0) e = gpio_set_direction(board->irq, GPIO_MODE_INPUT);
     if(e) return e;
     spi_bus_config_t sb = {.mosi_io_num=board->mosi, .miso_io_num=board->miso,
-        .sclk_io_num=board->sclk, .quadwp_io_num=-1, .quadhd_io_num=-1, .max_transfer_sz=258};
-    e = spi_bus_initialize(SPI2_HOST, &sb, SPI_DMA_CH_AUTO);
+        .sclk_io_num=board->sclk, .quadwp_io_num=-1, .quadhd_io_num=-1, .max_transfer_sz=SPI_PIECE};
+    e = spi_bus_initialize(SPI2_HOST, &sb, SPI_DMA_DISABLED);
     if(!e) e = add_device(spi_hz);
     if(e) return e;
     chip_board = (lr2021_iq_board){.tcxo=board->tcxo, .tcxo_voltage=board->tcxo_voltage,
@@ -188,4 +238,49 @@ int radio_antenna_command(int argc, char **argv)
     }
     puts("usage: antenna [internal|external]");
     return 1;
+}
+
+/* `spibench [count]`: time the radio bus as a FIFO session uses it (level read,
+ * 256-byte FIFO read, 2-byte flag read), with the bus owned. For tuning only. */
+int radio_spibench_command(int argc, char **argv)
+{
+    int n = argc > 1 ? atoi(argv[1]) : 200;
+    if(n < 1 || n > 10000) { puts("usage: spibench [1..10000]"); return 1; }
+    static uint8_t data[256];
+    uint8_t two[2];
+    bus_lock(NULL);
+    int e = dev.hal.fast(&dev, true);
+    int64_t t0 = esp_timer_get_time();
+    for(int i = 0; !e && i < n; i++) e = dev.hal.read(&dev, 0x011C, two, 2);
+    int64_t t1 = esp_timer_get_time();
+    for(int i = 0; !e && i < n; i++) e = dev.hal.read_fifo(&dev, data, 256);
+    int64_t t2 = esp_timer_get_time();
+    for(int i = 0; !e && i < n; i++) e = dev.hal.read_fifo(&dev, data, 64);
+    int64_t t3 = esp_timer_get_time();
+    dev.hal.fast(&dev, false);
+    bus_unlock(NULL);
+    double lv = (double)(t1 - t0) / n, f256 = (double)(t2 - t1) / n, f64 = (double)(t3 - t2) / n;
+    printf("spibench: n=%d level_read=%.1f us fifo_read256=%.1f us (%.2f MB/s) fifo_read64=%.1f us (%.2f MB/s) "
+           "per 1 KiB with a level read per 256 B: %.0f us (%.2f MB/s) spi_khz=%d result=%d\n",
+           n, lv, f256, 256 / f256, f64, 64 / f64, 4 * (lv + f256), 1024 / (4 * (lv + f256)), spi_hz / 1000, e);
+    return e;
+}
+
+/* `spiclk [hz [input_delay_ns]]`: radio SPI clock and MISO input delay, then a
+ * GetVersion read as a check. For tuning only; not saved. */
+int radio_spiclk_command(int argc, char **argv)
+{
+    if(argc > 1) {
+        int hz = atoi(argv[1]);
+        if(argc > 2) spi_delay_ns = atoi(argv[2]);
+        int e = radio_set_spi_hz(hz);
+        if(e) { printf("spiclk: %d Hz refused (%d)\n", hz, e); return 1; }
+    }
+    int actual = 0; spi_device_get_actual_freq(spi, &actual);
+    uint8_t v[2] = {0};
+    bus_lock(NULL);
+    int e = dev.hal.read(&dev, 0x0101, v, 2);
+    bus_unlock(NULL);
+    printf("spiclk: actual_khz=%d input_delay_ns=%d version=%u.%u result=%d\n", actual, spi_delay_ns, v[0], v[1], e);
+    return e;
 }

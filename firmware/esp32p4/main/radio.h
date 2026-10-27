@@ -16,3 +16,5 @@ int radio_spi_hz(void);
 int radio_set_spi_hz(int hz);
 /* `antenna [internal|external]`: the LilyGO SKY13453 route, saved in NVS. */
 int radio_antenna_command(int argc, char **argv);
+int radio_spibench_command(int argc, char **argv);
+int radio_spiclk_command(int argc, char **argv);
