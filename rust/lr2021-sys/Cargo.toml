@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[package]
+name = "lr2021-sys"
+description = "Raw bindings to the LR2021-SDR C library (radio, simulator, bridge codec, host client)"
+links = "lr2021"
+build = "build.rs"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[build-dependencies]
+cc = "1"

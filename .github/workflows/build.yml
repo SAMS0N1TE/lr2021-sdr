@@ -7,6 +7,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install SoapySDR and libgpiod
+        run: sudo apt-get update && sudo apt-get install -y libsoapysdr-dev soapysdr-tools libgpiod-dev
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build --parallel
+      - run: ctest --test-dir build --output-on-failure
+      - name: SoapySDRUtil finds and probes the simulator through the module
+        env:
+          SOAPY_SDR_PLUGIN_PATH: ${{ github.workspace }}/build/soapy
+        run: |
+          SoapySDRUtil --info | grep -q "Available factories.*lr2021"
+          SoapySDRUtil --find="driver=lr2021,sim=tone" | grep -q "driver = lr2021"
+          SoapySDRUtil --probe="driver=lr2021,sim=tone" | grep -q "rom=1.24"
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SoapySDR
+        run: brew install soapysdr
       - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
       - run: cmake --build build --parallel
       - run: ctest --test-dir build --output-on-failure
@@ -17,3 +35,18 @@ jobs:
       - run: cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
       - run: cmake --build build --parallel
       - run: ctest --test-dir build --output-on-failure
+  rust:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - run: cargo test --workspace
+      - run: cargo clippy --workspace --all-targets

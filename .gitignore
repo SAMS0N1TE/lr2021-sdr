@@ -16,3 +16,6 @@
 *.obj
 __pycache__/
 *.pyc
+rust/target/
+rust/Cargo.lock
+**/managed_components/

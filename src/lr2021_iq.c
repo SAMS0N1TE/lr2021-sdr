@@ -88,22 +88,36 @@ static int verify_fifo(const lr2021_iq_hal *h)
     return e?e:((base==0x804400 || base==0x4400) && size==0x3E8?0:LR2021_IQ_DATA);
 }
 static int stream(const lr2021_iq_hal *h, unsigned duration,
-                  lr2021_iq_sink sink, void *context, lr2021_iq_result *r, bool checked, unsigned capacity)
+                  lr2021_iq_sink sink, void *context, lr2021_iq_result *r, bool checked,
+                  unsigned capacity, lr2021_iq_session *session)
 {
     if(!r)return LR2021_IQ_ARGUMENT;
     memset(r,0,sizeof(*r)); r->capture_error=LR2021_IQ_ARGUMENT;
     if(!valid_hal(h) || !h->fast || !h->clear_fifo || !h->read_fifo ||
-       !sink || !duration || duration>(checked?60000u:250u) ||
+       !sink || (!duration && !session) || duration>(checked?60000u:250u) ||
        (capacity!=256 && capacity!=1024))return LR2021_IQ_ARGUMENT;
     r->fifo_capacity=capacity;
     void *c=h->context;
     h->lock(c);
     lr2021_iq_profile p={0}; int e=preflight(h,&p);
-    if(!e && p.bandwidth_hz!=31250)e=LR2021_IQ_STATE;
+    if(!e && !session && (p.bandwidth_hz!=31250 || p.route))e=LR2021_IQ_STATE;
+    if(!e && session && !p.route && p.bandwidth_hz!=31250 && p.bandwidth_hz!=62500 &&
+       p.bandwidth_hz!=125000 && p.bandwidth_hz!=250000)e=LR2021_IQ_STATE;
+    if(!e && session && (p.route>3 || (p.route && !p.route_rate_hz)))e=LR2021_IQ_STATE;
+    const bool raw=session && p.route;
+    const unsigned pair_bytes=raw?2u:4u;
     bool touched=!e, fast=false;
     if(!e){e=h->fast(c,true);fast=!e;}
     if(!e)e=h->standby(c);
-    const uint8_t args[]={0xFF,0,0,0,0,0x0A,0,0,0,0,1};
+    /* 0x0290 route: byte 0 input code, bytes 1..4 output rate, byte 5 0x08|source
+     * for FIFO output, last byte FIFO enable. Source 2 uses its native rate. */
+    static const uint8_t sources[4]={2,0,1,6};
+    uint8_t args[]={0xFF,0,0,0,0,0x0A,0,0,0,0,1};
+    if(raw) {
+        uint32_t q=p.route_rate_hz;
+        args[0]=p.input_code; args[1]=(uint8_t)(q>>24); args[2]=(uint8_t)(q>>16);
+        args[3]=(uint8_t)(q>>8); args[4]=(uint8_t)q; args[5]=(uint8_t)(0x08|sources[p.route]);
+    }
     const uint8_t clear[]={0x3F,0x3F};
     if(!e)e=h->write(c,0x0290,args,sizeof(args));
     if(!e && capacity==1024)e=h->write32(c,0xF30028,0x804400);
@@ -117,10 +131,25 @@ static int stream(const lr2021_iq_hal *h, unsigned duration,
     uint64_t start=h->now_us(c);
     uint64_t previous_poll=start;
     uint8_t pending[1280]; size_t pending_bytes=0;
-    while(!e && !r->stopped_by_sink && h->now_us(c)-start<(uint64_t)duration*1000) {
+    r->start_us=start;
+    if(session)session->start_us=start;
+    while(!e && !r->stopped_by_sink && (!duration || h->now_us(c)-start<(uint64_t)duration*1000)) {
         uint64_t poll_time=h->now_us(c), gap=poll_time-previous_poll;
         if(gap>r->max_service_gap_us)r->max_service_gap_us=gap;
         previous_poll=poll_time;
+        uint8_t step,boost;
+        if(session && session->gain && session->gain(session->gain_context,&step,&boost)) {
+            /* Live gain change: the FIFO keeps running, no restart. */
+            const uint8_t path[2]={p.rx_path,boost};
+            if(step>13 || boost>7)e=LR2021_IQ_ARGUMENT;
+            if(!e)e=h->write(c,0x021A,&step,1);
+            /* SetRxPath is only sent when the boost changes: on ROM 1.24 the gain
+             * step is taken in RX, while SetRxPath there ended the session with a
+             * command error (measured on the LilyGO board). */
+            if(!e && boost!=p.rx_boost)e=h->write(c,0x0201,path,2);
+            if(e)break;
+            p.gain_step=step; p.rx_boost=boost; r->gain_changes++;
+        }
         uint8_t level_bytes[2]={0};
         e=h->read(c,0x011C,level_bytes,2); r->polls++;
         unsigned level=((unsigned)level_bytes[0]<<8)|level_bytes[1];
@@ -139,7 +168,7 @@ static int stream(const lr2021_iq_hal *h, unsigned duration,
                         r->fifo_flags|=flags[0];
                         if(!e && (flags[0]&0x30))e=LR2021_IQ_DATA;
                         if(!e) {
-                            bool more=sink(context,pending,pending_bytes,r->validated_bytes/4);
+                            bool more=sink(context,pending,pending_bytes,r->validated_bytes/pair_bytes);
                             if(more)r->validated_bytes+=pending_bytes;
                             pending_bytes=0;
                             if(!more){r->stopped_by_sink=true;break;}
@@ -157,7 +186,7 @@ static int stream(const lr2021_iq_hal *h, unsigned duration,
         /* Validate and publish the final tail before stopping the producer.
          * Do not clear flags during a session: a failure must stay visible. */
         if(checked && !e && !f && !(flags[0]&0x30) && pending_bytes) {
-            if(!sink(context,pending,pending_bytes,r->validated_bytes/4))r->stopped_by_sink=true;
+            if(!sink(context,pending,pending_bytes,r->validated_bytes/pair_bytes))r->stopped_by_sink=true;
             else r->validated_bytes+=pending_bytes;
         }
         int stop=h->standby(c);
@@ -169,19 +198,30 @@ static int stream(const lr2021_iq_hal *h, unsigned duration,
         if(!r->recovery_error)r->recovery_error=h->restore(c,&p);
         if(!r->recovery_error)r->recovery_error=bus;
     }
-    r->capture_error=e; r->nominal_rate_hz=125000;
+    r->capture_error=e;
+    r->nominal_rate_hz=raw?p.route_rate_hz:session?4*p.bandwidth_hz:125000;
     h->unlock(c); return outcome(r);
 }
 
 int lr2021_iq_stream(const lr2021_iq_hal *h, unsigned duration,
                     lr2021_iq_sink sink, void *context, lr2021_iq_result *r)
-{ return stream(h,duration,sink,context,r,false,256); }
+{ return stream(h,duration,sink,context,r,false,256,NULL); }
 
 int lr2021_iq_stream_checked(const lr2021_iq_hal *h, unsigned duration,
                             lr2021_iq_sink sink, void *context, lr2021_iq_result *r)
-{ return stream(h,duration,sink,context,r,true,256); }
+{ return stream(h,duration,sink,context,r,true,256,NULL); }
 
 int lr2021_iq_stream_checked_fifo(const lr2021_iq_hal *h, unsigned duration,
                                  unsigned capacity, lr2021_iq_sink sink,
                                  void *context, lr2021_iq_result *r)
-{ return stream(h,duration,sink,context,r,true,capacity); }
+{ return stream(h,duration,sink,context,r,true,capacity,NULL); }
+
+int lr2021_iq_stream_session(const lr2021_iq_hal *h, lr2021_iq_session *s,
+                            lr2021_iq_sink sink, void *context, lr2021_iq_result *r)
+{
+    if(!s) {
+        if(r){memset(r,0,sizeof(*r)); r->capture_error=LR2021_IQ_ARGUMENT;}
+        return LR2021_IQ_ARGUMENT;
+    }
+    return stream(h,s->duration_ms,sink,context,r,true,s->fifo_capacity,s);
+}

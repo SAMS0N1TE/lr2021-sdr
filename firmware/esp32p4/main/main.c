@@ -1,5 +1,7 @@
 #include "radio.h"
 #include "board.h"
+#include "bridge.h"
+#include "wifi.h"
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -108,7 +110,7 @@ void app_main(void)
     int e=board_load();
     if(!e) e=radio_init();
     initialized=!e;
-    printf("LR2021-SDR receive-only capture firmware; radio_init=%d\n",e);
+    printf("LR2021-SDR capture and bridge firmware %s; radio_init=%d\n",CONFIG_LRIQ_FW_VERSION,e);
     if(!e) radio_info();
     esp_console_repl_config_t rc=ESP_CONSOLE_REPL_CONFIG_DEFAULT();
     rc.prompt="lriq> "; rc.task_stack_size=12288; rc.task_priority=configMAX_PRIORITIES-2;
@@ -126,9 +128,13 @@ void app_main(void)
         {.command="tune",.help="Set receive frequency in Hz",.func=tune_cmd},
         {.command="capture",.help="Record 1..100 ms of checked IQ16 in internal RAM",.func=capture_cmd},
         {.command="check",.help="Check FIFO capture for 1..3000 ms; discard samples",.func=capture_cmd},
-        {.command="dump",.help="Export the last valid capture as CRC-protected hex",.func=dump_cmd}
+        {.command="dump",.help="Export the last valid capture as CRC-protected hex",.func=dump_cmd},
+        {.command="antenna",.help="Antenna route on LilyGO boards: antenna [internal|external]",.func=radio_antenna_command},
+        {.command="wifi",.help="Wi-Fi station and TCP bridge: wifi | wifi set <ssid> <password> | wifi clear",.func=wifi_command},
+        {.command="bridge",.help="Serve the binary bridge protocol on this port until BYE",.func=bridge_command}
     };
     for(unsigned i=0;i<sizeof(commands)/sizeof(commands[0]);i++)
         ESP_ERROR_CHECK(esp_console_cmd_register(&commands[i]));
     ESP_ERROR_CHECK(esp_console_start_repl(repl));
+    if(initialized) wifi_start();
 }

@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[package]
+name = "lr2021-bridge"
+description = "Pure-Rust client for the LR2021-SDR bridge protocol (TCP or any byte stream)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+
+[dev-dependencies]
+lr2021-sys = { path = "../lr2021-sys", version = "0.3.0" }

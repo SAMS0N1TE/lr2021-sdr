@@ -31,6 +31,9 @@ lriq_tool unpack-fifo capture.log capture.iq16
 
 ## Choose an integration
 
+- [SoapySDR module, host client and Rust crates](host-sdr.md)
+- [Bridge protocol](bridge-protocol.md)
+- [Generic SPI device, sessions and TX burst API](../include/lr2021_iq_dev.h)
 - [Standalone ESP32-P4 USB firmware](../firmware/esp32p4/README.md)
 - [Continuous receive capture](continuous.md)
 - [LakeShark TX integration and upload commands](tx-playback.md)

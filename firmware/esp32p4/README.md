@@ -1,20 +1,27 @@
-# ESP32-P4 capture firmware
+# ESP32-P4 bridge and capture firmware
 
-Receive-only USB console for the public C capture library. No LakeShark build
-or board adapter is required for the default hardware.
+Puts the LR2021 on a computer: the firmware serves the
+[bridge protocol](../../docs/bridge-protocol.md) over the USB serial console or
+Wi-Fi, so the SoapySDR module and the host library can receive and transmit
+([host SDR guide](../../docs/host-sdr.md)). The console also keeps the finite
+capture commands. No LakeShark build or board adapter is required for the
+default hardware.
 
 ## Hardware
 
 - LilyGO T-Display-P4 with LR2021 module, ROM 1.24.
 - ESP32-P4 revisions 0.1 through 1.x, 16 MB flash. The supplied build does not
   support P4 revision 3.x; rebuild for that revision in ESP-IDF menuconfig.
-- External antenna on MMCX1; use an antenna for the frequency being received.
+- An antenna on MMCX1 (the default route) or the internal antenna, chosen with
+  `antenna`. Fit an antenna on MMCX1 before transmitting on it.
 - USB data connection to the LilyGO USB-to-UART console (CH343), 115200 baud.
 
 Default wiring: SCLK 2, MOSI 3, MISO 4, CS 24, BUSY 6. XL9535 at I2C address
 0x20 uses SDA 7 / SCL 8. Radio reset is IO16 (bit 14); antenna select is IO1.
-The adapter selects external MMCX1, LDO regulation and a 3.3 V TCXO, and drives
-DIO8 for LF reception. It does not load a PRAM patch or transmit.
+The adapter uses LDO regulation and a 3.3 V TCXO. The RF switch table drives
+DIO8 in LF receive and LF transmit, and DIO6 and DIO10 in HF receive; DIO7, the
+HF transmit select, stays low. It does not load a PRAM patch, and it transmits
+only when a host sends a TX burst.
 
 Native USB Serial/JTAG is also supported when selected as the console in
 ESP-IDF menuconfig; the prebuilt image uses UART0 through the USB bridge.
@@ -64,9 +71,7 @@ P4 flash, PSRAM and high-speed USB use dedicated pads without GPIO numbers.
 Shared GPIOs, duplicate DIOs and IRQ/switch conflicts are refused. Check the
 schematic for other attached devices. `board default` stages build defaults;
 save and reboot to restore them. Invalid saved profiles leave the radio off;
-correct them in the console. NVS errors never erase other data. Other boards
-are untested. Capture, receive-only operation and ROM 1.24 requirements stay
-the same.
+correct them in the console. NVS errors never erase other data. The ROM 1.24 requirement stays the same.
 
 ## Flash a prebuilt image
 
@@ -127,9 +132,47 @@ recording. A failed capture cannot be dumped.
 | capture | 1..100 ms | 100 |
 | dump | none | Last successful recording |
 
-Separate captures have gaps. This firmware does not provide live USB sample
-streaming, P25 decoding, audio or the LakeShark display. The three-second check
-limit keeps the synchronous capture below the watchdog deadline.
+For continuous streaming, use the bridge below. P25 decoding, audio and the
+display are in LakeShark. The console `check` runs for up to three seconds,
+within the watchdog deadline.
+
+## Use it from a computer
+
+`bridge [baud]` switches the console port to the binary bridge protocol until
+the host sends BYE; the host client and the SoapySDR module send it themselves.
+Over Wi-Fi the board listens on TCP port 51021 as soon as it has joined a
+network:
+
+```text
+wifi set "<ssid>" "<password>"
+wifi
+antenna external
+```
+
+`wifi` shows the address; `wifi clear` forgets the network. Credentials are kept
+in NVS and the board rejoins at boot. Wi-Fi goes through the board's ESP32-C6
+(esp_hosted over SDIO). `antenna internal|external` selects the internal antenna
+or MMCX1 for receive and transmit and is saved.
+
+| Command | Argument | Default |
+| --- | --- | --- |
+| bridge | Baud, 115200..5000000 | 4000000 |
+| wifi | `set <ssid> <password>`, `clear`, or none for status | Joins the saved network at boot |
+| antenna | `internal` or `external` | external (MMCX1) |
+
+The radio worker runs on core 1 and the radio SPI clock is 26.67 MHz. A
+PSRAM output queue (8 MiB) holds about 8 s of 16-bit samples at 250000
+pairs/s, so a Wi-Fi pause does not cost samples.
+
+| Link | Rate and format | Result on the LilyGO board |
+| --- | --- | --- |
+| USB serial, 4 Mbaud | 125000 pairs/s, CS12 | 60 s: no device drops; 99.8% delivered |
+| Wi-Fi TCP | 125000 pairs/s, CS16 | 60 s, every pair delivered |
+| Wi-Fi TCP | 250000 pairs/s, CS16 | 10 min, 150,003,050 pairs, every pair delivered |
+
+The bridge runs the LilyGO CH343 at 4 Mbaud, with CS12 for 125000 pairs/s.
+On Windows, give the serial port a receive buffer of a few megabytes before
+streaming; the default 4 KB fills in about 10 ms at 400 kB/s.
 
 ## Board check
 
@@ -144,8 +187,18 @@ retained for this test.
   offsets, CRC32 and recovery, producing 12504 IQ16 pairs.
 - Rejected an out-of-range check duration without starting a capture.
 
-This validates the console capture path. Other wiring and clean-install
-bootloader behavior have not been tested on hardware.
+This validates the console capture path.
+
+The bridge was tested on the same board, with Wi-Fi through its ESP32-C6
+(2026-10-27):
+
+- Receive as in the table above. Through SoapySDR over TCP, 60 s at 125000
+  and 250000 pairs/s had no overflows and exact timestamp steps; a live gain
+  step caused no gap, and a retune one overflow.
+- Transmit at -9 dBm with 433 MHz antennas: SoapySDR `writeStream` bursts at
+  433.92 MHz were received by a HackRF One at the expected offset and length;
+  a timed burst started 11 us after the requested time; a burst during receive
+  cost one receive overflow.
 
 ## Build
 
@@ -157,6 +210,9 @@ idf.py set-target esp32p4
 idf.py build
 idf.py -p COM3 flash monitor
 ```
+
+The first build fetches `espressif/esp_hosted` and `espressif/esp_wifi_remote`
+from the ESP-IDF component registry (`main/idf_component.yml`).
 
 To package the default build from the repository root:
 

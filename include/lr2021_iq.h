@@ -16,13 +16,22 @@ typedef struct {
     bool lr2021, configured, exclusive_lora, receiving;
     unsigned fw_major, fw_minor, spreading_factor;
     uint32_t frequency_hz, bandwidth_hz;
+    /* Receive path (0 LF, 1 HF), gain step (0 = chip AGC, 1..13) and boost 0..7. */
+    uint8_t rx_path, gain_step, rx_boost;
+    /* Session receive route: 0 LoRa source 2 (IQ16), 1 source 0, 2 source 1,
+     * 3 source 6 (two-byte pairs from an FSK setup with explicit output rate). */
+    uint8_t route, input_code;
+    uint32_t route_rate_hz;
 } lr2021_iq_profile;
 
 /* All I/O hooks return 0 on success and must validate radio command status.
  * snapshot is called under lock; exclusive_lora excludes TX and other owners.
  * reset must clear raw routing without restoring RX. restore reapplies config.
  * fast(true) owns the SPI bus at 16 MHz; fast(false) releases/restores it.
- * Hooks have bounded timeouts. No hook may transmit RF. */
+ * Hooks have bounded timeouts. No hook may transmit RF.
+ * write_fifo is optional and only used by lr2021_iq_transmit (lr2021_iq_tx.h):
+ * it writes 1..62 bytes to the TX FIFO with command 0x0002 (longer frames
+ * lost data on the tested board). */
 typedef struct {
     void *context;
     void (*lock)(void *);
@@ -41,6 +50,7 @@ typedef struct {
     int (*read_fifo)(void *, uint8_t *, size_t);
     uint64_t (*now_us)(void *);
     void (*sleep_us)(void *, unsigned);
+    int (*write_fifo)(void *, const uint8_t *, size_t);
 } lr2021_iq_hal;
 
 typedef struct {
@@ -55,6 +65,9 @@ typedef struct {
     unsigned fifo_capacity;
     size_t validated_bytes;
     uint64_t max_service_gap_us;
+    /* Session API only: now_us() when sample 0 was retained, gain changes applied. */
+    uint64_t start_us;
+    unsigned gain_changes;
 } lr2021_iq_result;
 
 /* Two separate buffers of >=256 words. Host-order words contain I low/Q high.
@@ -88,6 +101,29 @@ int lr2021_iq_stream_checked(const lr2021_iq_hal *, unsigned duration_ms,
 int lr2021_iq_stream_checked_fifo(const lr2021_iq_hal *, unsigned duration_ms,
                                  unsigned fifo_capacity, lr2021_iq_sink,
                                  void *, lr2021_iq_result *);
+/* Open-ended checked session for host streaming. Same contract as the checked
+ * stream: false from the sink rejects that block and ends the session. Route 0
+ * is LoRa source 2 at 4 x bandwidth for BW 31.25, 62.5, 125 and 250 kHz (125k
+ * to 1M pairs/s, four bytes per pair); whether the bus keeps up above 250k is
+ * a property of the adapter. Routes 1..3 stream two-byte pairs from sources 0,
+ * 1 and 6 at the profile's route rate. first_pair counts pairs of the route's
+ * size. duration_ms 0 runs until
+ * the sink stops it; otherwise 1..60000. start_us is written before the first
+ * block reaches the sink. gain, when set, is polled between FIFO reads and may
+ * request a new gain step (0 AGC, 1..13) and boost (0..7); the library applies
+ * it with SetAgcGainManual/SetRxPath without restarting reception. The
+ * callback must not call radio functions itself. The loop busy-polls the
+ * FIFO: on an RTOS, run it on a core whose idle task is not watched by a task
+ * watchdog. The bus clock is the adapter's choice (16 MHz is the datasheet
+ * figure; faster clocks are board measurements). */
+typedef struct {
+    unsigned duration_ms, fifo_capacity;
+    bool (*gain)(void *context, uint8_t *step, uint8_t *boost);
+    void *gain_context;
+    volatile uint64_t start_us;
+} lr2021_iq_session;
+int lr2021_iq_stream_session(const lr2021_iq_hal *, lr2021_iq_session *,
+                            lr2021_iq_sink, void *, lr2021_iq_result *);
 #ifdef __cplusplus
 }
 #endif

@@ -1,0 +1,7 @@
+dependencies:
+  idf: ">=5.5"
+  # Wi-Fi on the T-Display-P4 goes through its ESP32-C6 over SDIO.
+  espressif/esp_wifi_remote:
+    version: "==0.16.3"
+  espressif/esp_hosted:
+    version: "==2.12.9"
