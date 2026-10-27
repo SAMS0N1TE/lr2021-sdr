@@ -130,6 +130,11 @@ typedef struct {
     unsigned max_read, check_bytes;
     uint8_t *buffer;
     size_t buffer_size;
+    /* level_every N > 1: read the FIFO level on every Nth pass only and, in
+     * between, read 90% of what the nominal rate delivered since. A wrong
+     * estimate shows as FIFO underflow and ends the session; no data passes
+     * unchecked. 0 or 1 reads the level on every pass. */
+    unsigned level_every;
 } lr2021_iq_session;
 int lr2021_iq_stream_session(const lr2021_iq_hal *, lr2021_iq_session *,
                             lr2021_iq_sink, void *, lr2021_iq_result *);

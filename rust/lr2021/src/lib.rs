@@ -187,7 +187,7 @@ impl Simulator {
         let mut ctx = Ctx { sink, gain, panicked: false };
         let cp = &mut ctx as *mut Ctx<'_, '_> as *mut c_void;
         let mut session = sys::lr2021_iq_session { duration_ms, fifo_capacity, gain: Some(gain_tramp), gain_context: cp, start_us: 0,
-            max_read: 0, check_bytes: 0, buffer: core::ptr::null_mut(), buffer_size: 0 };
+            max_read: 0, check_bytes: 0, buffer: core::ptr::null_mut(), buffer_size: 0, level_every: 0 };
         let mut r = StreamReport::default();
         let e = unsafe { sys::lr2021_iq_stream_session(self.hal(), &mut session, Some(sink_tramp), cp, &mut r) };
         if ctx.panicked { panic!("lr2021: stream callback panicked"); }

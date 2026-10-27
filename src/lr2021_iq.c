@@ -108,6 +108,7 @@ static int stream(const lr2021_iq_hal *h, unsigned duration,
         if(session->buffer){ pending=session->buffer; cap=session->buffer_size; }
         if(chunk%4 || chunk>1020 || check<chunk || check%4 || check+chunk>cap)return LR2021_IQ_ARGUMENT;
     }
+    const unsigned level_every=checked && session && session->level_every>1 ? session->level_every : 1;
     r->fifo_capacity=capacity;
     void *c=h->context;
     h->lock(c);
@@ -143,6 +144,9 @@ static int stream(const lr2021_iq_hal *h, unsigned duration,
     uint64_t start=h->now_us(c);
     uint64_t previous_poll=start;
     size_t pending_bytes=0;
+    /* Level prediction state: the last FIFO level read, when, and bytes read since. */
+    const uint64_t rate_bytes=(uint64_t)(raw?p.route_rate_hz:4*p.bandwidth_hz)*pair_bytes;
+    uint64_t sample_us=0; size_t sample_level=0, drained=0; unsigned pass=0;
     r->start_us=start;
     if(session)session->start_us=start;
     while(!e && !r->stopped_by_sink && (!duration || h->now_us(c)-start<(uint64_t)duration*1000)) {
@@ -162,19 +166,34 @@ static int stream(const lr2021_iq_hal *h, unsigned duration,
             if(e)break;
             p.gain_step=step; p.rx_boost=boost; r->gain_changes++;
         }
-        uint8_t level_bytes[2]={0};
-        e=h->read(c,0x011C,level_bytes,2); r->polls++;
-        unsigned level=((unsigned)level_bytes[0]<<8)|level_bytes[1];
-        if(level>r->max_fifo_level)r->max_fifo_level=level;
-        if(!e && level>=capacity)e=LR2021_IQ_DATA;
-        size_t remaining=level&~3u;
+        size_t remaining;
+        if(level_every>1 && pass%level_every) {
+            /* Predicted pass: read 90% of what the nominal rate delivered since
+             * the last level read. An over-read sets the sticky underflow flag,
+             * which rejects the staged block at its check before publication. */
+            uint64_t arrived=(h->now_us(c)-sample_us)*rate_bytes*9/10/1000000u;
+            uint64_t est=sample_level+arrived>drained?sample_level+arrived-drained:0;
+            remaining=(size_t)(est<capacity?est:capacity)&~3u;
+            /* Only a pass that reads counts towards the next level read. */
+            if(remaining>=64)pass++;
+            else remaining=0;
+        } else {
+            pass++;
+            uint8_t level_bytes[2]={0};
+            e=h->read(c,0x011C,level_bytes,2); r->polls++;
+            unsigned level=((unsigned)level_bytes[0]<<8)|level_bytes[1];
+            sample_us=h->now_us(c); sample_level=level; drained=0;
+            if(level>r->max_fifo_level)r->max_fifo_level=level;
+            if(!e && level>=capacity)e=LR2021_IQ_DATA;
+            remaining=level&~3u;
+        }
         while(!e && remaining) {
             size_t n=remaining>chunk?chunk:remaining;
             uint8_t data[256];
             /* Checked streams read straight into the staging buffer. */
             e=h->read_fifo(c,checked?pending+pending_bytes:data,n);
             if(!e) {
-                uint64_t first=r->bytes/4; r->bytes+=n;
+                uint64_t first=r->bytes/4; r->bytes+=n; drained+=n;
                 if(checked) {
                     pending_bytes+=n;
                     if(pending_bytes>=check) {

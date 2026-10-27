@@ -105,8 +105,10 @@ int main(void)
         LR2021_BRIDGE_CAP_RX|LR2021_BRIDGE_CAP_TX|LR2021_BRIDGE_CAP_LIVE_GAIN,"test","sim0"};
     static uint8_t txbuf[LR2021_BRIDGE_TX_CAPACITY];
     CHECK(!lr2021_bridge_server_init(&srv,&io,&radio,txbuf,sizeof(txbuf)));
-    CHECK(lr2021_bridge_server_tune(&srv,1024,4096) && lr2021_bridge_server_tune(&srv,1020,8192));
+    CHECK(lr2021_bridge_server_tune(&srv,1024,4096) && lr2021_bridge_server_tune(&srv,1020,32768));
     CHECK(!lr2021_bridge_server_tune(&srv,1020,4096));
+    CHECK(!lr2021_bridge_server_tune(&srv,1020,16384) && lr2021_bridge_server_tune(&srv,1020,16388));
+    CHECK(!lr2021_bridge_server_predict(&srv,3) && lr2021_bridge_server_predict(&srv,65));
     uint8_t p[64]={1,0};
     CHECK(call(&h,LR2021_BRIDGE_HELLO,7,p,2)==0 && !lr2021_bridge_unpack_hello(h.last.payload,h.last.length,&hello2));
     CHECK(hello2.version==1 && hello2.rom_minor==24 && !strcmp(hello2.id,"sim0") && (hello2.caps&2));

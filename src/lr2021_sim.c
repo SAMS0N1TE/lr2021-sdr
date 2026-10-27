@@ -32,8 +32,8 @@ static bool raw_route(const lr2021_sim *s)
 static unsigned rate(const lr2021_sim *s)
 {
     static const unsigned r[]={0,0,125000,250000,500000,1000000};
-    if(raw_route(s))return s->route_rate;
-    return s->packet_type==0 && s->route==0x0A && s->lora_bw<6 ? r[s->lora_bw] : 0;
+    unsigned v=raw_route(s) ? s->route_rate : s->packet_type==0 && s->route==0x0A && s->lora_bw<6 ? r[s->lora_bw] : 0;
+    return s->rate_percent ? (unsigned)((uint64_t)v*s->rate_percent/100u) : v;
 }
 static int16_t noise(lr2021_sim *s)
 {
