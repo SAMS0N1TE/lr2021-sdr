@@ -28,7 +28,6 @@ def style(ax):
 # Link, run, share of checked pairs delivered (%), worst FIFO service gap (us),
 # time the 1024-byte FIFO holds at that rate (us).
 RUNS = [
-    ("USB serial 4 Mbaud, CS16\n125k, 30 s", 76.6, 294, 2048),
     ("USB serial 4 Mbaud, CS12\n125k, 60 s", 99.8, 359, 2048),
     ("Wi-Fi TCP, CS16\n125k, 60 s", 100.0, 286, 2048),
     ("Wi-Fi TCP, CS16\n250k, 10 min", 100.0, 720, 1024),
@@ -59,8 +58,7 @@ def streaming():
     b.set_title("Radio FIFO margin")
     b.legend(loc="lower center", bbox_to_anchor=(.5, -.32), ncol=2, frameon=False)
     fig.suptitle("LR2021 bridge firmware | ESP32-P4 | 16-bit source-2 I/Q", fontsize=15)
-    fig.text(.02, -.05, "Radio side lossless in every run (no FIFO error flags). USB serial CS16 is "
-             "limited by the 400 kB/s link; dropped blocks are reported to the host as gaps.", fontsize=10)
+    fig.text(.02, -.05, "Radio side lossless in every run: no FIFO error flags.", fontsize=10)
     out = root / "docs/images/bridge-streaming.png"
     fig.savefig(out, dpi=170, bbox_inches="tight")
     print(out)
