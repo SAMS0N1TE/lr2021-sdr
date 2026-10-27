@@ -1,6 +1,7 @@
 #include "radio.h"
 #include "board.h"
 #include "bridge.h"
+#include "wifi.h"
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -128,9 +129,11 @@ void app_main(void)
         {.command="capture",.help="Record 1..100 ms of checked IQ16 in internal RAM",.func=capture_cmd},
         {.command="check",.help="Check FIFO capture for 1..3000 ms; discard samples",.func=capture_cmd},
         {.command="dump",.help="Export the last valid capture as CRC-protected hex",.func=dump_cmd},
+        {.command="wifi",.help="Wi-Fi station and TCP bridge: wifi | wifi set <ssid> <password> | wifi clear",.func=wifi_command},
         {.command="bridge",.help="Serve the binary bridge protocol on this port until BYE",.func=bridge_command}
     };
     for(unsigned i=0;i<sizeof(commands)/sizeof(commands[0]);i++)
         ESP_ERROR_CHECK(esp_console_cmd_register(&commands[i]));
     ESP_ERROR_CHECK(esp_console_start_repl(repl));
+    if(initialized) wifi_start();
 }

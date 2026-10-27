@@ -16,26 +16,29 @@
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 
-/* Serial transport for the bridge protocol (docs/bridge-protocol.md) on the
- * console UART. The console task becomes the reader for the session; the radio
- * worker runs on core 1, where nothing else is scheduled, and the sender on
- * core 0. Measured on the LilyGO CH343: 4000000 baud is the highest that links
- * (an integer divider of the 80 MHz UART clock); 5000000 does not link. */
+/* Transports for the bridge protocol (docs/bridge-protocol.md): the console
+ * UART (`bridge [baud]`) and TCP (wifi.c). One session at a time shares one
+ * server, one radio worker and one sender. The radio worker runs on core 1,
+ * where nothing else is scheduled; the sender and the readers on core 0.
+ * Measured on the LilyGO CH343: 4000000 baud is the highest that links (an
+ * integer divider of the 80 MHz UART clock); 5000000 does not. */
 #define UART UART_NUM_0
 #define RX_BUFFER 8192
 #define TX_BUFFER 32768
 
 static lr2021_bridge_server server;
-static SemaphoreHandle_t send_lock;
+static SemaphoreHandle_t send_lock, session_lock;
 static TaskHandle_t worker_task, sender_task;
 static uint8_t *tx_buf;
 static size_t tx_capacity;
 static char board_id[32];
+static const bridge_transport *active;
 
-static int uart_send(void *ctx, const uint8_t *p, size_t n)
+static int send_active(void *ctx, const uint8_t *p, size_t n)
 {
     (void)ctx;
-    return uart_write_bytes(UART, p, n) == (int)n ? 0 : -1;
+    const bridge_transport *t = active;
+    return t ? t->send(t->context, p, n) : -1;
 }
 static void send_take(void *ctx) { (void)ctx; xSemaphoreTake(send_lock, portMAX_DELAY); }
 static void send_give(void *ctx) { (void)ctx; xSemaphoreGive(send_lock); }
@@ -62,11 +65,12 @@ static void sender(void *arg)
         if(!lr2021_bridge_server_pump(&server)) vTaskDelay(1);
     }
 }
-static int start_tasks(void)
+int bridge_init(void)
 {
     if(worker_task) return 0;
     send_lock = xSemaphoreCreateMutex();
-    if(!send_lock) return -1;
+    session_lock = xSemaphoreCreateMutex();
+    if(!send_lock || !session_lock) return -1;
     /* TX upload buffer: PSRAM when the board has it. */
     tx_capacity = LR2021_BRIDGE_TX_CAPACITY;
     tx_buf = heap_caps_malloc(tx_capacity, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
@@ -81,6 +85,55 @@ static int start_tasks(void)
     if(xTaskCreatePinnedToCore(sender, "lrb_send", 6144, NULL, 10, &sender_task, 0) != pdPASS)
         return -1;
     return 0;
+}
+
+int bridge_session(const bridge_transport *t)
+{
+    if(!radio_dev()->profile.lr2021 || bridge_init()) return -1;
+    if(xSemaphoreTake(session_lock, 0) != pdTRUE) return -2;
+    const lr2021_bridge_io io = {.send=send_active, .lock=send_take, .unlock=send_give, .wake=wake};
+    const lr2021_bridge_radio radio = {.hal=radio_hal(), .board=radio_board(), .configure=configure,
+        .rx=radio_dev()->rx, .rom_major=(uint8_t)radio_dev()->profile.fw_major,
+        .rom_minor=(uint8_t)radio_dev()->profile.fw_minor,
+        .caps=LR2021_BRIDGE_CAP_RX|LR2021_BRIDGE_CAP_TX|LR2021_BRIDGE_CAP_TIMED_TX|
+              LR2021_BRIDGE_CAP_LIVE_GAIN|LR2021_BRIDGE_CAP_RATE_250K,
+        .name="lr2021-sdr esp32p4 " CONFIG_LRIQ_FW_VERSION, .id=board_id};
+    int e = lr2021_bridge_server_init(&server, &io, &radio, tx_buf, tx_capacity);
+    if(!e) {
+        active = t;
+        static uint8_t in[2048];
+        while(!lr2021_bridge_server_exit_requested(&server)) {
+            int n = t->recv(t->context, in, sizeof(in));
+            if(n < 0) break;                          /* transport closed */
+            if(n > 0) lr2021_bridge_server_input(&server, in, (size_t)n);
+        }
+        /* BYE or disconnect: end the stream, let the last frames go out. */
+        lr2021_bridge_server_stop(&server);
+        for(int i = 0; i < 300 && atomic_load(&server.busy); i++) vTaskDelay(pdMS_TO_TICKS(10));
+        for(int i = 0; i < 100 && atomic_load(&server.head) != atomic_load(&server.tail); i++)
+            vTaskDelay(pdMS_TO_TICKS(10));
+        send_take(NULL); active = NULL; send_give(NULL);
+    }
+    xSemaphoreGive(session_lock);
+    return e;
+}
+bool bridge_busy(void)
+{
+    if(!session_lock || xSemaphoreTake(session_lock, 0) != pdTRUE) return session_lock != NULL;
+    xSemaphoreGive(session_lock);
+    return false;
+}
+
+static int uart_send(void *ctx, const uint8_t *p, size_t n)
+{
+    (void)ctx;
+    return uart_write_bytes(UART, p, n) == (int)n ? 0 : -1;
+}
+static int uart_recv(void *ctx, uint8_t *p, size_t n)
+{
+    (void)ctx;
+    int r = uart_read_bytes(UART, p, n, pdMS_TO_TICKS(10));
+    return r < 0 ? 0 : r;
 }
 static int uart_mode(int baud, size_t rx, size_t tx)
 {
@@ -100,37 +153,20 @@ int bridge_command(int argc, char **argv)
         puts("usage: bridge [115200..5000000 baud]"); return 1;
     }
     if(!radio_dev()->profile.lr2021) { puts("lrbridge: radio not initialized"); return 1; }
-    if(start_tasks()) { puts("lrbridge: no memory for the bridge"); return 1; }
-    const lr2021_bridge_io io = {.send=uart_send, .lock=send_take, .unlock=send_give, .wake=wake};
-    const lr2021_bridge_radio radio = {.hal=radio_hal(), .board=radio_board(), .configure=configure,
-        .rx=radio_dev()->rx, .rom_major=(uint8_t)radio_dev()->profile.fw_major,
-        .rom_minor=(uint8_t)radio_dev()->profile.fw_minor,
-        .caps=LR2021_BRIDGE_CAP_RX|LR2021_BRIDGE_CAP_TX|LR2021_BRIDGE_CAP_TIMED_TX|
-              LR2021_BRIDGE_CAP_LIVE_GAIN|LR2021_BRIDGE_CAP_RATE_250K,
-        .name="lr2021-sdr esp32p4 " CONFIG_LRIQ_FW_VERSION, .id=board_id};
-    if(lr2021_bridge_server_init(&server, &io, &radio, tx_buf, tx_capacity)) {
-        puts("lrbridge: server init failed"); return 1;
-    }
+    if(bridge_init()) { puts("lrbridge: no memory for the bridge"); return 1; }
+    if(bridge_busy()) { puts("lrbridge: a TCP session holds the radio"); return 1; }
     printf("lrbridge: baud=%lu\n", baud);
     fflush(stdout);
     vTaskDelay(pdMS_TO_TICKS(50));
     esp_log_level_set("*", ESP_LOG_NONE); /* nothing but frames on the line */
-    if(uart_mode((int)baud, RX_BUFFER, TX_BUFFER)) {
-        uart_mode(115200, 256, 0);
-        puts("lrbridge: UART setup failed"); return 1;
+    int e = uart_mode((int)baud, RX_BUFFER, TX_BUFFER);
+    if(!e) {
+        const bridge_transport t = {.send=uart_send, .recv=uart_recv};
+        e = bridge_session(&t);
     }
-    static uint8_t in[1024];
-    while(!lr2021_bridge_server_exit_requested(&server)) {
-        int n = uart_read_bytes(UART, in, sizeof(in), pdMS_TO_TICKS(10));
-        if(n > 0) lr2021_bridge_server_input(&server, in, (size_t)n);
-    }
-    /* BYE: let the stream end and the last frames go out, then back to the console. */
-    lr2021_bridge_server_stop(&server);
-    for(int i = 0; i < 300 && atomic_load(&server.busy); i++) vTaskDelay(pdMS_TO_TICKS(10));
-    for(int i = 0; i < 100 && atomic_load(&server.head) != atomic_load(&server.tail); i++) vTaskDelay(pdMS_TO_TICKS(10));
     uart_mode(115200, 256, 0);
     esp_log_level_set("*", ESP_LOG_INFO);
-    printf("lrbridge: console; send_errors=%lu rx_crc_errors=%lu\n",
+    printf("lrbridge: console; result=%d send_errors=%lu rx_crc_errors=%lu\n", e,
            (unsigned long)server.send_errors, (unsigned long)server.parser.crc_errors);
-    return 0;
+    return e ? 1 : 0;
 }
