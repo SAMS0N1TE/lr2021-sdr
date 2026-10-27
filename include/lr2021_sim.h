@@ -25,6 +25,10 @@ typedef struct {
     int16_t tone_amplitude; /* at gain step 13 */
     /* Fault injection: overflow the RX FIFO after this many produced pairs. */
     uint64_t overflow_after;
+    /* Real-time hosts can stall the service thread for milliseconds. When set,
+     * a stall pauses the simulated radio instead of overflowing its FIFO, so
+     * protocol tests do not depend on scheduler luck. Off by default. */
+    bool stall_tolerant;
     /* chip */
     bool in_reset, reset_seen;
     uint8_t mode, cmd_status, packet_type, path, boost, step, lora_bw, route;

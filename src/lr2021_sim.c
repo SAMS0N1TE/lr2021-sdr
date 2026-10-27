@@ -61,8 +61,17 @@ static void advance(lr2021_sim *s)
     if(s->mode==RX && s->route==0x0A && rate(s)) {
         uint64_t target=s->rx_origin+(now-s->rx_t0)*rate(s)/1000000u;
         /* Bound the catch-up after a long host stall to one overfull FIFO. */
-        if(target>s->rx_pairs+300){s->rx_flags|=0x10; s->rx_pairs=target-300;}
-        while(s->rx_pairs<target)produce(s,s->rx_pairs++);
+        if(target>s->rx_pairs+300) {
+            if(s->stall_tolerant){ s->rx_origin+=s->rx_pairs+256-target; target=s->rx_pairs+256; }
+            else { s->rx_flags|=0x10; s->rx_pairs=target-300; }
+        }
+        while(s->rx_pairs<target) {
+            if(s->stall_tolerant && s->rx_level+8>=rx_capacity(s)) {
+                s->rx_origin-=target-s->rx_pairs; /* pause instead of overflowing */
+                break;
+            }
+            produce(s,s->rx_pairs++);
+        }
     }
     if(s->mode==TX && s->tx_n) {
         uint64_t target=(now-s->tx_t0)*s->tx_rate/1000000u;
