@@ -11,10 +11,6 @@ All results come from one LilyGO T-Display-P4 LR2021 board on ROM 1.24, with a
 VHF whip on its external antenna port. Tone levels are relative. Nothing here
 is a calibrated sensitivity figure.
 
-The rate rows below concern the original 16-bit source-2 CPU SPI path. A
-[later receive-only IQ8/DMA test](../community-2026-10/README.md) reached a
-higher bounded rate; it does not change these source-2 measurements.
-
 ## Summary
 
 | Question | Result |

@@ -2,10 +2,9 @@
 
 [Research index](../../docs/research.md) / GNSS and 2.4 GHz
 
-The [faster IQ8 route reported by sfowlr](../community-2026-10/README.md)
-made wider receive slices worth testing. These first LakeShark captures show
-that the LR2021 tunes to GPS L1 and 2.4 GHz and returns samples. **They do not
-show a satellite acquisition, a GNSS position, a Wi-Fi packet decode or CSI.**
+These LakeShark captures show that the LR2021 tunes to GPS L1 and 2.4 GHz
+and returns samples. **They do not show a satellite acquisition, a GNSS
+position, a Wi-Fi packet decode or CSI.**
 
 ## Hardware and method
 
@@ -21,10 +20,7 @@ tests. Raw I/Q, NMEA coordinates and console logs remain local.
 | 2412, 2437 and 2462 MHz | 250k complex pairs/s | Samples arrived; one repeat at 2462 MHz overflowed and was rejected. No Wi-Fi traffic was identified. |
 
 All tuning attempts returned without chip error bits and restored normal LoRa
-RX. A clean FIFO flag alone cannot prove sample-index continuity. A later
-[raw-IQ follow-up](../community-2026-10/README.md) obtained bounded ~666k
-IQ8-pair/s transport at 920 MHz and a 576k-pair/s converter result. Those
-rates have not been turned into a verified GNSS or Wi-Fi receiver.
+RX. A clean FIFO flag alone cannot prove sample-index continuity.
 
 ## GPS L1
 
@@ -35,7 +31,7 @@ code and Doppler search against a calibrated noise/control result. The
 initial 31.25 kHz source-2 L1 search found similar maxima on-frequency and
 at a lower-frequency control. We do not count it as an acquisition.
 
-Even the new IQ8 export rate is narrower than a conventional GPS L1 SDR
+The LR2021's export rate is far narrower than a conventional GPS L1 SDR
 capture. A narrowband assisted search may still be possible, with a signal
 energy and delay-resolution penalty. Before interpreting such a search, we
 need an L1 antenna/feed, a measured analog passband, a verified I/Q sample
@@ -54,24 +50,6 @@ sensitivity results cannot be transferred to this hardware.
 A typical Wi-Fi channel is much wider than these IQ slices. The LR2021 can
 measure energy and timing inside one narrow slice, but the current data
 cannot reconstruct a full 20 MHz packet or normal CSI.
-
-We used the board's C6 to scan the local channels. Channel 6 had the strongest
-nearby AP in two scans. Twelve 50 ms source-1/source-0 raw-IQ slices around
-channels 1, 6 and 11 had clean FIFO flags and LoRa recovery. Several channel
-6 slices contained bursts, but bursts also occurred elsewhere. Nearby network
-identifiers and raw captures remain local.
-
-We then sent test UDP traffic from the PC to the board's own C6 while taking
-20 ms source-1 slices near channel 6 at fixed gain. A first, higher-rate set
-had 41 of 77 one-millisecond windows above a chosen power threshold during
-traffic, against 16 of 77 idle. A balanced repeat reversed that pattern:
-14 of 191 traffic windows against 25 of 191 idle. The lower-rate set was also
-indistinguishable. One idle run reported chip-error bit `0x4000` during tune;
-its stream completed and LoRa recovered, but we do not count it as a clean
-trial. These observations do **not** identify Wi-Fi packets or reproduce a
-traffic-linked detector. Short captures, uncontrolled AP traffic and a narrow
-slice leave that question open. The next test needs synchronized C6 packet
-timestamps and longer LR energy windows, or a cabled, attenuated Wi-Fi source.
 
 The LR2021's packet engine did decode BLE 1M advertisements on channels 37,
 38 and 39 in separate eight-second receive-only windows. Tests of BLE 2M
