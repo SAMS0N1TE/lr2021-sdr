@@ -88,18 +88,19 @@ static int verify_fifo(const lr2021_iq_hal *h)
     return e?e:((base==0x804400 || base==0x4400) && size==0x3E8?0:LR2021_IQ_DATA);
 }
 static int stream(const lr2021_iq_hal *h, unsigned duration,
-                  lr2021_iq_sink sink, void *context, lr2021_iq_result *r, bool checked, unsigned capacity)
+                  lr2021_iq_sink sink, void *context, lr2021_iq_result *r, bool checked,
+                  unsigned capacity, lr2021_iq_session *session)
 {
     if(!r)return LR2021_IQ_ARGUMENT;
     memset(r,0,sizeof(*r)); r->capture_error=LR2021_IQ_ARGUMENT;
     if(!valid_hal(h) || !h->fast || !h->clear_fifo || !h->read_fifo ||
-       !sink || !duration || duration>(checked?60000u:250u) ||
+       !sink || (!duration && !session) || duration>(checked?60000u:250u) ||
        (capacity!=256 && capacity!=1024))return LR2021_IQ_ARGUMENT;
     r->fifo_capacity=capacity;
     void *c=h->context;
     h->lock(c);
     lr2021_iq_profile p={0}; int e=preflight(h,&p);
-    if(!e && p.bandwidth_hz!=31250)e=LR2021_IQ_STATE;
+    if(!e && p.bandwidth_hz!=31250 && (!session || p.bandwidth_hz!=62500))e=LR2021_IQ_STATE;
     bool touched=!e, fast=false;
     if(!e){e=h->fast(c,true);fast=!e;}
     if(!e)e=h->standby(c);
@@ -117,10 +118,22 @@ static int stream(const lr2021_iq_hal *h, unsigned duration,
     uint64_t start=h->now_us(c);
     uint64_t previous_poll=start;
     uint8_t pending[1280]; size_t pending_bytes=0;
-    while(!e && !r->stopped_by_sink && h->now_us(c)-start<(uint64_t)duration*1000) {
+    r->start_us=start;
+    if(session)session->start_us=start;
+    while(!e && !r->stopped_by_sink && (!duration || h->now_us(c)-start<(uint64_t)duration*1000)) {
         uint64_t poll_time=h->now_us(c), gap=poll_time-previous_poll;
         if(gap>r->max_service_gap_us)r->max_service_gap_us=gap;
         previous_poll=poll_time;
+        uint8_t step,boost;
+        if(session && session->gain && session->gain(session->gain_context,&step,&boost)) {
+            /* Live gain change: the FIFO keeps running, no restart. */
+            const uint8_t path[2]={p.rx_path,boost};
+            if(step>13 || boost>7)e=LR2021_IQ_ARGUMENT;
+            if(!e)e=h->write(c,0x021A,&step,1);
+            if(!e)e=h->write(c,0x0201,path,2);
+            if(e)break;
+            p.gain_step=step; p.rx_boost=boost; r->gain_changes++;
+        }
         uint8_t level_bytes[2]={0};
         e=h->read(c,0x011C,level_bytes,2); r->polls++;
         unsigned level=((unsigned)level_bytes[0]<<8)|level_bytes[1];
@@ -169,19 +182,29 @@ static int stream(const lr2021_iq_hal *h, unsigned duration,
         if(!r->recovery_error)r->recovery_error=h->restore(c,&p);
         if(!r->recovery_error)r->recovery_error=bus;
     }
-    r->capture_error=e; r->nominal_rate_hz=125000;
+    r->capture_error=e; r->nominal_rate_hz=session && p.bandwidth_hz==62500?250000:125000;
     h->unlock(c); return outcome(r);
 }
 
 int lr2021_iq_stream(const lr2021_iq_hal *h, unsigned duration,
                     lr2021_iq_sink sink, void *context, lr2021_iq_result *r)
-{ return stream(h,duration,sink,context,r,false,256); }
+{ return stream(h,duration,sink,context,r,false,256,NULL); }
 
 int lr2021_iq_stream_checked(const lr2021_iq_hal *h, unsigned duration,
                             lr2021_iq_sink sink, void *context, lr2021_iq_result *r)
-{ return stream(h,duration,sink,context,r,true,256); }
+{ return stream(h,duration,sink,context,r,true,256,NULL); }
 
 int lr2021_iq_stream_checked_fifo(const lr2021_iq_hal *h, unsigned duration,
                                  unsigned capacity, lr2021_iq_sink sink,
                                  void *context, lr2021_iq_result *r)
-{ return stream(h,duration,sink,context,r,true,capacity); }
+{ return stream(h,duration,sink,context,r,true,capacity,NULL); }
+
+int lr2021_iq_stream_session(const lr2021_iq_hal *h, lr2021_iq_session *s,
+                            lr2021_iq_sink sink, void *context, lr2021_iq_result *r)
+{
+    if(!s) {
+        if(r){memset(r,0,sizeof(*r)); r->capture_error=LR2021_IQ_ARGUMENT;}
+        return LR2021_IQ_ARGUMENT;
+    }
+    return stream(h,s->duration_ms,sink,context,r,true,s->fifo_capacity,s);
+}

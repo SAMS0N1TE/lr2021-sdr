@@ -16,13 +16,17 @@ typedef struct {
     bool lr2021, configured, exclusive_lora, receiving;
     unsigned fw_major, fw_minor, spreading_factor;
     uint32_t frequency_hz, bandwidth_hz;
+    /* Receive path (0 LF, 1 HF), gain step (0 = chip AGC, 1..13) and boost 0..7. */
+    uint8_t rx_path, gain_step, rx_boost;
 } lr2021_iq_profile;
 
 /* All I/O hooks return 0 on success and must validate radio command status.
  * snapshot is called under lock; exclusive_lora excludes TX and other owners.
  * reset must clear raw routing without restoring RX. restore reapplies config.
  * fast(true) owns the SPI bus at 16 MHz; fast(false) releases/restores it.
- * Hooks have bounded timeouts. No hook may transmit RF. */
+ * Hooks have bounded timeouts. No hook may transmit RF.
+ * write_fifo is optional and only used by lr2021_iq_transmit (lr2021_iq_tx.h):
+ * it writes 1..256 bytes to the TX FIFO with command 0x0002. */
 typedef struct {
     void *context;
     void (*lock)(void *);
@@ -41,6 +45,7 @@ typedef struct {
     int (*read_fifo)(void *, uint8_t *, size_t);
     uint64_t (*now_us)(void *);
     void (*sleep_us)(void *, unsigned);
+    int (*write_fifo)(void *, const uint8_t *, size_t);
 } lr2021_iq_hal;
 
 typedef struct {
@@ -55,6 +60,9 @@ typedef struct {
     unsigned fifo_capacity;
     size_t validated_bytes;
     uint64_t max_service_gap_us;
+    /* Session API only: now_us() when sample 0 was retained, gain changes applied. */
+    uint64_t start_us;
+    unsigned gain_changes;
 } lr2021_iq_result;
 
 /* Two separate buffers of >=256 words. Host-order words contain I low/Q high.
@@ -88,6 +96,23 @@ int lr2021_iq_stream_checked(const lr2021_iq_hal *, unsigned duration_ms,
 int lr2021_iq_stream_checked_fifo(const lr2021_iq_hal *, unsigned duration_ms,
                                  unsigned fifo_capacity, lr2021_iq_sink,
                                  void *, lr2021_iq_result *);
+/* Open-ended checked session for host streaming. Same contract as the checked
+ * stream: false from the sink rejects that block and ends the session. The
+ * profile may use BW31.25 kHz (125000 pairs/s) or BW62.5 kHz (250000 pairs/s);
+ * the second rate is only validated in short captures. duration_ms 0 runs until
+ * the sink stops it; otherwise 1..60000. start_us is written before the first
+ * block reaches the sink. gain, when set, is polled between FIFO reads and may
+ * request a new gain step (0 AGC, 1..13) and boost (0..7); the library applies
+ * it with SetAgcGainManual/SetRxPath without restarting reception. The
+ * callback must not call radio functions itself. */
+typedef struct {
+    unsigned duration_ms, fifo_capacity;
+    bool (*gain)(void *context, uint8_t *step, uint8_t *boost);
+    void *gain_context;
+    volatile uint64_t start_us;
+} lr2021_iq_session;
+int lr2021_iq_stream_session(const lr2021_iq_hal *, lr2021_iq_session *,
+                            lr2021_iq_sink, void *, lr2021_iq_result *);
 #ifdef __cplusplus
 }
 #endif
