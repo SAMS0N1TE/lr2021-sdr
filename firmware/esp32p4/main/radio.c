@@ -9,6 +9,8 @@
 #include "driver/i2c_master.h"
 #include "esp_timer.h"
 #include "esp_rom_sys.h"
+#include "nvs.h"
+#include <stdlib.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
@@ -24,6 +26,7 @@ static lr2021_iq_dev dev;
 static lr2021_iq_board chip_board;
 static bool bus_owned;
 static int spi_hz=CONFIG_LRIQ_SPI_HZ;
+static bool antenna_internal;
 
 static int xl_output(unsigned pin, bool high)
 {
@@ -134,7 +137,12 @@ int radio_init(void)
         i2c_device_config_t dc = {.dev_addr_length=I2C_ADDR_BIT_LEN_7, .device_address=0x20, .scl_speed_hz=400000};
         e = i2c_master_bus_add_device(bus, &dc, &xl);
         if(!e) e = xl_output(0, false); /* 3.3 V rail */
-        if(!e) e = xl_output(1, false); /* MMCX1 */
+        /* SKY13453 VCTL on XL9535 IO1: high is the internal antenna (RF1), low
+         * the MMCX1 jack. Saved with `antenna`; MMCX1 unless set otherwise. */
+        nvs_handle_t h; uint8_t internal = 0;
+        if(!nvs_open("radio", NVS_READONLY, &h)) { nvs_get_u8(h, "ant_int", &internal); nvs_close(h); }
+        antenna_internal = internal;
+        if(!e) e = xl_output(1, antenna_internal);
     } else {
         e = gpio_set_direction(board->reset, GPIO_MODE_OUTPUT);
     }
@@ -155,4 +163,29 @@ int radio_init(void)
     const lr2021_iq_rx rx = {.frequency_hz=154785000, .bandwidth_hz=31250,
         .gain_step=0, .boost=0, .path=LR2021_IQ_PATH_AUTO};
     return lr2021_iq_dev_open(&dev, &bus, &chip_board, &rx);
+}
+
+int radio_antenna_command(int argc, char **argv)
+{
+    if(argc == 2 && (!strcmp(argv[1], "internal") || !strcmp(argv[1], "external"))) {
+        if(!board->xl9535) { puts("antenna: this board has no LilyGO antenna switch"); return 1; }
+        bool internal = !strcmp(argv[1], "internal");
+        bus_lock(NULL);
+        int e = xl_output(1, internal);
+        bus_unlock(NULL);
+        nvs_handle_t h;
+        if(!e && !nvs_open("radio", NVS_READWRITE, &h)) {
+            nvs_set_u8(h, "ant_int", internal); nvs_commit(h); nvs_close(h);
+        }
+        if(!e) antenna_internal = internal;
+        printf("antenna: %s result=%d\n", antenna_internal ? "internal (RF1)" : "external (MMCX1)", e);
+        return e;
+    }
+    if(argc == 1) {
+        printf("antenna: %s; receive and transmit both use it. Do not transmit on MMCX1 with nothing fitted.\n",
+               board->xl9535 ? (antenna_internal ? "internal (RF1)" : "external (MMCX1)") : "fixed");
+        return 0;
+    }
+    puts("usage: antenna [internal|external]");
+    return 1;
 }

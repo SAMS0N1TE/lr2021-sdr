@@ -14,3 +14,5 @@ const lr2021_iq_board *radio_board(void);
  * (40 MHz fails every transfer) and keeps 250000 pairs/s at a 26% FIFO peak. */
 int radio_spi_hz(void);
 int radio_set_spi_hz(int hz);
+/* `antenna [internal|external]`: the LilyGO SKY13453 route, saved in NVS. */
+int radio_antenna_command(int argc, char **argv);
