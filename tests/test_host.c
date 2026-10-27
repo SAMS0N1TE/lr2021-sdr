@@ -1,27 +1,27 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 /* Host client against the simulator: in-process, over TCP and over a pty
- * standing in for the USB serial port. Real time, about 6 seconds. */
+ * standing in for the USB serial port (not on Windows or macOS). Real time,
+ * about 6 seconds. */
 #define _DEFAULT_SOURCE
 #define _XOPEN_SOURCE 600
 #include "../src/host/host_internal.h"
 #include "lr2021_sim.h"
-#include <fcntl.h>
-#include <netinet/in.h>
-#include <pthread.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
+#ifndef _WIN32
+#include <fcntl.h>
 #include <termios.h>
 #include <unistd.h>
+#endif
 #define CHECK(x) do {if(!(x)){fprintf(stderr,"line %d: %s\n",__LINE__,#x);return 1;}}while(0)
 
 static uint64_t clock_us(void *c) { (void)c; return lrh_now_us(); }
 static void sleep_cb(void *c, unsigned us) { (void)c; lrh_sleep_us(us); }
 static int configure(void *c, const lr2021_iq_rx *rx, uint16_t *errors)
 { lr2021_iq_dev *d=c; int e=lr2021_iq_dev_configure(d,rx); *errors=d->errors; return e; }
-typedef struct { int fd; lr2021_sim sim; lr2021_iq_dev dev; } served;
+typedef struct { lrh_fd fd; lr2021_sim sim; lr2021_iq_dev dev; } served;
 static void *serve(void *c)
 {
     served *s=c;
@@ -39,12 +39,14 @@ static void *serve(void *c)
 static void *accept_serve(void *c)
 {
     served *s=c;
-    int ls=s->fd;
-    s->fd=accept(ls,NULL,NULL); close(ls);
-    if(s->fd<0)return NULL;
-    serve(s); close(s->fd); return NULL;
+    lrh_fd ls=s->fd;
+    s->fd=lrh_tcp_accept(ls,10000,NULL,0); lrh_close(ls);
+    if(s->fd==LRH_NO_FD)return NULL;
+    serve(s); lrh_close(s->fd); return NULL;
 }
+#if !defined(__APPLE__) && !defined(_WIN32)
 static void *serve_fd(void *c) { return serve(c); }
+#endif
 /* Reads for ms milliseconds; counts pairs, gaps in the counter pattern and
  * reported discontinuities. */
 static int stream(lr2021_host *h, unsigned ms, uint64_t *pairs, unsigned *gaps, unsigned *disc, bool counter)
@@ -112,7 +114,9 @@ static int exercise(lr2021_host *h, unsigned seconds_ms, bool counter)
 }
 int main(void)
 {
+#ifdef SIGPIPE
     signal(SIGPIPE,SIG_IGN);
+#endif
     char err[200];
     lr2021_host_args a;
     lr2021_host_args_init(&a);
@@ -141,41 +145,41 @@ int main(void)
     lr2021_host_close(h);
 
     /* TCP. */
-    static served srv; pthread_t th;
-    int ls=lrh_tcp_listen(0,err,sizeof(err));
-    CHECK(ls>=0);
-    struct sockaddr_in sa; socklen_t len=sizeof(sa);
-    getsockname(ls,(struct sockaddr *)&sa,&len);
+    static served srv; lrh_thread th;
+    lrh_fd ls=lrh_tcp_listen("127.0.0.1",0,err,sizeof(err));
+    CHECK(ls!=LRH_NO_FD);
     srv.fd=ls;
-    pthread_create(&th,NULL,accept_serve,&srv);
+    CHECK(!lrh_thread_start(&th,accept_serve,&srv));
     lr2021_host_args_init(&a);
-    snprintf(a.host,sizeof(a.host),"127.0.0.1"); a.port=ntohs(sa.sin_port);
+    snprintf(a.host,sizeof(a.host),"127.0.0.1"); a.port=lrh_tcp_port(ls);
     CHECK((h=lr2021_host_open(&a,err,sizeof(err))) && lr2021_host_backend(h)==LR2021_HOST_TCP);
     CHECK(!strcmp(lr2021_host_hello(h)->id,"served"));
     fprintf(stderr,"TCP\n");
     CHECK(!exercise(h,1000,true));
     lr2021_host_close(h);
-    pthread_join(th,NULL);
+    lrh_thread_join(th);
 
-#ifdef __APPLE__
-    /* IOSSIOSPEED does not apply to ptys; the serial path is Linux-tested. */
-    puts("host client over simulator and TCP passed (pty skipped on macOS)");
+#if defined(__APPLE__) || defined(_WIN32)
+    /* IOSSIOSPEED does not apply to ptys and Windows has none; the serial
+     * path is Linux-tested. */
+    puts("host client over simulator and TCP passed (pty skipped)");
     return 0;
-#endif
+#else
     /* A pty in place of the USB serial port; the client sets 3 Mbaud. */
     int master=posix_openpt(O_RDWR|O_NOCTTY);
     CHECK(master>=0 && !grantpt(master) && !unlockpt(master));
     lr2021_host_args_init(&a);
     snprintf(a.serial,sizeof(a.serial),"%s",ptsname(master)); a.boot_ms=0;
     srv.fd=master;
-    pthread_create(&th,NULL,serve_fd,&srv);
+    CHECK(!lrh_thread_start(&th,serve_fd,&srv));
     if(!(h=lr2021_host_open(&a,err,sizeof(err))))fprintf(stderr,"%s\n",err);
     CHECK(h && lr2021_host_backend(h)==LR2021_HOST_SERIAL);
     fprintf(stderr,"pty serial\n");
     CHECK(!exercise(h,1000,true));
     lr2021_host_close(h); /* sends BYE */
-    pthread_join(th,NULL);
+    lrh_thread_join(th);
     close(master);
     puts("host client over simulator, TCP and pty passed");
     return 0;
+#endif
 }

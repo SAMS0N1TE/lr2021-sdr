@@ -27,8 +27,10 @@ firmware, the local Linux backend and the simulator alike.
 
 ## Install
 
-Linux (Debian, Ubuntu, Fedora, Raspberry Pi OS) and macOS. Windows builds the
-C library, simulator and tests.
+Linux (Debian, Ubuntu, Fedora, Raspberry Pi OS) and macOS. Windows (MinGW-w64)
+builds the host client with its serial (`serial=COM5`), TCP and simulator
+backends and the bridge simulator tool, but not the SoapySDR module or the
+local spidev backend.
 
 ```bash
 sudo apt-get install cmake g++ libsoapysdr-dev soapysdr-tools libgpiod-dev

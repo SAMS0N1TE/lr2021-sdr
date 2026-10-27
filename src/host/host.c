@@ -3,16 +3,15 @@
 #define _DARWIN_C_SOURCE
 #include "host_internal.h"
 #include "lr2021_sim.h"
-#include <dirent.h>
 #include <errno.h>
-#include <glob.h>
 #include <limits.h>
-#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <unistd.h>
+#ifndef _WIN32
+#include <dirent.h>
+#include <glob.h>
+#endif
 
 #define RING_BLOCKS 4096u           /* about 2.6 M pairs, 21 s at 125 ksample/s */
 #define BLOCK_PAIRS LR2021_BRIDGE_RX_MAX_PAIRS
@@ -22,12 +21,12 @@ typedef struct {
     int16_t iq[2*BLOCK_PAIRS];
 } block;
 struct lr2021_host {
-    int backend, fd;
+    int backend; lrh_fd fd;
     unsigned timeout_ms, baud, format;
-    pthread_t reader; bool reader_running;
-    pthread_mutex_t mu, req_mu;
-    pthread_cond_t cv;
-    bool link_down;
+    lrh_thread reader; bool reader_running;
+    lrh_mutex mu, req_mu;
+    lrh_cond cv;
+    bool link_down, closing;
     uint16_t seq;
     bool resp_ready; uint8_t resp_type; uint16_t resp_seq, resp_len;
     uint8_t resp[LR2021_BRIDGE_MAX_PAYLOAD];
@@ -40,7 +39,7 @@ struct lr2021_host {
     bool tx_done; lr2021_bridge_tx_end tx_end;
     lr2021_bridge_parser parser;
     /* in-process server */
-    int server_fd; lrh_server *server;
+    lrh_fd server_fd; lrh_server *server;
     lr2021_sim *sim; lr2021_iq_dev *dev; void *bus;
 };
 
@@ -137,51 +136,49 @@ static void on_frame(void *ctx, const lr2021_bridge_frame *f)
             h->streaming=true; h->ended=false;
         }
     } else return;
-    pthread_cond_broadcast(&h->cv);
+    lrh_cond_broadcast(&h->cv);
 }
+/* A serial read returns at least every 100 ms, so the reader sees closing
+ * without being cancelled. Sockets end on shutdown. */
 static void *reader(void *c)
 {
     lr2021_host *h=c;
     uint8_t buf[8192];
+    bool serial=h->backend==LR2021_HOST_SERIAL;
     for(;;) {
-        ssize_t n=read(h->fd,buf,sizeof(buf));
-        if(n<0 && errno==EINTR)continue;
-        if(n<0 && h->backend==LR2021_HOST_SERIAL && (errno==EAGAIN))continue;
-        if(n==0 && h->backend==LR2021_HOST_SERIAL)continue; /* VTIME expiry */
+        long n=lrh_read(h->fd,buf,sizeof(buf));
+        lrh_lock(&h->mu);
+        bool closing=h->closing;
+        if(n>0)lr2021_bridge_parse(&h->parser,buf,(size_t)n,on_frame,h);
+        lrh_unlock(&h->mu);
+        if(closing)break;
+        if(n==LRH_AGAIN || (n==0 && serial))continue; /* VTIME expiry */
         if(n<=0)break;
-        pthread_mutex_lock(&h->mu);
-        lr2021_bridge_parse(&h->parser,buf,(size_t)n,on_frame,h);
-        pthread_mutex_unlock(&h->mu);
     }
-    pthread_mutex_lock(&h->mu); h->link_down=true; pthread_cond_broadcast(&h->cv); pthread_mutex_unlock(&h->mu);
+    lrh_lock(&h->mu); h->link_down=true; lrh_cond_broadcast(&h->cv); lrh_unlock(&h->mu);
     return NULL;
 }
-static void deadline(struct timespec *t, unsigned ms)
-{
-    clock_gettime(CLOCK_REALTIME,t);
-    t->tv_sec+=ms/1000; t->tv_nsec+=(long)(ms%1000)*1000000L;
-    if(t->tv_nsec>=1000000000L){ t->tv_sec++; t->tv_nsec-=1000000000L; }
-}
+static uint64_t deadline(unsigned ms) { return lrh_now_us()+(uint64_t)ms*1000u; }
 /* Sends a request and waits for its response; copies up to cap bytes after
  * the status. Returns the device status or a host error. */
 static int request(lr2021_host *h, uint8_t type, const uint8_t *p, size_t n,
                    uint8_t *out, size_t cap, size_t *out_len, unsigned timeout_ms)
 {
     uint8_t frame[LR2021_BRIDGE_MAX_FRAME];
-    pthread_mutex_lock(&h->req_mu);
-    pthread_mutex_lock(&h->mu);
+    lrh_lock(&h->req_mu);
+    lrh_lock(&h->mu);
     uint16_t seq=++h->seq; h->resp_ready=false;
     bool down=h->link_down;
-    pthread_mutex_unlock(&h->mu);
+    lrh_unlock(&h->mu);
     int e=down?LR2021_HOST_ELINK:0;
     size_t len=lr2021_bridge_encode(frame,sizeof(frame),type,seq,p,n);
     if(!e && (!len || lrh_write_all(h->fd,frame,len)))e=LR2021_HOST_ELINK;
     if(!e) {
-        struct timespec t; deadline(&t,timeout_ms);
-        pthread_mutex_lock(&h->mu);
+        uint64_t t=deadline(timeout_ms);
+        lrh_lock(&h->mu);
         while(!(h->resp_ready && h->resp_seq==seq && h->resp_type==(type|0x80)) && !h->link_down) {
             h->resp_ready=h->resp_ready && h->resp_seq==seq;
-            if(pthread_cond_timedwait(&h->cv,&h->mu,&t)==ETIMEDOUT)break;
+            if(!lrh_cond_wait_until(&h->cv,&h->mu,t))break;
         }
         if(h->resp_ready && h->resp_seq==seq && h->resp_type==(type|0x80)) {
             if(h->resp_len<4)e=LR2021_HOST_EPROTO;
@@ -193,9 +190,9 @@ static int request(lr2021_host *h, uint8_t type, const uint8_t *p, size_t n,
             }
             h->resp_ready=false;
         } else e=h->link_down?LR2021_HOST_ELINK:LR2021_HOST_ETIMEOUT;
-        pthread_mutex_unlock(&h->mu);
+        lrh_unlock(&h->mu);
     }
-    pthread_mutex_unlock(&h->req_mu);
+    lrh_unlock(&h->req_mu);
     return e;
 }
 static int hello(lr2021_host *h, unsigned timeout_ms)
@@ -248,12 +245,9 @@ static int start_local(lr2021_host *h, const lr2021_host_args *a, char *err, siz
     const lr2021_iq_rx rx={154785000,31250,13,0,LR2021_IQ_PATH_AUTO,0,0,0};
     int e=lr2021_iq_dev_open(h->dev,&bus,&board,&rx);
     if(e){ snprintf(err,n,"radio setup failed: %s",lr2021_iq_strerror(e)); return -1; }
-    int sv[2];
-    if(socketpair(AF_UNIX,SOCK_STREAM,0,sv)){ snprintf(err,n,"socketpair: %s",strerror(errno)); return -1; }
+    lrh_fd sv[2];
+    if(lrh_socketpair(sv)){ snprintf(err,n,"socketpair: %s",strerror(errno)); return -1; }
     h->fd=sv[0]; h->server_fd=sv[1];
-#ifdef SO_NOSIGPIPE
-    int one=1; setsockopt(h->fd,SOL_SOCKET,SO_NOSIGPIPE,&one,sizeof(one));
-#endif
     static char ids[2][32];
     bool sim=h->backend==LR2021_HOST_SIM;
     snprintf(ids[sim],sizeof(ids[0]),"%.31s",sim?"sim":a->spidev);
@@ -270,24 +264,22 @@ static int start_local(lr2021_host *h, const lr2021_host_args *a, char *err, siz
 void lr2021_host_close(lr2021_host *h)
 {
     if(!h)return;
-    if(h->fd>=0 && !h->link_down) {
+    if(h->fd!=LRH_NO_FD && !h->link_down) {
         if(h->streaming)lr2021_host_rx_stop(h,NULL);
         if(h->backend==LR2021_HOST_SERIAL)request(h,LR2021_BRIDGE_BYE,NULL,0,NULL,0,NULL,300);
     }
-    if(h->fd>=0)shutdown(h->fd,SHUT_RDWR);
+    lrh_lock(&h->mu); h->closing=true; lrh_unlock(&h->mu);
+    if(h->fd!=LRH_NO_FD && h->backend!=LR2021_HOST_SERIAL)lrh_shutdown(h->fd);
     if(h->server) {
-        shutdown(h->server_fd,SHUT_RDWR);
+        lrh_shutdown(h->server_fd);
         lrh_server_wait(h->server); lrh_server_free(h->server);
     }
-    if(h->reader_running) {
-        if(h->backend==LR2021_HOST_SERIAL){ pthread_cancel(h->reader); }
-        pthread_join(h->reader,NULL);
-    }
-    if(h->fd>=0)close(h->fd);
-    if(h->server_fd>=0)close(h->server_fd);
+    if(h->reader_running)lrh_thread_join(h->reader);
+    if(h->fd!=LRH_NO_FD)lrh_close(h->fd);
+    if(h->server_fd!=LRH_NO_FD)lrh_close(h->server_fd);
     if(h->bus)lrh_spidev_close(h->bus);
     free(h->dev); free(h->sim); free(h->ring);
-    pthread_mutex_destroy(&h->mu); pthread_mutex_destroy(&h->req_mu); pthread_cond_destroy(&h->cv);
+    lrh_mutex_destroy(&h->mu); lrh_mutex_destroy(&h->req_mu); lrh_cond_destroy(&h->cv);
     free(h);
 }
 lr2021_host *lr2021_host_open(const lr2021_host_args *a, char *err, size_t n)
@@ -297,8 +289,8 @@ lr2021_host *lr2021_host_open(const lr2021_host_args *a, char *err, size_t n)
     err[0]=0;
     lr2021_host *h=calloc(1,sizeof(*h));
     if(!h){ snprintf(err,n,"out of memory"); return NULL; }
-    h->fd=h->server_fd=-1;
-    pthread_mutex_init(&h->mu,NULL); pthread_mutex_init(&h->req_mu,NULL); pthread_cond_init(&h->cv,NULL);
+    h->fd=h->server_fd=LRH_NO_FD;
+    lrh_mutex_init(&h->mu); lrh_mutex_init(&h->req_mu); lrh_cond_init(&h->cv);
     lr2021_bridge_parser_init(&h->parser);
     h->ring=malloc(sizeof(block)*RING_BLOCKS);
     h->timeout_ms=a->timeout_ms?a->timeout_ms:2000; h->baud=a->baud?a->baud:LR2021_HOST_DEFAULT_BAUD;
@@ -306,15 +298,16 @@ lr2021_host *lr2021_host_open(const lr2021_host_args *a, char *err, size_t n)
     h->backend=a->backend?a->backend:a->sim_pattern>=0?LR2021_HOST_SIM:a->spidev[0]?LR2021_HOST_LOCAL:
         a->host[0]?LR2021_HOST_TCP:a->serial[0]?LR2021_HOST_SERIAL:0;
     int e=h->ring?0:-1;
+    if(!e && lrh_net_init()){ snprintf(err,n,"network start-up failed"); e=-1; }
     if(!e) switch(h->backend) {
     case LR2021_HOST_SERIAL:
         h->fd=lrh_serial_open(a->serial,h->baud,err,n);
-        if(h->fd<0)e=-1;
+        if(h->fd==LRH_NO_FD)e=-1;
         else if(a->boot_ms){ lrh_sleep_us(a->boot_ms*1000u); lrh_serial_flush(h->fd); }
         break;
     case LR2021_HOST_TCP:
         h->fd=lrh_tcp_connect(a->host,a->port,h->timeout_ms,err,n);
-        if(h->fd<0)e=-1;
+        if(h->fd==LRH_NO_FD)e=-1;
         break;
     case LR2021_HOST_SIM: case LR2021_HOST_LOCAL:
         e=start_local(h,a,err,n);
@@ -323,7 +316,7 @@ lr2021_host *lr2021_host_open(const lr2021_host_args *a, char *err, size_t n)
         snprintf(err,n,"no device: set serial, host, spidev or sim"); e=-1;
     }
     if(!e) {
-        h->reader_running=!pthread_create(&h->reader,NULL,reader,h);
+        h->reader_running=!lrh_thread_start(&h->reader,reader,h);
         e=h->reader_running?0:-1;
     }
     if(!e) {
@@ -354,19 +347,19 @@ int lr2021_host_rx_start(lr2021_host *h, unsigned duration_ms)
 {
     uint8_t p[7], r[8]; size_t n=0;
     lr2021_bridge_put16(p,1024); lr2021_bridge_put32(p+2,duration_ms); p[6]=(uint8_t)h->format;
-    pthread_mutex_lock(&h->mu);
+    lrh_lock(&h->mu);
     /* Accept the new generation's data as soon as it arrives. */
     uint32_t next=h->generation+1;
     h->head=h->tail=h->offset=0; h->host_overflow=false; h->ended=false; h->expect_valid=false;
     h->generation=0xFFFFFFFFu; /* nothing matches until the ack */
-    pthread_mutex_unlock(&h->mu);
+    lrh_unlock(&h->mu);
     int e=request(h,LR2021_BRIDGE_RX_START,p,h->format?7:6,r,sizeof(r),&n,h->timeout_ms+3000);
-    pthread_mutex_lock(&h->mu);
+    lrh_lock(&h->mu);
     if(!e && n>=8) {
         h->generation=lr2021_bridge_get32(r); h->rate_hz=lr2021_bridge_get32(r+4);
         h->streaming=true; h->ended=false;
     } else { h->generation=next-1; if(!e)e=LR2021_HOST_EPROTO; }
-    pthread_mutex_unlock(&h->mu);
+    lrh_unlock(&h->mu);
     return e;
 }
 long lr2021_host_rx_read(lr2021_host *h, int16_t *iq, size_t max, unsigned timeout_us,
@@ -374,13 +367,11 @@ long lr2021_host_rx_read(lr2021_host *h, int16_t *iq, size_t max, unsigned timeo
 {
     lr2021_host_rx_meta meta={0};
     long got=0;
-    pthread_mutex_lock(&h->mu);
+    lrh_lock(&h->mu);
     if(h->head==h->tail && !h->ended && !h->link_down && timeout_us) {
-        struct timespec t; clock_gettime(CLOCK_REALTIME,&t);
-        t.tv_nsec+=(long)(timeout_us%1000000u)*1000L; t.tv_sec+=timeout_us/1000000u;
-        if(t.tv_nsec>=1000000000L){ t.tv_sec++; t.tv_nsec-=1000000000L; }
+        uint64_t t=lrh_now_us()+timeout_us;
         while(h->head==h->tail && !h->ended && !h->link_down)
-            if(pthread_cond_timedwait(&h->cv,&h->mu,&t)==ETIMEDOUT)break;
+            if(!lrh_cond_wait_until(&h->cv,&h->mu,t))break;
     }
     while(h->head!=h->tail && (size_t)got<max) {
         block *b=&h->ring[h->tail%RING_BLOCKS];
@@ -400,23 +391,23 @@ long lr2021_host_rx_read(lr2021_host *h, int16_t *iq, size_t max, unsigned timeo
     if(got){ h->expect_pair=meta.first_pair+(uint64_t)got; h->expect_valid=true; }
     meta.ended=h->head==h->tail && h->ended;
     bool down=h->link_down;
-    pthread_mutex_unlock(&h->mu);
+    lrh_unlock(&h->mu);
     if(m)*m=meta;
     return got?got:down?LR2021_HOST_ELINK:0;
 }
 bool lr2021_host_rx_active(lr2021_host *h)
-{ pthread_mutex_lock(&h->mu); bool s=h->streaming; pthread_mutex_unlock(&h->mu); return s; }
+{ lrh_lock(&h->mu); bool s=h->streaming; lrh_unlock(&h->mu); return s; }
 int lr2021_host_rx_stop(lr2021_host *h, lr2021_bridge_rx_end *end)
 {
     int e=request(h,LR2021_BRIDGE_RX_STOP,NULL,0,NULL,0,NULL,h->timeout_ms);
-    pthread_mutex_lock(&h->mu);
-    struct timespec t; deadline(&t,h->timeout_ms+2000);
+    lrh_lock(&h->mu);
+    uint64_t t=deadline(h->timeout_ms+2000);
     while(h->streaming && !h->ended && !h->link_down)
-        if(pthread_cond_timedwait(&h->cv,&h->mu,&t)==ETIMEDOUT)break;
+        if(!lrh_cond_wait_until(&h->cv,&h->mu,t))break;
     if(!e && !h->ended)e=h->link_down?LR2021_HOST_ELINK:LR2021_HOST_ETIMEOUT;
     if(end)*end=h->end;
     h->streaming=false;
-    pthread_mutex_unlock(&h->mu);
+    lrh_unlock(&h->mu);
     return e;
 }
 int lr2021_host_tx(lr2021_host *h, const int8_t *iq, size_t pairs, const lr2021_bridge_tx_begin *p,
@@ -436,7 +427,7 @@ int lr2021_host_tx(lr2021_host *h, const int8_t *iq, size_t pairs, const lr2021_
         e=request(h,LR2021_BRIDGE_TX_DATA,buf,4+m,r,4,&rn,h->timeout_ms);
         if(!e && (rn<4 || lr2021_bridge_get32(r)!=off+m))e=LR2021_HOST_EPROTO;
     }
-    pthread_mutex_lock(&h->mu); h->tx_done=false; pthread_mutex_unlock(&h->mu);
+    lrh_lock(&h->mu); h->tx_done=false; lrh_unlock(&h->mu);
     if(!e)e=request(h,LR2021_BRIDGE_TX_COMMIT,NULL,0,NULL,0,NULL,h->timeout_ms);
     if(e)return e;
     /* Burst (<= 0.9 s), a scheduled start (<= 10 s), reset and restore. */
@@ -445,12 +436,12 @@ int lr2021_host_tx(lr2021_host *h, const int8_t *iq, size_t pairs, const lr2021_
         uint64_t now=0;
         if(!lr2021_host_time(h,&now) && b.start_time>now)wait_ms+=(b.start_time-now)/1000u;
     }
-    pthread_mutex_lock(&h->mu);
-    struct timespec t; deadline(&t,(unsigned)wait_ms);
+    lrh_lock(&h->mu);
+    uint64_t t=deadline((unsigned)wait_ms);
     while(!h->tx_done && !h->link_down)
-        if(pthread_cond_timedwait(&h->cv,&h->mu,&t)==ETIMEDOUT)break;
+        if(!lrh_cond_wait_until(&h->cv,&h->mu,t))break;
     bool done=h->tx_done; lr2021_bridge_tx_end r=h->tx_end;
-    pthread_mutex_unlock(&h->mu);
+    lrh_unlock(&h->mu);
     if(!done)return h->link_down?LR2021_HOST_ELINK:LR2021_HOST_ETIMEOUT;
     if(end)*end=r;
     return r.error?r.error:r.stop_error?r.stop_error:r.recovery_error;
@@ -464,6 +455,7 @@ int lr2021_host_time(lr2021_host *h, uint64_t *us)
     return e;
 }
 
+#ifndef _WIN32
 static bool usb_ids(const char *tty, unsigned *vid, unsigned *pid)
 {
 #ifdef __linux__
@@ -489,10 +481,13 @@ static bool usb_ids(const char *tty, unsigned *vid, unsigned *pid)
 #endif
     return false;
 }
+#endif
 size_t lr2021_host_list_serial(char paths[][256], size_t max)
 {
     size_t n=0;
-#ifdef __linux__
+#ifdef _WIN32
+    (void)paths; (void)max; /* not implemented: name the COM port */
+#elif defined(__linux__)
     DIR *d=opendir("/sys/class/tty");
     struct dirent *e;
     while(d && (e=readdir(d)) && n<max) {
