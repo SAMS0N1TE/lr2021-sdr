@@ -130,7 +130,10 @@ static int stream(const lr2021_iq_hal *h, unsigned duration,
             const uint8_t path[2]={p.rx_path,boost};
             if(step>13 || boost>7)e=LR2021_IQ_ARGUMENT;
             if(!e)e=h->write(c,0x021A,&step,1);
-            if(!e)e=h->write(c,0x0201,path,2);
+            /* SetRxPath is only sent when the boost changes: on ROM 1.24 the gain
+             * step is taken in RX, while SetRxPath there ended the session with a
+             * command error (measured on the LilyGO board). */
+            if(!e && boost!=p.rx_boost)e=h->write(c,0x0201,path,2);
             if(e)break;
             p.gain_step=step; p.rx_boost=boost; r->gain_changes++;
         }
