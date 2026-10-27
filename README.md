@@ -6,8 +6,6 @@
   </picture>
 </p>
 
-# LR2021-SDR
-
 **A LoRa chip that tunes from 100 MHz to 2.74 GHz and streams I/Q at up to 800,000 samples/s.**
 
 P25 voice, pagers, FM, Bluetooth LE and custom transmit from the Semtech LR2021: on a handheld with no SDR dongle, or as an ordinary SoapySDR device on a computer, over USB or Wi-Fi.
