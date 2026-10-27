@@ -187,7 +187,8 @@ byte count), 1..255 repeats, 1..1000000 samples/s, 100..2740 MHz, the
 datasheet SetTxParams range of the PA in use (LF -19..44, HF -39..24) and a
 SetTx timeout below 512 s. The measured TX contract
 ([TX playback](tx-playback.md)) is signed I8, Q8 pairs with
-`I*I + Q*Q <= 56*56`; rates 4800, 9600, 19200, 38400, 76800 and 125000; 1..16
+`I*I + Q*Q <= 56*56`; rates 4800, 9600, 19200, 38400, 76800, 125000, 250000, 500000 and
+1000000; 1..16
 repeats; up to 900 ms; LF PA, 150..960 MHz; power -19..20. TX_END's `untested`
 field reports every setting outside it, and with the checked flag the device
 refuses such a burst with ERANGE instead. PA settings follow the datasheet

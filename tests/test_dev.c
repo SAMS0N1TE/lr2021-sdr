@@ -178,8 +178,15 @@ int main(void)
     CHECK(sim.resets==resets+1 && dev.profile.configured && sim.packet_type==0 && sim.lora_bw==2);
     CHECK(tr.elapsed_us>=240000 && tr.elapsed_us<300000);
 
-    /* TX FIFO frames are limited to 62 data bytes. */
-    CHECK(dev.hal.write_fifo(dev.hal.context,(const uint8_t *)iq,63)==LR2021_IQ_ARGUMENT);
+    /* TX FIFO frames carry up to 1020 data bytes. */
+    CHECK(dev.hal.write_fifo(dev.hal.context,(const uint8_t *)iq,1021)==LR2021_IQ_ARGUMENT);
+    /* 500 ksample/s burst: refills keep up and every byte arrives in order. The
+     * simulator's bus runs at 16 MHz; 1 Msample/s needs the board's 26.67 MHz. */
+    sim.tx_captured=0;
+    t=(lr2021_iq_tx){iq,3001,4,500000,915000000,-18,0,0,0};
+    CHECK(!lr2021_iq_tx_untested(&t) && !lr2021_iq_transmit(&dev.hal,&board,&t,&tr));
+    CHECK(sim.tx_captured==24008 && tr.queued_bytes==24008 && !(tr.tx_flags&0x30) && (tr.irq&(1u<<19)));
+    for(size_t i=0;i<24008;i++)CHECK(captured[i]==(uint8_t)iq[i%6002]);
     /* SIMO flag: same burst with the DC-DC regulator requested. */
     sim.tx_captured=0;
     t=(lr2021_iq_tx){iq,960,1,9600,433920000,-18,0,0,LR2021_IQ_TX_SIMO};

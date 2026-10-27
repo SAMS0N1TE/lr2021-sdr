@@ -119,7 +119,7 @@ public:
     // FSK filter code. TX lists the measured rates.
     std::vector<double> listSampleRates(const int dir, const size_t) const override
     {
-        if(dir==SOAPY_SDR_TX)return {4800,9600,19200,38400,76800,125000};
+        if(dir==SOAPY_SDR_TX)return {4800,9600,19200,38400,76800,125000,250000,500000,1000000};
         if(rx.route==LR2021_IQ_ROUTE_SOURCE1) {
             std::vector<double> v;
             for(uint8_t c : SOURCE1_CODES)v.push_back(lr2021_iq_input_rate(c));

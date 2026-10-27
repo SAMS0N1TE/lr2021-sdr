@@ -5,14 +5,18 @@
 #define TX_FIFO 1024u
 #define TX_PREFILL 896u
 #define TX_REFILL_AT 768u
-/* Measured on the LilyGO T-Display-P4: TX FIFO frames with more than 62 data
- * bytes lose data, and the burst then underflows without TX_DONE. */
-#define TX_WRITE 62u
+/* Each FIFO write costs about 40 us of BUSY on top of the SPI time, so long
+ * writes carry 1 Msample/s (2 MB/s) where 62-byte writes reach 0.8 MB/s.
+ * Measured on the LilyGO T-Display-P4 over the register SPI path. */
+#define TX_WRITE 1020u
 #define IRQ_TX_DONE (1u<<19)
 #define IRQ_TIMEOUT (1u<<21)
 
 bool lr2021_iq_tx_rate_ok(uint32_t r)
-{ return r==4800 || r==9600 || r==19200 || r==38400 || r==76800 || r==125000; }
+{
+    return r==4800 || r==9600 || r==19200 || r==38400 || r==76800 || r==125000 ||
+           r==250000 || r==500000 || r==1000000;
+}
 unsigned lr2021_iq_tx_pa(const lr2021_iq_tx *t)
 { return t->pa==LR2021_IQ_PA_AUTO ? (t->frequency_hz>=LR2021_IQ_HF_HZ ? 1u : 0u) : t->pa; }
 uint32_t lr2021_iq_tx_untested(const lr2021_iq_tx *t)
@@ -142,7 +146,10 @@ int lr2021_iq_transmit(const lr2021_iq_hal *h, const lr2021_iq_board *b,
         h->sleep_us(c,left>1000?1000u:(unsigned)left);
     }
     uint8_t flags[2]={0}, level[2]={0}, irq[4]={0};
-    uint64_t start=h->now_us(c), previous=start;
+    uint64_t start=h->now_us(c), previous=start, checked=start;
+    /* Above 250 ksample/s the FIFO drains in under 2 ms: poll the level without
+     * sleeping and read flags and IRQs once a millisecond until all is queued. */
+    const bool tight=t->rate_hz>250000u;
     if(!e) {
         const uint32_t ticks=(uint32_t)((timeout*32+999)/1000);
         const uint8_t a[3]={(uint8_t)(ticks>>16),(uint8_t)(ticks>>8),(uint8_t)ticks};
@@ -162,7 +169,9 @@ int lr2021_iq_transmit(const lr2021_iq_hal *h, const lr2021_iq_board *b,
             if(!e && fill<=TX_REFILL_AT)
                 e=enqueue(h,frame,frame_len,total,&r->queued_bytes,(TX_PREFILL-fill)&~1u,&r->refills);
             if(e)break;
+            if(tight && now-checked<1000)continue;
         }
+        checked=now;
         e=h->read(c,0x011B,flags,2);
         r->tx_flags|=flags[1];
         if(!e && (flags[1]&0x30))e=LR2021_IQ_DATA;
@@ -172,7 +181,7 @@ int lr2021_iq_transmit(const lr2021_iq_hal *h, const lr2021_iq_board *b,
             if(r->irq&(IRQ_TX_DONE|IRQ_TIMEOUT))break;
         }
         /* Refills of up to 896 bytes leave >= 3 ms at 125 ksample/s. */
-        if(r->queued_bytes<total)h->sleep_us(c,250);
+        if(r->queued_bytes<total){ if(!tight)h->sleep_us(c,250); }
         else h->sleep_us(c,1000);
     }
     r->elapsed_us=h->now_us(c)-start;

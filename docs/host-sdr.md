@@ -239,7 +239,7 @@ millisecond.
 | --- | --- | --- |
 | Samples per burst | up to 32767 including the `repeats` stream argument (the ROM keeps a 16-bit byte count) | 32767 at 915 MHz, 125000/s |
 | Burst length | up to the 512 s SetTx timeout | 0.82 s (31648 samples at 38400/s) |
-| Rates | 1 to 1000000 samples/s | 4800, 9600, 19200, 38400, 76800, 125000, 250000 (16000 samples at 915 MHz, received for 64.0 ms by an RTL-SDR) |
+| Rates | 1 to 1000000 samples/s | 4800, 9600, 19200, 38400, 76800, 125000, 250000, 500000, 1000000 (16000 samples at 915 MHz, received for 64, 32 and 16 ms by an RTL-SDR) |
 | Frequency | 100 to 2740 MHz, LF or HF PA (`AUTO` antenna: HF from 1.5 GHz) | 433.92 and 915 MHz, LF PA |
 | Power (`PA` gain) | LF -9.5 to +22 dBm, HF -19.5 to +12 dBm (datasheet SetTxParams ranges) | -9 dBm |
 | Sample magnitude | int8 | amplitude follows the input up to radius 56; saturation from about radius 64 |
@@ -303,7 +303,7 @@ run on Windows.
 
 | Part | Automated tests | Measured on the board |
 | --- | --- | --- |
-| Library: configure, sessions, live gain, TX burst | `device_session_tx` | TX bursts at 915 and 433.92 MHz, 19200 and 125000 S/s, up to 32767 samples, end with TX_DONE; a HackRF received the 433.92 MHz burst at the expected offset and length. TX FIFO writes carry up to 62 bytes per SPI frame |
+| Library: configure, sessions, live gain, TX burst | `device_session_tx` | TX bursts at 915 and 433.92 MHz, 19200 to 1000000 S/s, up to 32767 samples, end with TX_DONE; a HackRF received the 433.92 MHz burst at the expected offset and length, and an RTL-SDR measured 915 MHz bursts at 250000, 500000 and 1000000 S/s at their nominal length. TX FIFO writes carry up to 1020 bytes per SPI frame |
 | Bridge protocol, server, CS12 | `bridge_protocol`, Rust cross tests | USB serial at 4 Mbaud, CS12, 60 s at 125000/s: every pair delivered by the radio side, 99.8% received by the host |
 | SoapySDR module over TCP | `soapy_module`, SoapySDRUtil in CI | RX 60 s at 125000 and 250000 S/s with exact timestamp steps; 10 minutes at 250000 S/s with every pair delivered; live STEP changes without a gap; one overflow per retune. TX: a CF32 writeStream burst of 16000 samples at 125000 S/s lasted 129 ms on a HackRF (128 nominal); a HAS_TIME burst 2 s ahead started 11 us after the requested time; receive at 250000 S/s resumed 0.4 s after a burst with one overflow |
 | Host client: serial (pty), TCP, in-process | `host_client` | TCP over Wi-Fi |

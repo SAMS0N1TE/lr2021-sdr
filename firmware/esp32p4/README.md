@@ -204,6 +204,12 @@ The bridge was tested on the same board, with Wi-Fi through its ESP32-C6
   433.92 MHz were received by a HackRF One at the expected offset and length;
   a timed burst started 11 us after the requested time; a burst during receive
   cost one receive overflow.
+- Transmit at 915 MHz, -9 dBm, 16000 samples of a +10 kHz tone over TCP: 250000,
+  500000 and 1000000 samples/s all ended with TX_DONE and no FIFO error flags,
+  and an RTL-SDR measured bursts of 63, 32 and 16 ms (64, 32 and 16 nominal). At
+  1000000 samples/s the TX FIFO never fell below 207 bytes. FIFO writes of up to
+  1020 bytes per frame carry this; each write also costs about 40 us of BUSY, so
+  62-byte writes topped out near 0.8 MB/s.
 
 ## Build
 
