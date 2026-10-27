@@ -96,6 +96,18 @@ static int stream(const lr2021_iq_hal *h, unsigned duration,
     if(!valid_hal(h) || !h->fast || !h->clear_fifo || !h->read_fifo ||
        !sink || (!duration && !session) || duration>(checked?60000u:250u) ||
        (capacity!=256 && capacity!=1024))return LR2021_IQ_ARGUMENT;
+    /* Session tuning: FIFO read size and flag-check interval, staged in the
+     * caller's buffer when given. Defaults are 256-byte reads and a check per
+     * 1 KiB, as in the other APIs. */
+    uint8_t local[1280];
+    uint8_t *pending=local;
+    size_t cap=sizeof(local), chunk=256, check=1024;
+    if(session) {
+        if(session->max_read)chunk=session->max_read;
+        if(session->check_bytes)check=session->check_bytes;
+        if(session->buffer){ pending=session->buffer; cap=session->buffer_size; }
+        if(chunk%4 || chunk>1020 || check<chunk || check%4 || check+chunk>cap)return LR2021_IQ_ARGUMENT;
+    }
     r->fifo_capacity=capacity;
     void *c=h->context;
     h->lock(c);
@@ -130,7 +142,7 @@ static int stream(const lr2021_iq_hal *h, unsigned duration,
     if(!e)e=h->write(c,0x0114,clear,2);
     uint64_t start=h->now_us(c);
     uint64_t previous_poll=start;
-    uint8_t pending[1280]; size_t pending_bytes=0;
+    size_t pending_bytes=0;
     r->start_us=start;
     if(session)session->start_us=start;
     while(!e && !r->stopped_by_sink && (!duration || h->now_us(c)-start<(uint64_t)duration*1000)) {
@@ -157,13 +169,15 @@ static int stream(const lr2021_iq_hal *h, unsigned duration,
         if(!e && level>=capacity)e=LR2021_IQ_DATA;
         size_t remaining=level&~3u;
         while(!e && remaining) {
-            size_t n=remaining>256?256:remaining;
-            uint8_t data[256]; e=h->read_fifo(c,data,n);
+            size_t n=remaining>chunk?chunk:remaining;
+            uint8_t data[256];
+            /* Checked streams read straight into the staging buffer. */
+            e=h->read_fifo(c,checked?pending+pending_bytes:data,n);
             if(!e) {
                 uint64_t first=r->bytes/4; r->bytes+=n;
                 if(checked) {
-                    memcpy(pending+pending_bytes,data,n); pending_bytes+=n;
-                    if(pending_bytes>=1024) {
+                    pending_bytes+=n;
+                    if(pending_bytes>=check) {
                         uint8_t flags[2]={0}; e=h->read(c,0x011B,flags,2);
                         r->fifo_flags|=flags[0];
                         if(!e && (flags[0]&0x30))e=LR2021_IQ_DATA;

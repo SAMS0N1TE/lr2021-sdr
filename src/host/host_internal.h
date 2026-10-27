@@ -75,6 +75,7 @@ typedef struct lrh_server lrh_server;
 lrh_server *lrh_server_start(lrh_fd fd, const lr2021_bridge_radio *, size_t tx_capacity);
 void lrh_server_wait(lrh_server *);
 void lrh_server_free(lrh_server *);
+int lrh_server_tune(lrh_server *, unsigned max_read, unsigned check_bytes);
 
 /* Linux spidev + libgpiod bus; NULL context on other systems. */
 void *lrh_spidev_open(lr2021_iq_bus *, const lr2021_host_args *, char *err, size_t n);

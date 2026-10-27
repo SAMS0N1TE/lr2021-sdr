@@ -139,11 +139,18 @@ retained FIFO data of the stream. They are exact from sample to sample within a
 stream.
 
 Source 2 carries 4 bytes per pair, so the radio's FIFO has to be drained at
-0.5, 1, 2 and 4 MB/s for the four rates. The LilyGO board adapter (SPI at
-26.67 MHz) drains it at about 1.2 MB/s sustained: source 2 streams at 125000
-and 250000 samples/s there, and the 500000 and 1000000 settings reach FIFO
-overflow within the first kilobyte. A faster service loop or bus raises that
-ceiling; the library and protocol already carry the higher rates.
+0.5, 1, 2 and 4 MB/s for the four rates. On the LilyGO board the bridge
+firmware drives the SPI registers directly at 26.67 MHz: a two-frame FIFO
+level query takes 32 us and a 256-byte read 110 us. Over Wi-Fi, 30-second
+runs delivered every pair with FIFO peaks of 68 bytes at 125000, 220 bytes at
+250000 and 266 bytes for source 0 at 576000 pairs/s. With 1020-byte reads,
+source 2 at 500000 samples/s carried 1.93 MB/s with every pair delivered for
+1.39 s per session.
+
+Each session can raise its FIFO read size to 1020 bytes and check the FIFO
+flags once per 4 KiB instead of once per 1 KiB (`lr2021_iq_session.max_read`,
+`check_bytes`, `buffer`; `lr2021_bridge_server_tune` on the device). The local
+spidev backend and the simulator use 1020 and 4096.
 
 ### Raw receive routes
 
@@ -274,7 +281,7 @@ run on Windows.
 | SoapySDR module over TCP | `soapy_module`, SoapySDRUtil in CI | RX 60 s at 125000 and 250000 S/s with exact timestamp steps; 10 minutes at 250000 S/s with every pair delivered; live STEP changes without a gap; one overflow per retune. TX: a CF32 writeStream burst of 16000 samples at 125000 S/s lasted 129 ms on a HackRF (128 nominal); a HAS_TIME burst 2 s ahead started 11 us after the requested time; receive at 250000 S/s resumed 0.4 s after a burst with one overflow |
 | Host client: serial (pty), TCP, in-process | `host_client` | TCP over Wi-Fi |
 | Raw routes | `device_session_tx`, `bridge_protocol`, `soapy_module`, Rust cross tests | source 0 at 576000 pairs/s for 60 s over Wi-Fi and through SoapySDR, every pair delivered; source 6 gain tags match the manual step |
-| Source 2 above 250000 S/s | same | the LilyGO adapter's FIFO service (about 1.2 MB/s) sets the ceiling at 250000 |
+| Source 2 at 500000 S/s | same | 1.93 MB/s with every pair delivered for 1.39 s per session, with 1020-byte reads |
 | Local spidev/libgpiod backend | builds with libgpiod 1.6 in CI | |
 | HF PA, `tx_simo` | `device_session_tx` | |
 | Windows host client (TCP, simulator) | `host_client` | COM ports build but are not tested |

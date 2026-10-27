@@ -70,6 +70,8 @@ typedef struct {
     uint8_t staging[LR2021_BRIDGE_RX_MAX_BYTES];
     uint8_t reader_frame[64], worker_frame[96], sender_frame[LR2021_BRIDGE_MAX_FRAME];
     uint32_t send_errors;
+    unsigned max_read, check_bytes;  /* session tuning, 0 = library default */
+    uint8_t stream_buf[4096+1024];
 } lr2021_bridge_server;
 /* tx_buf may be NULL to disable TX (TX_BEGIN then answers EUNSUPPORTED). */
 int lr2021_bridge_server_init(lr2021_bridge_server *, const lr2021_bridge_io *,
@@ -80,4 +82,9 @@ bool lr2021_bridge_server_pump(lr2021_bridge_server *);
 bool lr2021_bridge_server_exit_requested(lr2021_bridge_server *);
 /* Ask a running stream to stop (for a transport disconnect). */
 void lr2021_bridge_server_stop(lr2021_bridge_server *);
+/* FIFO read size (multiple of 4, up to 1020) and flag-check interval
+ * (multiple of 4, max_read..4096) for the receive sessions; 0 keeps the
+ * library default (256 and 1024). Set before RX_START, from any context while
+ * no stream runs. Adapters with fast large SPI frames use 1020 and 4096. */
+int lr2021_bridge_server_tune(lr2021_bridge_server *, unsigned max_read, unsigned check_bytes);
 #endif

@@ -248,8 +248,8 @@ static int fast(void *ctx, bool on)
 static int clear_fifo(void *ctx) { return write_cmd(ctx,0x011E,NULL,0); }
 static int read_fifo(void *ctx, uint8_t *out, size_t n)
 {
-    if(!n || n>256)return LR2021_IQ_ARGUMENT;
-    uint8_t b[258]={0,1};
+    if(!n || n>1020)return LR2021_IQ_ARGUMENT;
+    uint8_t b[1022]={0,1};
     int e=frame(ctx,b,n+2);
     if(!e)e=status_ok(b);
     if(!e)memcpy(out,b+2,n);

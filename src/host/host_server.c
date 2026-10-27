@@ -106,6 +106,8 @@ void lrh_server_wait(lrh_server *s)
     lrh_thread_join(s->worker);
     lrh_thread_join(s->sender);
 }
+int lrh_server_tune(lrh_server *s, unsigned max_read, unsigned check_bytes)
+{ return s ? lr2021_bridge_server_tune(&s->srv,max_read,check_bytes) : -1; }
 void lrh_server_free(lrh_server *s)
 {
     if(!s)return;

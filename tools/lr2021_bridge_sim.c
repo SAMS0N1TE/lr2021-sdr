@@ -48,7 +48,7 @@ int main(int argc, char **argv)
             LR2021_BRIDGE_CAP_RX|LR2021_BRIDGE_CAP_TX|LR2021_BRIDGE_CAP_TIMED_TX|
             LR2021_BRIDGE_CAP_LIVE_GAIN|LR2021_BRIDGE_CAP_RATE_250K,"lr2021-sdr simulator","sim-tcp"};
         lrh_server *s=lrh_server_start(fd,&radio,LR2021_BRIDGE_TX_CAPACITY);
-        if(s){ lrh_server_wait(s); lrh_server_free(s); }
+        if(s){ lrh_server_tune(s,1020,4096); lrh_server_wait(s); lrh_server_free(s); }
         lrh_close(fd);
     } while(!once);
     lrh_close(ls);

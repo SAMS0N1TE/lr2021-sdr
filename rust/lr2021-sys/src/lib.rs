@@ -86,6 +86,8 @@ pub struct lr2021_iq_session {
     pub gain: Option<unsafe extern "C" fn(*mut c_void, *mut u8, *mut u8) -> bool>,
     pub gain_context: *mut c_void,
     pub start_us: u64,
+    pub max_read: c_uint, pub check_bytes: c_uint,
+    pub buffer: *mut u8, pub buffer_size: usize,
 }
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

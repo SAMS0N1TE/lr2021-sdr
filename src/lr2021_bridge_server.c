@@ -150,7 +150,7 @@ static void rx_start(lr2021_bridge_server *s, uint16_t seq, const uint8_t *p, si
     atomic_store(&s->streaming,true);
     uint8_t ack[8]; P32(ack,s->generation); P32(ack+4,s->rate_hz);
     WORKER_REPLY(LR2021_BRIDGE_RX_START,seq,0,ack,8);
-    lr2021_iq_session session={ms,cap,gain,s,0};
+    lr2021_iq_session session={ms,cap,gain,s,0,s->max_read,s->check_bytes,(s->max_read||s->check_bytes)?s->stream_buf:NULL,sizeof(s->stream_buf)};
     stream_ctx c={s,&session};
     lr2021_iq_result r;
     int e=lr2021_iq_stream_session(s->radio.hal,&session,session_sink,&c,&r);
@@ -320,3 +320,10 @@ void lr2021_bridge_server_input(lr2021_bridge_server *s, const uint8_t *data, si
 { lr2021_bridge_parse(&s->parser,data,n,request,s); }
 bool lr2021_bridge_server_exit_requested(lr2021_bridge_server *s) { return atomic_load(&s->exit); }
 void lr2021_bridge_server_stop(lr2021_bridge_server *s) { if(atomic_load(&s->streaming))atomic_store(&s->stop,true); }
+int lr2021_bridge_server_tune(lr2021_bridge_server *s, unsigned max_read, unsigned check_bytes)
+{
+    unsigned r=max_read?max_read:256, c=check_bytes?check_bytes:1024;
+    if(r%4 || r>1020 || c%4 || c<r || c>4096 || c+r>sizeof(s->stream_buf) || atomic_load(&s->streaming))return -1;
+    s->max_read=max_read; s->check_bytes=check_bytes;
+    return 0;
+}

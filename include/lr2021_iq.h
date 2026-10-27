@@ -31,7 +31,8 @@ typedef struct {
  * Hooks have bounded timeouts. No hook may transmit RF.
  * write_fifo is optional and only used by lr2021_iq_transmit (lr2021_iq_tx.h):
  * it writes 1..62 bytes to the TX FIFO with command 0x0002 (longer frames
- * lost data on the tested board). */
+ * lost data on the tested board). read_fifo takes 1..256 bytes, or up to the
+ * session's max_read when an adapter supports larger frames. */
 typedef struct {
     void *context;
     void (*lock)(void *);
@@ -121,6 +122,14 @@ typedef struct {
     bool (*gain)(void *context, uint8_t *step, uint8_t *boost);
     void *gain_context;
     volatile uint64_t start_us;
+    /* Optional throughput tuning, 0 = default. max_read: bytes per read_fifo
+     * call, multiple of 4, up to 1020 (default 256; the adapter's read_fifo
+     * must accept it). check_bytes: published block size, one FIFO flag check
+     * each, multiple of 4 and at least max_read (default 1024). buffer: staging
+     * of at least check_bytes + max_read bytes (default: 1280 on the stack). */
+    unsigned max_read, check_bytes;
+    uint8_t *buffer;
+    size_t buffer_size;
 } lr2021_iq_session;
 int lr2021_iq_stream_session(const lr2021_iq_hal *, lr2021_iq_session *,
                             lr2021_iq_sink, void *, lr2021_iq_result *);

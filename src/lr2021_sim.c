@@ -194,7 +194,7 @@ static int transfer(void *ctx, uint8_t *b, size_t n)
     if(!s->clock)s->vtime+=2+n/2;
     advance(s);
     s->spi_frames++;
-    uint8_t in[260];
+    uint8_t in[1030];
     if(n>sizeof(in))return -1;
     memcpy(in,b,n);
     unsigned st=((unsigned)(s->have_resp?DAT:s->cmd_status)<<9)|(s->irq?0x100u:0)|

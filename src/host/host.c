@@ -259,6 +259,9 @@ static int start_local(lr2021_host *h, const lr2021_host_args *a, char *err, siz
     if(!(h->server=lrh_server_start(h->server_fd,&radio,LR2021_BRIDGE_TX_CAPACITY))) {
         snprintf(err,n,"cannot start server"); return -1;
     }
+    /* spidev and the simulator take large frames: 1020-byte reads, a flag
+     * check per 4 KiB. */
+    lrh_server_tune(h->server,1020,4096);
     return 0;
 }
 void lr2021_host_close(lr2021_host *h)
