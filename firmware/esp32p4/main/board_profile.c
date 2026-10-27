@@ -42,10 +42,11 @@ void board_profile_defaults(board_profile *p)
 #ifdef CONFIG_LRIQ_RFSW
     p->rfsw_count=4;
     /* LilyGO T-Display-P4 LR2021 carrier: DIO8 high in RX LF and TX LF (the LF
-     * transmit path needs it, 0x06), DIO6 and DIO10 high in RX HF; DIO7, the HF
-     * transmit select, stays low, so the HF PA is never routed to the antenna. */
-    p->rfsw[0]=(board_rfsw){6,0x08,3}; p->rfsw[1]=(board_rfsw){7,0,3};
-    p->rfsw[2]=(board_rfsw){8,0x06,3}; p->rfsw[3]=(board_rfsw){10,0x08,3};
+     * transmit path needs it, 0x06), DIO6 high in RX HF, DIO7 high in TX HF and
+     * DIO10 high in RX HF and TX HF. A 2440 MHz burst measured 48 dB over the
+     * floor on a HackRF with DIO7 and DIO10 in TX HF, and nothing without them. */
+    p->rfsw[0]=(board_rfsw){6,0x08,3}; p->rfsw[1]=(board_rfsw){7,0x10,3};
+    p->rfsw[2]=(board_rfsw){8,0x06,3}; p->rfsw[3]=(board_rfsw){10,0x18,3};
 #endif
 }
 static const char *gpio_reason(int pin, int tx, int rx)

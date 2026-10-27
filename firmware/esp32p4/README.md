@@ -19,9 +19,9 @@ default hardware.
 Default wiring: SCLK 2, MOSI 3, MISO 4, CS 24, BUSY 6. XL9535 at I2C address
 0x20 uses SDA 7 / SCL 8. Radio reset is IO16 (bit 14); antenna select is IO1.
 The adapter uses LDO regulation and a 3.3 V TCXO. The RF switch table drives
-DIO8 in LF receive and LF transmit, and DIO6 and DIO10 in HF receive; DIO7, the
-HF transmit select, stays low. It does not load a PRAM patch, and it transmits
-only when a host sends a TX burst.
+DIO8 in LF receive and LF transmit, DIO6 in HF receive, DIO7 in HF transmit
+and DIO10 in HF receive and HF transmit. It does not load a PRAM patch, and it
+transmits only when a host sends a TX burst.
 
 Native USB Serial/JTAG is also supported when selected as the console in
 ESP-IDF menuconfig; the prebuilt image uses UART0 through the USB bridge.
@@ -210,6 +210,10 @@ The bridge was tested on the same board, with Wi-Fi through its ESP32-C6
   1000000 samples/s the TX FIFO never fell below 207 bytes. FIFO writes of up to
   1020 bytes per frame carry this; each write also costs about 40 us of BUSY, so
   62-byte writes topped out near 0.8 MB/s.
+- Transmit on the HF PA at 2440 MHz, -9 dBm, same burst: 125000, 500000 and
+  1000000 samples/s ended with TX_DONE, and a HackRF One measured bursts of 128,
+  32 and 16 ms at +10 kHz, 48 dB over the floor. With DIO7 and DIO10 left out
+  of HF transmit, the same burst did not show.
 
 ## Build
 
