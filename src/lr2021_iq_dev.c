@@ -267,8 +267,8 @@ static int read_fifo(void *ctx, uint8_t *out, size_t n)
 }
 static int write_fifo(void *ctx, const uint8_t *in, size_t n)
 {
-    if(!n || n>62)return LR2021_IQ_ARGUMENT; /* see lr2021_iq_hal */
-    uint8_t b[258]={0,2};
+    if(!n || n>1020)return LR2021_IQ_ARGUMENT; /* see lr2021_iq_hal */
+    uint8_t b[1022]={0,2};
     memcpy(b+2,in,n);
     int e=frame(ctx,b,n+2);
     return e?e:status_ok(b);

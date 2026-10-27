@@ -31,6 +31,8 @@ typedef struct {
      * a stall pauses the simulated radio instead of overflowing its FIFO, so
      * protocol tests do not depend on scheduler luck. Off by default. */
     bool stall_tolerant;
+    /* Produce RX data at this percentage of the nominal rate (0 = 100). */
+    unsigned rate_percent;
     /* chip */
     bool in_reset, reset_seen;
     uint8_t mode, cmd_status, packet_type, path, boost, step, lora_bw, route, route_code;

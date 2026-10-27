@@ -88,6 +88,7 @@ pub struct lr2021_iq_session {
     pub start_us: u64,
     pub max_read: c_uint, pub check_bytes: c_uint,
     pub buffer: *mut u8, pub buffer_size: usize,
+    pub level_every: c_uint,
 }
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

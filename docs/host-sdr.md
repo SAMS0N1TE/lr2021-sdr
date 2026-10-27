@@ -113,7 +113,7 @@ build/lr2021_bridge_sim --port 51021 --pattern tone --tone 433950000
 | --- | --- | --- |
 | Frequency | 100 MHz to 2740 MHz; antenna `AUTO` picks LF below 1.5 GHz, HF above; `LF`/`HF` select a path | [receive range](../research/rx-range-and-gain/README.md) |
 | Source 2 rates | 125000, 250000, 500000 and 1000000 complex samples/s: 4 x LoRa BW 31.25, 62.5, 125 and 250 kHz | [protocol](protocol.md) |
-| Raw-route rates | sources 0 and 6: any output rate from 1000 to 4000000 samples/s; source 1: the input rate of its FSK filter code, for example 800000 (code 33) or 125000 (code 28) | [raw routes](#raw-receive-routes) |
+| Raw-route rates | sources 0 and 6: any output rate from 1000 to 4000000 samples/s; source 1: the input rate of its FSK filter code, for example 1000000 (code 25), 800000 (code 33) or 125000 (code 28) | [raw routes](#raw-receive-routes) |
 | Format | CS16 native (I low halfword, positive frequency above the tuned frequency), CF32 | |
 | Gain | `STEP` 1..13, `BOOST` 0..7 (acts at steps 12 and 13); overall gain 1..20 = step, then boost; AGC mode = chip AGC (step 0) | [gain table](../research/rx-range-and-gain/README.md#gain-and-boost) |
 | Timestamps | every `readStream` has `SOAPY_SDR_HAS_TIME`: device time of the stream's first sample plus index / nominal rate | |
@@ -151,8 +151,16 @@ gap 465 us; through SoapySDR, 30 s with no overflow and exact timestamps.
 
 Each session can raise its FIFO read size to 1020 bytes and check the FIFO
 flags once per 4 KiB instead of once per 1 KiB (`lr2021_iq_session.max_read`,
-`check_bytes`, `buffer`; `lr2021_bridge_server_tune` on the device). The local
-spidev backend and the simulator use 1020 and 4096.
+`check_bytes`, `buffer`; `lr2021_bridge_server_tune` on the device). Longer
+intervals, up to 16 KiB, use a staging buffer the device supplies
+(`lr2021_bridge_server_buffer`). With `level_every` N
+(`lr2021_bridge_server_predict`), the session reads the FIFO level on every
+Nth pass and in between reads 90% of what the nominal rate delivered since the
+last level read; a short estimate shows as FIFO underflow and the staged block
+is rejected at its flag check. The LilyGO firmware uses 1020-byte reads with a
+check per 4 KiB and no prediction, which gave the most consistent results at
+2 MB/s in 60-second runs. The local spidev backend and the simulator use 1020
+and 4096.
 
 ### Raw receive routes
 
@@ -197,6 +205,7 @@ bridge firmware over Wi-Fi TCP with SPI at 26.67 MHz:
 | --- | --- | --- |
 | Source 0 | input code 17, 576000 pairs/s, route `11 00 08 CA 00 08 00 00 00 00 01` | 60 s: 34561720 pairs, every pair delivered, device rate 575984 pairs/s, FIFO peak 538 bytes, largest service gap 476 us, flags `0x04`. Through SoapySDR, 60 s of `readStream` gave 34562880 samples with no overflow and timestamp steps exact to 1 ns |
 | Source 0 | rate and orientation | a fixed RF line from the board moved 49.99 kHz for a 50.000 kHz retune (rate within 0.02% of 576000), positive frequency is RF above the tuned frequency, and the line passes at +203.66 kHz, 20.1 dB over its surroundings |
+| Source 1 | input code 25 | 1000000 pairs/s for 60 s, 60013462 pairs, every pair delivered, 1998 kB/s, FIFO peak 916 bytes, largest service gap 458 us; through SoapySDR (`setSampleRate(1000000)` selects code 25) 30 s with no overflow and exact timestamps. Code 56, which also maps to 1 MHz, is refused by the radio |
 | Source 1 | input code 33 | 799958 pairs/s for 60 s, 48000354 pairs, every pair delivered, FIFO peak 440 bytes, largest service gap 334 us |
 | Source 1 | input code 28 | 124795 pairs/s |
 | Source 6 | input code 28 (`0x1C`), 50000 pairs/s, route `1C 00 00 C3 50 0E 00 00 00 00 01` | 49897 pairs/s; every pair tagged with the manual gain step (249884 pairs at step 9, 250076 at step 4) |
@@ -239,7 +248,7 @@ millisecond.
 | --- | --- | --- |
 | Samples per burst | up to 32767 including the `repeats` stream argument (the ROM keeps a 16-bit byte count) | 32767 at 915 MHz, 125000/s |
 | Burst length | up to the 512 s SetTx timeout | 0.82 s (31648 samples at 38400/s) |
-| Rates | 1 to 1000000 samples/s | 4800, 9600, 19200, 38400, 76800, 125000, 250000 (16000 samples at 915 MHz, received for 64.0 ms by an RTL-SDR) |
+| Rates | 1 to 1000000 samples/s | 4800, 9600, 19200, 38400, 76800, 125000, 250000, 500000, 1000000 (16000 samples at 915 MHz, received for 64, 32 and 16 ms by an RTL-SDR) |
 | Frequency | 100 to 2740 MHz, LF or HF PA (`AUTO` antenna: HF from 1.5 GHz) | 433.92 and 915 MHz, LF PA |
 | Power (`PA` gain) | LF -9.5 to +22 dBm, HF -19.5 to +12 dBm (datasheet SetTxParams ranges) | -9 dBm |
 | Sample magnitude | int8 | amplitude follows the input up to radius 56; saturation from about radius 64 |
@@ -303,7 +312,7 @@ run on Windows.
 
 | Part | Automated tests | Measured on the board |
 | --- | --- | --- |
-| Library: configure, sessions, live gain, TX burst | `device_session_tx` | TX bursts at 915 and 433.92 MHz, 19200 and 125000 S/s, up to 32767 samples, end with TX_DONE; a HackRF received the 433.92 MHz burst at the expected offset and length. TX FIFO writes carry up to 62 bytes per SPI frame |
+| Library: configure, sessions, live gain, TX burst | `device_session_tx` | TX bursts at 915 and 433.92 MHz, 19200 to 1000000 S/s, up to 32767 samples, end with TX_DONE; a HackRF received the 433.92 MHz burst at the expected offset and length, and an RTL-SDR measured 915 MHz bursts at 250000, 500000 and 1000000 S/s at their nominal length. TX FIFO writes carry up to 1020 bytes per SPI frame. Linear chirps (±20 kHz) sent at 125000, 500000 and 1000000 S/s and recorded gap-free on an RTL-SDR came back full length with 99.3%, 98.5% and 97.4% of their power in the de-chirped line, the noise and window-leakage level |
 | Bridge protocol, server, CS12 | `bridge_protocol`, Rust cross tests | USB serial at 4 Mbaud, CS12, 60 s at 125000/s: every pair delivered by the radio side, 99.8% received by the host |
 | SoapySDR module over TCP | `soapy_module`, SoapySDRUtil in CI | RX 60 s at 125000 and 250000 S/s with exact timestamp steps; 10 minutes at 250000 S/s with every pair delivered; live STEP changes without a gap; one overflow per retune. TX: a CF32 writeStream burst of 16000 samples at 125000 S/s lasted 129 ms on a HackRF (128 nominal); a HAS_TIME burst 2 s ahead started 11 us after the requested time; receive at 250000 S/s resumed 0.4 s after a burst with one overflow |
 | Host client: serial (pty), TCP, in-process | `host_client` | TCP over Wi-Fi |

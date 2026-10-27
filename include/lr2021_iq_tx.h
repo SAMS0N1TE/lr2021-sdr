@@ -12,7 +12,8 @@ extern "C" {
  * repetitions, 1..1000000 samples/s, 100..2740 MHz (the receive synthesizer
  * range), the datasheet SetTxParams range of the selected PA and a SetTx
  * timeout below 512 s. result.untested reports what leaves the measured
- * contract: rates 4800, 9600, 19200, 38400, 76800, 125000 complex samples/s;
+ * contract: rates 4800, 9600, 19200, 38400, 76800, 125000, 250000, 500000,
+ * 1000000 complex samples/s;
  * at most 900 ms; 1..16 repetitions; every sample I*I+Q*Q <= 56*56
  * (saturation starts near radius 64); LF PA, 150..960 MHz (433.92 and 915 MHz
  * are the measured points); power -9.5..+10 dBm. LR2021_IQ_TX_CHECKED refuses

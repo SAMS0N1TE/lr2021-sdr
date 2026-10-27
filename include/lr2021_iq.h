@@ -30,8 +30,8 @@ typedef struct {
  * fast(true) owns the SPI bus at 16 MHz; fast(false) releases/restores it.
  * Hooks have bounded timeouts. No hook may transmit RF.
  * write_fifo is optional and only used by lr2021_iq_transmit (lr2021_iq_tx.h):
- * it writes 1..62 bytes to the TX FIFO with command 0x0002 (longer frames
- * lost data on the tested board). read_fifo takes 1..256 bytes, or up to the
+ * it writes 1..1020 bytes to the TX FIFO with command 0x0002 in one frame
+ * (one CS assertion). read_fifo takes 1..256 bytes, or up to the
  * session's max_read when an adapter supports larger frames. */
 typedef struct {
     void *context;
@@ -130,6 +130,11 @@ typedef struct {
     unsigned max_read, check_bytes;
     uint8_t *buffer;
     size_t buffer_size;
+    /* level_every N > 1: read the FIFO level on every Nth pass only and, in
+     * between, read 90% of what the nominal rate delivered since. A wrong
+     * estimate shows as FIFO underflow and ends the session; no data passes
+     * unchecked. 0 or 1 reads the level on every pass. */
+    unsigned level_every;
 } lr2021_iq_session;
 int lr2021_iq_stream_session(const lr2021_iq_hal *, lr2021_iq_session *,
                             lr2021_iq_sink, void *, lr2021_iq_result *);
