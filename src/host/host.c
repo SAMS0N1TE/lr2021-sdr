@@ -130,6 +130,12 @@ static void on_frame(void *ctx, const lr2021_bridge_frame *f)
     } else if((f->type&0x80) && f->type<0xC0) {
         h->resp_ready=true; h->resp_type=f->type; h->resp_seq=f->sequence; h->resp_len=f->length;
         memcpy(h->resp,f->payload,f->length);
+        /* RX data can follow the RX_START response in the same read: accept
+         * the new generation here rather than after the requester wakes. */
+        if(f->type==(LR2021_BRIDGE_RX_START|0x80) && f->length>=12 && !lr2021_bridge_get32(f->payload)) {
+            h->generation=lr2021_bridge_get32(f->payload+4); h->rate_hz=lr2021_bridge_get32(f->payload+8);
+            h->streaming=true; h->ended=false;
+        }
     } else return;
     pthread_cond_broadcast(&h->cv);
 }

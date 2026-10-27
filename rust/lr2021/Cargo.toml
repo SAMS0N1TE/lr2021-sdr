@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[package]
+name = "lr2021"
+description = "Safe Rust API for LR2021-SDR: simulator-backed device, receive sessions, TX bursts and the host client"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+lr2021-sys = { path = "../lr2021-sys", version = "0.3.0" }

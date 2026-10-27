@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# LR2021-SDR device permissions. Install with:
+#   sudo cp 60-lr2021-sdr.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload && sudo udevadm trigger
+# and add your user to plugdev (sudo usermod -aG plugdev $USER), then log in again.
+
+# Bridge firmware over USB serial. ID_MM_DEVICE_IGNORE keeps ModemManager from
+# probing the port, which would inject AT commands into the bridge stream.
+# CH343 USB-UART (LilyGO T-Display-P4 console)
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="55d3", MODE="0660", GROUP="plugdev", TAG+="uaccess", ENV{ID_MM_DEVICE_IGNORE}="1", SYMLINK+="lr2021-bridge-%n"
+# ESP32-P4 native USB Serial/JTAG
+SUBSYSTEM=="tty", ATTRS{idVendor}=="303a", ATTRS{idProduct}=="1001", MODE="0660", GROUP="plugdev", TAG+="uaccess", ENV{ID_MM_DEVICE_IGNORE}="1", SYMLINK+="lr2021-bridge-%n"
+# ESP32 TinyUSB CDC
+SUBSYSTEM=="tty", ATTRS{idVendor}=="303a", ATTRS{idProduct}=="4001", MODE="0660", GROUP="plugdev", TAG+="uaccess", ENV{ID_MM_DEVICE_IGNORE}="1", SYMLINK+="lr2021-bridge-%n"
+
+# Local backend: the LR2021 on this host's SPI and GPIO lines (for example a
+# Raspberry Pi with dtparam=spi=on). Narrow KERNEL to your bus if other SPI or
+# GPIO devices should stay root-only.
+SUBSYSTEM=="spidev", KERNEL=="spidev*", MODE="0660", GROUP="plugdev"
+SUBSYSTEM=="gpio", KERNEL=="gpiochip*", MODE="0660", GROUP="plugdev"
