@@ -179,6 +179,12 @@ Source 3 (route byte 5 `0x0B`) streams two bytes per sample at twice the input
 rate (499479, 249483 and 124488 pairs/s for codes 27, 28 and 29). Both bytes
 carry the same real-valued signal (correlation 0.80) behind the code's
 filter, so it is a real tap rather than I/Q and is not offered as a route.
+Source 3 does not depend on the packet type: FSK, FLRC and Bluetooth LE setups
+give the same statistics on a pager signal. Its level follows signal strength
+(standard deviation 11 on a quiet channel, 65 on the pager, where it reaches
+the 8-bit limits), and its mean stays near zero as the signal moves by
+±4 kHz, so it carries the signal itself rather than a frequency
+discriminator output.
 
 The module scales IQ8 by 256 and IQ6 by 1024 into CS16 (CF32 full scale is
 the same). The bridge carries these bytes unchanged, up to 960 pairs per
