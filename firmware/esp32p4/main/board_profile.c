@@ -41,8 +41,11 @@ void board_profile_defaults(board_profile *p)
     p->tcxo_voltage=CONFIG_LRIQ_TCXO_VOLTAGE; p->tcxo_ticks=CONFIG_LRIQ_TCXO_TICKS;
 #ifdef CONFIG_LRIQ_RFSW
     p->rfsw_count=4;
-    p->rfsw[0]=(board_rfsw){6,0,3}; p->rfsw[1]=(board_rfsw){7,0,3};
-    p->rfsw[2]=(board_rfsw){8,2,3}; p->rfsw[3]=(board_rfsw){10,0,3};
+    /* LilyGO T-Display-P4 LR2021 carrier: DIO8 high in RX LF and TX LF (the LF
+     * transmit path needs it, 0x06), DIO6 and DIO10 high in RX HF; DIO7, the HF
+     * transmit select, stays low, so the HF PA is never routed to the antenna. */
+    p->rfsw[0]=(board_rfsw){6,0x08,3}; p->rfsw[1]=(board_rfsw){7,0,3};
+    p->rfsw[2]=(board_rfsw){8,0x06,3}; p->rfsw[3]=(board_rfsw){10,0x08,3};
 #endif
 }
 static const char *gpio_reason(int pin, int tx, int rx)
