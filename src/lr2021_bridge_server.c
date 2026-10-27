@@ -98,7 +98,8 @@ static bool sink(void *ctx, const uint8_t *data, size_t n, uint64_t first)
 {
     lr2021_bridge_server *s=ctx;
     if(atomic_load(&s->stop))return false;
-    size_t pairs=n/4, i=0;
+    const size_t size=s->pair_bytes, cap=LR2021_BRIDGE_RX_MAX_BYTES/size;
+    size_t pairs=n/size, i=0;
     while(i<pairs) {
         if(s->cur && s->cur_first+s->cur_pairs!=first+i)flush(s);
         if(!s->cur) {
@@ -107,11 +108,11 @@ static bool sink(void *ctx, const uint8_t *data, size_t n, uint64_t first)
             }
             s->cur_first=first+i; s->cur_pairs=0;
         }
-        size_t take=LR2021_BRIDGE_RX_MAX_PAIRS-s->cur_pairs;
+        size_t take=cap-s->cur_pairs;
         if(take>pairs-i)take=pairs-i;
-        memcpy(s->staging+4*s->cur_pairs,data+4*i,4*take);
+        memcpy(s->staging+size*s->cur_pairs,data+size*i,size*take);
         s->cur_pairs+=take; i+=take;
-        if(s->cur_pairs==LR2021_BRIDGE_RX_MAX_PAIRS)flush(s);
+        if(s->cur_pairs==cap)flush(s);
     }
     return true;
 }
@@ -139,7 +140,10 @@ static void rx_start(lr2021_bridge_server *s, uint16_t seq, const uint8_t *p, si
         WORKER_REPLY(LR2021_BRIDGE_RX_START,seq,LR2021_IQ_ARGUMENT,NULL,0); return;
     }
     s->generation++;
-    s->rate_hz=lr2021_iq_rate(s->radio.rx.bandwidth_hz);
+    s->rate_hz=lr2021_iq_rx_rate(&s->radio.rx);
+    s->pair_bytes=(uint8_t)lr2021_iq_rx_pair_bytes(&s->radio.rx);
+    /* Two-byte routes travel as the radio delivers them. */
+    if(s->radio.rx.route)format=s->radio.rx.route==LR2021_IQ_ROUTE_SOURCE6?LR2021_BRIDGE_IQ6G:LR2021_BRIDGE_IQ8;
     s->start_time=0; s->format=format; s->cur=NULL; s->cur_pairs=0;
     atomic_store(&s->dropped,0); atomic_store(&s->stop,false); atomic_store(&s->gain_request,0);
     atomic_store(&s->live_boost,s->radio.rx.boost);
@@ -154,7 +158,7 @@ static void rx_start(lr2021_bridge_server *s, uint16_t seq, const uint8_t *p, si
     atomic_store(&s->streaming,false);
     lr2021_bridge_rx_end end={s->generation,r.capture_error,r.recovery_error,
         (uint8_t)(e?LR2021_BRIDGE_END_ERROR:LR2021_BRIDGE_END_REQUEST),r.fifo_flags,
-        (uint16_t)r.max_fifo_level,atomic_load(&s->dropped),r.gain_changes,r.validated_bytes/4,
+        (uint16_t)r.max_fifo_level,atomic_load(&s->dropped),r.gain_changes,r.validated_bytes/s->pair_bytes,
         r.start_us,r.elapsed_us,r.max_service_gap_us};
     if(e && !end.capture_error && !end.recovery_error)end.capture_error=e;
     uint8_t buf[64];
@@ -168,7 +172,7 @@ static void tx_commit(lr2021_bridge_server *s, uint16_t seq)
     else if(lr2021_bridge_crc32(0,s->tx_buf,s->tx.bytes)!=s->tx.crc32)st=LR2021_BRIDGE_ECRC;
     lr2021_iq_tx t={(const int8_t *)s->tx_buf,s->tx.bytes/2,s->tx.repeats,s->tx.rate_hz,
         s->tx.frequency_hz,s->tx.power_half_db,s->tx.start_time,s->tx.pa,
-        (uint8_t)(s->tx.flags&(LR2021_IQ_TX_UNCHECKED|LR2021_IQ_TX_SIMO))};
+        (uint8_t)(s->tx.flags&(LR2021_IQ_TX_CHECKED|LR2021_IQ_TX_SIMO))};
     if(!st && lr2021_iq_tx_check(&t))st=LR2021_BRIDGE_ERANGE;
     if(st) {
         atomic_store(&s->tx_state,0);
@@ -193,7 +197,7 @@ static void configure(lr2021_bridge_server *s, uint8_t type, uint16_t seq, const
     ack.status=lr2021_iq_rx_check(rx);
     if(!ack.status)ack.status=s->radio.configure(s->radio.context,rx,&ack.radio_errors);
     if(!ack.status)s->radio.rx=*rx;
-    ack.rate_hz=lr2021_iq_rate(s->radio.rx.bandwidth_hz);
+    ack.rate_hz=lr2021_iq_rx_rate(&s->radio.rx);
     uint8_t p[16];
     lr2021_bridge_pack_rx_ack(p,&ack);
     send_frame(s,s->worker_frame,sizeof(s->worker_frame),(uint8_t)(type|LR2021_BRIDGE_RESPONSE),seq,p,10);
@@ -206,7 +210,7 @@ void lr2021_bridge_server_work(lr2021_bridge_server *s)
     case LR2021_BRIDGE_SET_RX: {
         lr2021_bridge_rx m;
         if(lr2021_bridge_unpack_rx(p,n,&m)){ WORKER_REPLY(s->req_type,seq,LR2021_BRIDGE_ELENGTH,NULL,0); break; }
-        lr2021_iq_rx rx={m.frequency_hz,m.bandwidth_hz,m.gain_step,m.boost,m.path};
+        lr2021_iq_rx rx={m.frequency_hz,m.bandwidth_hz,m.gain_step,m.boost,m.path,m.route,m.input_code,m.rate_hz};
         configure(s,s->req_type,seq,&rx);
         break;
     }
@@ -242,8 +246,8 @@ static void request(void *ctx, const lr2021_bridge_frame *f)
     case LR2021_BRIDGE_HELLO: {
         lr2021_bridge_hello h={0,LR2021_BRIDGE_VERSION,s->radio.caps,s->radio.rom_major,
             s->radio.rom_minor,LR2021_BRIDGE_MAX_PAYLOAD,1000000,(uint32_t)s->tx_capacity,{0},{0}};
-        h.caps|=LR2021_BRIDGE_CAP_CS12|LR2021_BRIDGE_CAP_TX_UNCHECKED;
-        if(!s->tx_buf)h.caps&=(uint16_t)~(LR2021_BRIDGE_CAP_TX|LR2021_BRIDGE_CAP_TIMED_TX|LR2021_BRIDGE_CAP_TX_UNCHECKED);
+        h.caps|=LR2021_BRIDGE_CAP_CS12|LR2021_BRIDGE_CAP_TX_CHECKED|LR2021_BRIDGE_CAP_RAW_ROUTES;
+        if(!s->tx_buf)h.caps&=(uint16_t)~(LR2021_BRIDGE_CAP_TX|LR2021_BRIDGE_CAP_TIMED_TX|LR2021_BRIDGE_CAP_TX_CHECKED);
         if(s->radio.name)strncpy(h.name,s->radio.name,31);
         if(s->radio.id)strncpy(h.id,s->radio.id,31);
         uint8_t buf[96]; size_t len=lr2021_bridge_pack_hello(buf,&h);

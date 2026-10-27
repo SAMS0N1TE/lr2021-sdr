@@ -29,7 +29,7 @@ static void *serve(void *c)
     s->sim.clock=clock_us; s->sim.sleep=sleep_cb; s->sim.pattern=LR2021_SIM_COUNTER;
     s->sim.stall_tolerant=true;
     lr2021_iq_bus bus=lr2021_sim_bus(&s->sim);
-    const lr2021_iq_rx rx={154785000,31250,13,0,2};
+    const lr2021_iq_rx rx={154785000,31250,13,0,2,0,0,0};
     if(lr2021_iq_dev_open(&s->dev,&bus,NULL,&rx))return NULL;
     lr2021_bridge_radio radio={&s->dev,&s->dev.hal,NULL,configure,rx,1,24,3,"t","served"};
     lrh_server *srv=lrh_server_start(s->fd,&radio,LR2021_BRIDGE_TX_CAPACITY);
@@ -70,7 +70,7 @@ static int exercise(lr2021_host *h, unsigned seconds_ms, bool counter)
 {
     const lr2021_bridge_hello *hi=lr2021_host_hello(h);
     CHECK(hi->version==1 && hi->rom_major==1 && hi->rom_minor==24 && hi->tx_capacity==LR2021_BRIDGE_TX_CAPACITY);
-    lr2021_bridge_rx rx={433920000,62500,13,0,2}; lr2021_bridge_rx_ack ack;
+    lr2021_bridge_rx rx={433920000,62500,13,0,2,0,0,0}; lr2021_bridge_rx_ack ack;
     CHECK(!lr2021_host_set_rx(h,&rx,&ack) && ack.rate_hz==250000);
     rx.frequency_hz=3000000000u; CHECK(lr2021_host_set_rx(h,&rx,&ack)==LR2021_IQ_ARGUMENT);
     rx.frequency_hz=433920000;
@@ -94,7 +94,7 @@ static int exercise(lr2021_host *h, unsigned seconds_ms, bool counter)
     uint64_t t=0; CHECK(!lr2021_host_time(h,&t) && t>0);
     static int8_t iq[2*9600];
     for(unsigned i=0;i<9600;i++){ iq[2*i]=(int8_t)(i%60-30); iq[2*i+1]=(int8_t)(30-i%60); }
-    lr2021_bridge_tx_begin p={0,0,19200,433920000,-18,1,0,0,0};
+    lr2021_bridge_tx_begin p={0,0,19200,433920000,-18,1,0,0,LR2021_IQ_TX_CHECKED};
     lr2021_bridge_tx_end te;
     CHECK(!lr2021_host_tx(h,iq,9600,&p,&te) && te.samples==9600 && !te.untested && !(te.tx_flags&0x30));
     CHECK(te.elapsed_us>=490000 && te.elapsed_us<700000);
@@ -102,7 +102,7 @@ static int exercise(lr2021_host *h, unsigned seconds_ms, bool counter)
     CHECK(!lr2021_host_tx(h,iq,960,&p,&te) && te.start_time>=p.start_time && te.start_time<p.start_time+5000);
     p.start_time=0; p.rate_hz=10000;
     CHECK(lr2021_host_tx(h,iq,960,&p,&te)==LR2021_BRIDGE_ERANGE);
-    p.flags=LR2021_IQ_TX_UNCHECKED;
+    p.flags=0;
     CHECK(!lr2021_host_tx(h,iq,960,&p,&te) && te.untested==LR2021_IQ_TX_UNTESTED_RATE);
     /* Receive resumes after TX with a new generation. */
     pairs=0; CHECK(!lr2021_host_rx_start(h,300));

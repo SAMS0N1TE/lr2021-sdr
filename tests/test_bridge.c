@@ -9,7 +9,7 @@ typedef struct {
     lr2021_bridge_parser parser;
     lr2021_bridge_frame last; uint8_t last_payload[LR2021_BRIDGE_MAX_PAYLOAD];
     unsigned frames, data_frames, rx_end, tx_end, wakes;
-    uint64_t pairs, next_pair; uint32_t last_value, gaps; unsigned shifted;
+    uint64_t pairs, next_pair; uint32_t last_value, gaps; unsigned shifted, formats, max_pairs;
     lr2021_bridge_rx_end end; lr2021_bridge_tx_end tx;
 } host;
 static void on_frame(void *ctx, const lr2021_bridge_frame *f)
@@ -27,6 +27,8 @@ static void on_frame(void *ctx, const lr2021_bridge_frame *f)
             h->last_value=v; h->pairs++;
         }
         if(d.format)h->shifted|=d.shift;
+        h->formats|=1u<<d.format;
+        if(d.pairs>h->max_pairs)h->max_pairs=d.pairs;
         h->next_pair=d.first_pair+d.pairs;
         h->data_frames++; return;
     }
@@ -95,7 +97,7 @@ int main(void)
     /* Server over the simulator in virtual time, single-threaded. */
     static lr2021_sim sim; lr2021_sim_init(&sim);
     lr2021_iq_bus bus=lr2021_sim_bus(&sim);
-    lr2021_iq_rx rx={154785000,31250,13,0,2};
+    lr2021_iq_rx rx={154785000,31250,13,0,2,0,0,0};
     CHECK(!lr2021_iq_dev_open(&dev,&bus,NULL,&rx));
     memset(&h,0,sizeof(h)); lr2021_bridge_parser_init(&h.parser);
     lr2021_bridge_io io={&h,send_cb,NULL,NULL,wake_cb};
@@ -108,7 +110,7 @@ int main(void)
     CHECK(hello2.version==1 && hello2.rom_minor==24 && !strcmp(hello2.id,"sim0") && (hello2.caps&2));
     CHECK(call(&h,0x33,8,NULL,0)==LR2021_BRIDGE_EUNKNOWN);
     CHECK(call(&h,LR2021_BRIDGE_SET_RX,9,p,3)==LR2021_BRIDGE_ELENGTH && h.wakes==1);
-    lr2021_bridge_rx m={433920000,62500,12,7,2};
+    lr2021_bridge_rx m={433920000,62500,12,7,2,0,0,0};
     len=lr2021_bridge_pack_rx(p,&m);
     CHECK(call(&h,LR2021_BRIDGE_SET_RX,10,p,len)==0 && sim.lora_bw==3 && sim.boost==7);
     lr2021_bridge_rx_ack ack;
@@ -136,7 +138,21 @@ int main(void)
     lr2021_bridge_put32(p+2,20); p[6]=LR2021_BRIDGE_CS12;
     CHECK(call(&h,LR2021_BRIDGE_RX_START,17,p,7)==0);
     CHECK(h.rx_end==3 && !h.gaps && h.pairs==h.end.pairs && h.shifted && !h.end.dropped);
-    p[6]=2; CHECK(call(&h,LR2021_BRIDGE_RX_START,18,p,7)==LR2021_IQ_ARGUMENT);
+    p[6]=4; CHECK(call(&h,LR2021_BRIDGE_RX_START,18,p,7)==LR2021_IQ_ARGUMENT);
+    /* Raw route over the bridge: the 17-byte RX record selects source 0, and
+     * frames carry IQ8 with up to 960 pairs whatever format was asked for. */
+    lr2021_bridge_rx rawrx={433920000,0,8,0,2,LR2021_IQ_ROUTE_SOURCE0,17,576000};
+    CHECK(lr2021_bridge_pack_rx(p,&rawrx)==17);
+    CHECK(call(&h,LR2021_BRIDGE_SET_RX,19,p,17)==0 && sim.packet_type==2);
+    CHECK(!lr2021_bridge_unpack_rx_ack(h.last.payload,h.last.length,&ack) && ack.rate_hz==576000);
+    memset(&h.end,0,sizeof(h.end)); h.pairs=0; h.next_pair=0; h.gaps=0; h.formats=0;
+    lr2021_bridge_put16(p,1024); lr2021_bridge_put32(p+2,10); p[6]=LR2021_BRIDGE_CS12;
+    CHECK(call(&h,LR2021_BRIDGE_RX_START,20,p,7)==0);
+    CHECK(h.rx_end==4 && !h.gaps && h.pairs==h.end.pairs && h.formats==(1u<<LR2021_BRIDGE_IQ8) && h.max_pairs==960);
+    lr2021_bridge_rx rxback;
+    CHECK(!lr2021_bridge_unpack_rx(p,11,&rxback) && !rxback.route);
+    m.route=0; len=lr2021_bridge_pack_rx(p,&m);
+    CHECK(call(&h,LR2021_BRIDGE_SET_RX,21,p,len)==0);
     lr2021_bridge_put16(p,512);
     CHECK(call(&h,LR2021_BRIDGE_RX_START,16,p,6)==LR2021_IQ_ARGUMENT);
 
@@ -144,7 +160,7 @@ int main(void)
     static int8_t iq[4000]; static uint8_t cap[8000];
     for(unsigned i=0;i<4000;i++)iq[i]=(int8_t)((int)(i%73)-36);
     sim.tx_capture=cap; sim.tx_capacity=sizeof(cap);
-    lr2021_bridge_tx_begin b={4000,lr2021_bridge_crc32(0,(const uint8_t *)iq,4000),19200,433920000,-18,2,0,0,0};
+    lr2021_bridge_tx_begin b={4000,lr2021_bridge_crc32(0,(const uint8_t *)iq,4000),19200,433920000,-18,2,0,0,LR2021_IQ_TX_CHECKED};
     CHECK(call(&h,LR2021_BRIDGE_TX_COMMIT,20,NULL,0)==LR2021_BRIDGE_ESTATE);
     len=lr2021_bridge_pack_tx_begin(p,&b);
     CHECK(call(&h,LR2021_BRIDGE_TX_BEGIN,21,p,len)==0);
@@ -172,9 +188,9 @@ int main(void)
     lr2021_bridge_put32(chunk,0); memcpy(chunk+4,iq,2);
     CHECK(call(&h,LR2021_BRIDGE_TX_DATA,37,chunk,6)==0);
     CHECK(call(&h,LR2021_BRIDGE_TX_COMMIT,38,NULL,0)==LR2021_BRIDGE_ERANGE);
-    /* Unchecked mode: the same over-range sample at an untested rate is sent
+    /* Default mode: the same over-range sample at an untested rate is sent
      * and reported in TX_END.untested. */
-    b.rate_hz=10000; b.flags=LR2021_IQ_TX_UNCHECKED; len=lr2021_bridge_pack_tx_begin(p,&b);
+    b.rate_hz=10000; b.flags=0; len=lr2021_bridge_pack_tx_begin(p,&b);
     CHECK(call(&h,LR2021_BRIDGE_TX_BEGIN,39,p,len)==0);
     CHECK(call(&h,LR2021_BRIDGE_TX_DATA,42,chunk,6)==0);
     sim.tx_captured=0;

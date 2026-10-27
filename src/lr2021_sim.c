@@ -27,8 +27,14 @@ static unsigned rx_capacity(const lr2021_sim *s)
 { return (s->rx_base&0x7FFFFF)==0x4400 && s->rx_size==0x3E8 ? 1024u : 256u; }
 static unsigned tx_capacity(const lr2021_sim *s)
 { return (s->tx_base&0x7FFFFF)==0x4000 && s->tx_size==0x3FC ? 1024u : 256u; }
+static bool raw_route(const lr2021_sim *s)
+{ return s->packet_type==2 && (s->route==0x08 || s->route==0x09 || s->route==0x0E); }
 static unsigned rate(const lr2021_sim *s)
-{ static const unsigned r[]={0,0,125000,250000,500000,1000000}; return s->lora_bw<6?r[s->lora_bw]:0; }
+{
+    static const unsigned r[]={0,0,125000,250000,500000,1000000};
+    if(raw_route(s))return s->route_rate;
+    return s->packet_type==0 && s->route==0x0A && s->lora_bw<6 ? r[s->lora_bw] : 0;
+}
 static int16_t noise(lr2021_sim *s)
 {
     uint32_t x=s->noise; x^=x<<13; x^=x>>17; x^=x<<5; s->noise=x;
@@ -48,17 +54,25 @@ static void produce(lr2021_sim *s, uint64_t pair)
         if(s->phase<-6.283185307179586)s->phase+=6.283185307179586;
         i=(int16_t)(a*cos(s->phase))+noise(s); q=(int16_t)(a*sin(s->phase))+noise(s);
     }
-    unsigned cap=rx_capacity(s);
+    unsigned cap=rx_capacity(s), size=raw_route(s)?2:4;
     if(s->overflow_after && pair>=s->overflow_after)s->rx_flags|=0x10;
-    if(s->rx_level+4>cap || (s->rx_flags&0x10)) { s->rx_flags|=0x10; return; }
+    if(s->rx_level+size>cap || (s->rx_flags&0x10)) { s->rx_flags|=0x10; return; }
     uint8_t *p=s->rx_fifo+s->rx_level;
-    p[0]=(uint8_t)i; p[1]=(uint8_t)((uint16_t)i>>8); p[2]=(uint8_t)q; p[3]=(uint8_t)((uint16_t)q>>8);
-    s->rx_level+=4;
+    if(size==2) {
+        if(s->pattern==LR2021_SIM_COUNTER) { p[0]=(uint8_t)pair; p[1]=(uint8_t)(pair>>8); }
+        else if(s->route==0x0E) { /* IQ6 in the high bits, gain step in the low bits */
+            unsigned g=s->step?s->step:13;
+            p[0]=(uint8_t)(((i>>10)*4)|(g&3)); p[1]=(uint8_t)(((q>>10)*4)|((g>>2)&3));
+        } else { p[0]=(uint8_t)(i>>8); p[1]=(uint8_t)(q>>8); }
+    } else {
+        p[0]=(uint8_t)i; p[1]=(uint8_t)((uint16_t)i>>8); p[2]=(uint8_t)q; p[3]=(uint8_t)((uint16_t)q>>8);
+    }
+    s->rx_level+=size;
 }
 static void advance(lr2021_sim *s)
 {
     uint64_t now=lr2021_sim_now_us(s);
-    if(s->mode==RX && s->route==0x0A && rate(s)) {
+    if(s->mode==RX && rate(s)) {
         uint64_t target=s->rx_origin+(now-s->rx_t0)*rate(s)/1000000u;
         /* Bound the catch-up after a long host stall to one overfull FIFO. */
         if(target>s->rx_pairs+300) {
@@ -147,7 +161,7 @@ static uint8_t execute(lr2021_sim *s, uint16_t op, const uint8_t *a, size_t n)
     case 0x0203: return n==2 && (int8_t)a[0]>=-19 && (int8_t)a[0]<=44 ? OK : PERR;
     case 0x0207: if(n!=1 || !idle)return FAIL; s->packet_type=a[0]; return OK;
     case 0x020C:
-        if(n!=3 || s->packet_type!=0 || (s->errors&LR2021_IQ_ERR_PLL_LOCK))return FAIL;
+        if(n!=3 || (s->packet_type!=0 && s->packet_type!=2) || (s->errors&LR2021_IQ_ERR_PLL_LOCK))return FAIL;
         s->mode=RX; s->rx_t0=lr2021_sim_now_us(s); s->rx_origin=s->rx_pairs; s->rx_starts++; return OK;
     case 0x020D:
         if(n!=3 || s->packet_type!=0x0A || !s->tx_n || s->tx_selector)return FAIL;
@@ -158,7 +172,12 @@ static uint8_t execute(lr2021_sim *s, uint16_t op, const uint8_t *a, size_t n)
     case 0x0281: return n==7 && s->packet_type==0x0A ? OK : FAIL;
     case 0x0282: return n==6 && s->packet_type==0x0A ? OK : FAIL;
     case 0x0284: return n==5 && s->packet_type==0x0A ? OK : FAIL;
-    case 0x0290: if(n!=11 || !idle)return FAIL; s->route=a[5]; return OK;
+    case 0x0290:
+        if(n!=11 || !idle)return FAIL;
+        s->route=a[5]; s->route_code=a[0];
+        s->route_rate=((uint32_t)a[1]<<24)|((uint32_t)a[2]<<16)|((uint32_t)a[3]<<8)|a[4];
+        return OK;
+    case 0x0240: return n==9 && s->packet_type==2 ? OK : FAIL;
     case 0x0293:
         if(n!=7 || s->packet_type!=0x0A || !idle)return FAIL;
         s->tx_n=((unsigned)a[0]<<8)|a[1];

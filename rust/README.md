@@ -3,8 +3,8 @@
 | Crate | What it is |
 | --- | --- |
 | `lr2021-sys` | Raw bindings to the C library in this repository, compiled with `cc`: radio HAL types, the generic SPI device, receive sessions, the 0x0293 TX burst, the simulator, the bridge codec and, on Unix, the host client. A test checks every mirrored struct against the C compiler. |
-| `lr2021` | Safe API. `Simulator` runs the library's device code against the LR2021 model (sessions with live gain, TX with capture, fault injection). `Host` opens the same devices as the SoapySDR module (`serial`, `host`, `spidev`, `sim` arguments). `TxBurst::check` applies the TX contract. |
-| `lr2021-bridge` | The [bridge protocol](../docs/bridge-protocol.md) in pure Rust with no dependencies: frames, parser, records, CS16/CS12 and a blocking `Client` over TCP or any byte stream. |
+| `lr2021` | Safe API. `Simulator` runs the library's device code against the LR2021 model (sessions with live gain, TX with capture, fault injection). `Host` opens the same devices as the SoapySDR module (`serial`, `host`, `spidev`, `sim` arguments). `RxConfig` selects source 2 or the raw routes. `TxBurst::check` applies the hardware limits, or the measured contract with `checked`. |
+| `lr2021-bridge` | The [bridge protocol](../docs/bridge-protocol.md) in pure Rust with no dependencies: frames, parser, records, CS16/CS12/IQ8/IQ6G and a blocking `Client` over TCP or any byte stream. |
 
 ```bash
 cargo test --workspace

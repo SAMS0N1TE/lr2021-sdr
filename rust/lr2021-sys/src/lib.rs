@@ -22,7 +22,8 @@ pub const LR2021_IQ_PATH_AUTO: u8 = 2;
 pub const LR2021_IQ_MIN_HZ: u32 = 100_000_000;
 pub const LR2021_IQ_MAX_HZ: u32 = 2_740_000_000;
 pub const LR2021_IQ_TX_MAX_SAMPLES: u32 = 32767;
-pub const LR2021_IQ_TX_UNCHECKED: u8 = 1;
+pub const LR2021_IQ_TX_CHECKED: u8 = 1;
+pub const LR2021_IQ_TX_SIMO: u8 = 2;
 pub const LR2021_SIM_COUNTER: c_int = 0;
 pub const LR2021_SIM_TONE: c_int = 1;
 pub const LR2021_BRIDGE_VERSION: u8 = 1;
@@ -30,7 +31,8 @@ pub const LR2021_BRIDGE_HEADER: usize = 8;
 pub const LR2021_BRIDGE_MAX_PAYLOAD: usize = 2048;
 pub const LR2021_BRIDGE_MAX_FRAME: usize = LR2021_BRIDGE_HEADER + LR2021_BRIDGE_MAX_PAYLOAD + 4;
 pub const LR2021_BRIDGE_RX_DATA_HEADER: usize = 32;
-pub const LR2021_BRIDGE_RX_MAX_PAIRS: usize = 480;
+pub const LR2021_BRIDGE_RX_MAX_PAIRS: usize = 960;
+pub const LR2021_BRIDGE_RX_MAX_BYTES: usize = 1920;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default)]
@@ -39,6 +41,7 @@ pub struct lr2021_iq_profile {
     pub fw_major: c_uint, pub fw_minor: c_uint, pub spreading_factor: c_uint,
     pub frequency_hz: u32, pub bandwidth_hz: u32,
     pub rx_path: u8, pub gain_step: u8, pub rx_boost: u8,
+    pub route: u8, pub input_code: u8, pub route_rate_hz: u32,
 }
 pub type lr2021_iq_sink = Option<unsafe extern "C" fn(*mut c_void, *const u8, usize, u64) -> bool>;
 #[repr(C)]
@@ -89,6 +92,7 @@ pub struct lr2021_iq_session {
 pub struct lr2021_iq_rx {
     pub frequency_hz: u32, pub bandwidth_hz: u32,
     pub gain_step: u8, pub boost: u8, pub path: u8,
+    pub route: u8, pub input_code: u8, pub rate_hz: u32,
 }
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -128,7 +132,10 @@ pub struct lr2021_bridge_hello {
 }
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct lr2021_bridge_rx { pub frequency_hz: u32, pub bandwidth_hz: u32, pub gain_step: u8, pub boost: u8, pub path: u8 }
+pub struct lr2021_bridge_rx {
+    pub frequency_hz: u32, pub bandwidth_hz: u32, pub gain_step: u8, pub boost: u8, pub path: u8,
+    pub route: u8, pub input_code: u8, pub rate_hz: u32,
+}
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct lr2021_bridge_rx_ack { pub status: i32, pub radio_errors: u16, pub rate_hz: u32 }

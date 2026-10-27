@@ -45,15 +45,28 @@ pub enum Path { Lf = 0, Hf = 1, Auto = 2 }
 
 /// Receive configuration. `gain_step` 0 selects the chip AGC.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct RxConfig { pub frequency_hz: u32, pub bandwidth_hz: u32, pub gain_step: u8, pub boost: u8, pub path: Path }
+pub struct RxConfig {
+    pub frequency_hz: u32, pub bandwidth_hz: u32, pub gain_step: u8, pub boost: u8, pub path: Path,
+    /// Receive route; source 2 uses the bandwidth, the others `rate_hz` and `input_code`.
+    pub route: Route, pub input_code: u8, pub rate_hz: u32,
+}
+/// Source 2: IQ16 at 4 x LoRa bandwidth. Sources 0, 1: IQ8; source 6: gain-tagged IQ6.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Route { Source2 = 0, Source0 = 1, Source1 = 2, Source6 = 3 }
 impl Default for RxConfig {
-    fn default() -> Self { RxConfig { frequency_hz: 154_785_000, bandwidth_hz: 31_250, gain_step: 13, boost: 0, path: Path::Auto } }
+    fn default() -> Self {
+        RxConfig { frequency_hz: 154_785_000, bandwidth_hz: 31_250, gain_step: 13, boost: 0, path: Path::Auto,
+            route: Route::Source2, input_code: 17, rate_hz: 576_000 }
+    }
 }
 impl RxConfig {
-    pub fn sample_rate(&self) -> Option<u32> { rate_for_bandwidth(self.bandwidth_hz) }
+    pub fn sample_rate(&self) -> Option<u32> {
+        if self.route == Route::Source2 { rate_for_bandwidth(self.bandwidth_hz) } else { Some(self.rate_hz) }
+    }
     fn raw(&self) -> sys::lr2021_iq_rx {
         sys::lr2021_iq_rx { frequency_hz: self.frequency_hz, bandwidth_hz: self.bandwidth_hz,
-            gain_step: self.gain_step, boost: self.boost, path: self.path as u8 }
+            gain_step: self.gain_step, boost: self.boost, path: self.path as u8,
+            route: self.route as u8, input_code: self.input_code, rate_hz: self.rate_hz }
     }
     pub fn validate(&self) -> Result<()> { check(unsafe { sys::lr2021_iq_rx_check(&self.raw()) }) }
 }
@@ -92,19 +105,19 @@ pub struct TxBurst<'a> {
     pub start_us: u64,
     pub pa: Pa,
     /// Keep only hardware limits; see `untested`.
-    pub unchecked: bool,
+    pub checked: bool,
 }
 impl<'a> TxBurst<'a> {
     pub fn new(samples: &'a [[i8; 2]], rate_hz: u32, frequency_hz: u32) -> Self {
-        TxBurst { samples, repeats: 1, rate_hz, frequency_hz, power_half_db: -18, start_us: 0, pa: Pa::Auto, unchecked: false }
+        TxBurst { samples, repeats: 1, rate_hz, frequency_hz, power_half_db: -18, start_us: 0, pa: Pa::Auto, checked: false }
     }
     fn raw(&self) -> sys::lr2021_iq_tx {
         sys::lr2021_iq_tx { samples: self.samples.as_ptr() as *const i8, pairs: self.samples.len(),
             repeats: self.repeats, rate_hz: self.rate_hz, frequency_hz: self.frequency_hz,
             power_half_db: self.power_half_db, start_us: self.start_us, pa: self.pa as u8,
-            flags: if self.unchecked { sys::LR2021_IQ_TX_UNCHECKED } else { 0 } }
+            flags: if self.checked { sys::LR2021_IQ_TX_CHECKED } else { 0 } }
     }
-    /// Validates against the tested contract, or hardware limits when unchecked.
+    /// Validates against hardware limits, or the measured contract when checked.
     pub fn check(&self) -> Result<()> { check(unsafe { sys::lr2021_iq_tx_check(&self.raw()) }) }
     /// Bits of the tested contract this burst leaves (`LR2021_IQ_TX_UNTESTED_*`).
     pub fn untested(&self) -> u32 { unsafe { sys::lr2021_iq_tx_untested(&self.raw()) } }
@@ -242,7 +255,8 @@ mod host {
         /// Configures receive; returns (radio errors, nominal rate).
         pub fn set_rx(&self, rx: &RxConfig) -> Result<(u16, u32)> {
             let m = sys::lr2021_bridge_rx { frequency_hz: rx.frequency_hz, bandwidth_hz: rx.bandwidth_hz,
-                gain_step: rx.gain_step, boost: rx.boost, path: rx.path as u8 };
+                gain_step: rx.gain_step, boost: rx.boost, path: rx.path as u8,
+                route: rx.route as u8, input_code: rx.input_code, rate_hz: rx.rate_hz };
             let mut ack = sys::lr2021_bridge_rx_ack::default();
             hcheck(unsafe { h::lr2021_host_set_rx(self.h, &m, &mut ack) })?;
             Ok((ack.radio_errors, ack.rate_hz))
@@ -263,7 +277,7 @@ mod host {
         pub fn transmit(&self, burst: &TxBurst) -> Result<TxEnd> {
             let p = sys::lr2021_bridge_tx_begin { bytes: 0, crc32: 0, rate_hz: burst.rate_hz, frequency_hz: burst.frequency_hz,
                 power_half_db: burst.power_half_db as i8, repeats: burst.repeats as u8, start_time: burst.start_us,
-                pa: burst.pa as u8, flags: if burst.unchecked { sys::LR2021_IQ_TX_UNCHECKED } else { 0 } };
+                pa: burst.pa as u8, flags: if burst.checked { sys::LR2021_IQ_TX_CHECKED } else { 0 } };
             let mut e = TxEnd::default();
             hcheck(unsafe { h::lr2021_host_tx(self.h, burst.samples.as_ptr() as *const i8, burst.samples.len(), &p, &mut e) }).map(|_| e)
         }
@@ -282,7 +296,10 @@ mod tests {
     fn rates_and_limits() {
         assert_eq!(rate_for_bandwidth(31_250), Some(125_000));
         assert_eq!(rate_for_bandwidth(62_500), Some(250_000));
-        assert_eq!(rate_for_bandwidth(125_000), None);
+        assert_eq!(rate_for_bandwidth(125_000), Some(500_000));
+        assert_eq!(rate_for_bandwidth(250_000), Some(1_000_000));
+        assert_eq!(rate_for_bandwidth(100_000), None);
+        assert_eq!(RxConfig { route: Route::Source0, ..Default::default() }.sample_rate(), Some(576_000));
         assert_eq!(bandwidth_for_rate(250_000), Some(62_500));
         assert!(RxConfig { frequency_hz: 99_000_000, ..Default::default() }.validate().is_err());
         assert!(RxConfig { frequency_hz: 2_740_000_000, ..Default::default() }.validate().is_ok());
@@ -290,10 +307,10 @@ mod tests {
         let mut b = TxBurst::new(&iq, 19_200, 433_920_000);
         assert!(b.check().is_ok());
         b.rate_hz = 20_000;
-        assert_eq!(b.check(), Err(Error(sys::LR2021_IQ_ARGUMENT)));
-        b.unchecked = true;
         assert!(b.check().is_ok());
         assert_eq!(b.untested(), 1);
+        b.checked = true;
+        assert_eq!(b.check(), Err(Error(sys::LR2021_IQ_ARGUMENT)));
     }
     #[test]
     fn simulator_session_gain_and_tx() {

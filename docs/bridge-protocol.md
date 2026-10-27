@@ -40,7 +40,7 @@ Every response payload starts with an `i32 status`.
 | Type | Request | Payload | Response after status | Context |
 | ---: | --- | --- | --- | --- |
 | `01` | HELLO | `u16 host_version` | rest of the hello record | reader |
-| `02` | SET_RX | RX record (11 bytes) | `u16 radio_errors, u32 rate_hz` | worker |
+| `02` | SET_RX | RX record (17 bytes, or 11 for source 2) | `u16 radio_errors, u32 rate_hz` | worker |
 | `03` | RX_START | `u16 fifo_capacity, u32 duration_ms`, optional `u8 format` | `u32 generation, u32 rate_hz` | worker |
 | `04` | RX_STOP | empty | none | reader |
 | `05` | SET_GAIN | `u8 step, u8 boost` | `u16 radio_errors, u32 rate_hz` | reader while streaming, else worker; while streaming only the step may change (EBUSY otherwise) |
@@ -87,7 +87,7 @@ HELLO response, 84 bytes:
 | ---: | --- |
 | 0 | `i32 status` |
 | 4 | `u16 protocol_version` (1) |
-| 6 | `u16 caps`: 1 RX, 2 TX, 4 timed TX, 8 live gain, 16 250 ksample/s offered, 32 CS12 format, 64 unchecked TX |
+| 6 | `u16 caps`: 1 RX, 2 TX, 4 timed TX, 8 live gain, 16 source 2 above 125 ksample/s, 32 CS12 format, 64 checked-TX flag, 128 raw routes |
 | 8 | `u8 rom_major, u8 rom_minor` (1, 24) |
 | 10 | `u16 max_payload` (2048) |
 | 12 | `u32 clock_hz`, unit of device time (1000000: microseconds) |
@@ -95,11 +95,16 @@ HELLO response, 84 bytes:
 | 20 | `char name[32]`, NUL padded firmware name and version |
 | 52 | `char id[32]`, NUL padded board identifier |
 
-RX record, 11 bytes: `u32 frequency_hz` (100000000..2740000000),
-`u32 bandwidth_hz` (LoRa bandwidth 31250 or 62500), `u8 gain_step` (0 chip AGC,
-1..13), `u8 boost` (0..7, acts at steps 12 and 13), `u8 path` (0 LF, 1 HF,
-2 automatic: LF below 1.5 GHz). The rate is 4 times the bandwidth: 125000 or
-250000 complex pairs/s ([receive range report](../research/rx-range-and-gain/README.md)).
+RX record, 17 bytes: `u32 frequency_hz` (100000000..2740000000),
+`u32 bandwidth_hz` (LoRa bandwidth 31250, 62500, 125000 or 250000 for source 2),
+`u8 gain_step` (0 chip AGC, 1..13), `u8 boost` (0..7, acts at steps 12 and 13),
+`u8 path` (0 LF, 1 HF, 2 automatic: LF below 1.5 GHz), `u8 route` (0 source 2,
+1 source 0, 2 source 1, 3 source 6), `u8 input_code` (FSK RX filter code for
+routes 1..3), `u32 rate_hz` (output rate for routes 1..3, 1000..4000000). The
+first 11 bytes alone select source 2. The source-2 rate is 4 times the
+bandwidth, 125000 to 1000000 complex pairs/s
+([receive range report](../research/rx-range-and-gain/README.md)); routes 1..3
+run at `rate_hz` ([raw routes](host-sdr.md#raw-receive-routes)).
 `radio_errors` is GetErrors after configuration; IMG_CAL (`0x0080`) is reported
 without failing, as it stays flagged near 100 MHz although reception works.
 
@@ -107,7 +112,7 @@ TX record, 28 bytes: `u32 bytes`, `u32 crc32` of the uploaded bytes,
 `u32 rate_hz`, `u32 frequency_hz`, `i8 power_half_db` (SetTxParams units,
 -18 = -9 dBm), `u8 repeats`, `u64 start_time` (device time, 0 = now),
 `u8 pa` (0 LF, 1 HF, 2 by frequency: HF from 1.5 GHz), `u8 flags` (bit 0:
-unchecked, see [Transmit](#transmit); bit 1: run the burst with SetRegMode
+checked, see [Transmit](#transmit); bit 1: run the burst with SetRegMode
 SIMO_NORMAL, the DC-DC converter for the PA supply, instead of the LDO the
 receive setup uses; the reset after the burst returns to LDO).
 
@@ -115,7 +120,8 @@ receive setup uses; the reset after the burst returns to LDO).
 
 ### RX_DATA (`C0`)
 
-32-byte header, then 1..480 packed pairs:
+32-byte header, then up to 1920 bytes of packed pairs (480 CS16, 640 CS12 or
+960 two-byte pairs):
 
 | Offset | Field |
 | ---: | --- |
@@ -127,18 +133,19 @@ receive setup uses; the reset after the burst returns to LDO).
 | 28 | `u16 pairs` |
 | 30 | `u8 format`, `u8 shift` |
 
-Formats, both carrying the radio's 16-bit source-2 pairs (I low halfword,
-positive frequency is RF above the tuned frequency):
+Formats (I first, positive frequency is RF above the tuned frequency):
 
 | Format | Bytes per pair | Encoding |
 | ---: | ---: | --- |
 | 0 CS16 (default) | 4 | int16 I, int16 Q, little endian, exactly as read from the FIFO |
-| 1 CS12 | 3 | every value of the frame is shifted right by `shift` (0..4, the smallest that fits -2048..2047, rounding toward minus infinity); the 24-bit word `I12 | Q12 << 12` is stored little endian; the host multiplies by `2^shift` |
+| 1 CS12 | 3 | source 2 packed for slower links: every value of the frame is shifted right by `shift` (0..4, the smallest that fits -2048..2047, rounding toward minus infinity); the 24-bit word `I12 | Q12 << 12` is stored little endian; the host multiplies by `2^shift` |
+| 2 IQ8 | 2 | sources 0 and 1: int8 I, int8 Q as read from the FIFO |
+| 3 IQ6G | 2 | source 6 as read from the FIFO: `I = signed(byte0) >> 2`, `Q = signed(byte1) >> 2`, gain step `(byte0 & 3) | (byte1 & 3) << 2` |
 
-CS12 is transport packing for links that cannot carry CS16, such as the
-CH343 UART. It is exact while a frame stays within ±2047 counts and otherwise
-drops the low `shift` bits of that frame; it never clips. The frame's shift is
-visible to the host. CS16 is the reference format.
+CS16 and CS12 carry source 2; RX_START's format byte chooses between them.
+Routes 1..3 always travel as IQ8 or IQ6G. CS12 is exact while a frame stays
+within ±2047 counts and otherwise keeps the top 12 bits; the frame's shift is
+visible to the host.
 
 The radio side only publishes blocks after checking the sticky FIFO loss flags,
 so every pair the device sends is part of a continuous capture. If the link is
@@ -163,8 +170,8 @@ u64 max_service_gap_us`. Sent after the last RX_DATA of the generation.
 u16 min_level, u32 irq, u32 samples, u64 start_time, u64 elapsed_us,
 u64 max_service_gap_us, u32 untested`. `tx_flags` bits `0x10`/`0x20` mean TX
 FIFO overflow/underflow and invalidate the burst. `start_time` is the device
-time SetTx was issued. `untested` lists the parts of the tested contract the
-burst left: 1 rate, 2 sample radius, 4 duration, 8 frequency, 16 power,
+time SetTx was issued. `untested` lists the settings outside the measured
+TX contract: 1 rate, 2 sample radius, 4 duration, 8 frequency, 16 power,
 32 HF PA, 64 repeats.
 
 ## Transmit
@@ -175,18 +182,16 @@ burst left: 1 rate, 2 sample radius, 4 duration, 8 frequency, 16 power,
 3. `TX_COMMIT` checks the CRC and the full contract, answers, transmits, then
    sends TX_END. The upload stays ready: a later TX_COMMIT sends it again.
 
-By default a burst must stay inside the repository's tested TX path
-([TX playback](tx-playback.md)): signed I8, Q8 pairs with `I*I + Q*Q <= 56*56`;
-rates 4800, 9600, 19200, 38400, 76800 and 125000; 1..16 repeats; at most
-900 ms; LF PA, 150..960 MHz; power -19..20 (-9.5..+10 dBm configured).
-
-With the unchecked flag only hardware limits remain: at most 32767 samples
-per burst including repeats (the ROM's 16-bit byte count), 1..255 repeats,
-1..1000000 samples/s, 100..2740 MHz, the datasheet SetTxParams range of the
-PA in use (LF -19..44, HF -39..24) and a SetTx timeout below 512 s. The
-`untested` field of TX_END then says what left the tested contract. The PA
-settings are taken from the datasheet tables and are not measured on this
-board; the RF switch table must have the matching TX bits set.
+A burst may use: at most 32767 samples including repeats (the ROM's 16-bit
+byte count), 1..255 repeats, 1..1000000 samples/s, 100..2740 MHz, the
+datasheet SetTxParams range of the PA in use (LF -19..44, HF -39..24) and a
+SetTx timeout below 512 s. The measured TX contract
+([TX playback](tx-playback.md)) is signed I8, Q8 pairs with
+`I*I + Q*Q <= 56*56`; rates 4800, 9600, 19200, 38400, 76800 and 125000; 1..16
+repeats; up to 900 ms; LF PA, 150..960 MHz; power -19..20. TX_END's `untested`
+field reports every setting outside it, and with the checked flag the device
+refuses such a burst with ERANGE instead. PA settings follow the datasheet
+tables; set the RF switch table's TX bits for the PA in use.
 
 The device holds the radio for the burst,
 then resets it and restores the last receive configuration. Upload requests
@@ -207,17 +212,20 @@ the bridge rate, in case the board is already in bridge mode; if nothing
 answers they send `\r\nbridge <baud>\r\n` at 115200, wait 100 ms, change rate
 and retry HELLO. BYE returns the board to its console at 115200.
 
-Link budget with full 480-pair frames (44 bytes of framing each):
+Link budget with full frames (44 bytes of framing each):
 
-| Rate | CS16 | CS12 |
-| ---: | ---: | ---: |
-| 125000 pairs/s | 511 kB/s | 386 kB/s |
-| 250000 pairs/s | 1023 kB/s | 773 kB/s |
+| Rate | CS16 | CS12 | IQ8 / IQ6G |
+| ---: | ---: | ---: | ---: |
+| 125000 pairs/s | 511 kB/s | 386 kB/s | 256 kB/s |
+| 250000 pairs/s | 1023 kB/s | 773 kB/s | 512 kB/s |
+| 576000 pairs/s | | | 1179 kB/s |
+| 1000000 pairs/s | 4092 kB/s | 3092 kB/s | 2046 kB/s |
 
-A UART with 8N1 carries baud/10 bytes/s. On the LilyGO T-Display-P4 the
-CH343 link was measured to work at 3 and 4 Mbaud (400 kB/s) but not at
-5 Mbaud, so serial streaming at 125000 pairs/s needs CS12 at 4 Mbaud, and
-250000 pairs/s needs TCP or another faster link.
+A UART with 8N1 carries baud/10 bytes/s. On the LilyGO T-Display-P4 the CH343
+link runs at 3 and 4 Mbaud (400 kB/s), which carries source 2 at 125000
+pairs/s as CS12 and two-byte routes up to about 190000 pairs/s; the board's
+Wi-Fi TCP link carried CS16 at 250000 pairs/s for 10 minutes with every pair
+delivered.
 
 Opening a USB serial port can reset some boards. The host client deasserts
 DTR and RTS after opening and waits for the boot banner before talking.

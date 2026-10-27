@@ -40,7 +40,7 @@ int lr2021_iq_tx_check(const lr2021_iq_tx *t)
     bool hf=lr2021_iq_tx_pa(t);
     if(n>LR2021_IQ_TX_MAX_SAMPLES || t->power_half_db<(hf?-39:-19) || t->power_half_db>(hf?24:44) ||
        n*1000000u>500000000ull*t->rate_hz)return LR2021_IQ_ARGUMENT;
-    if(!(t->flags&LR2021_IQ_TX_UNCHECKED) && lr2021_iq_tx_untested(t))return LR2021_IQ_ARGUMENT;
+    if((t->flags&LR2021_IQ_TX_CHECKED) && lr2021_iq_tx_untested(t))return LR2021_IQ_ARGUMENT;
     return 0;
 }
 /* Queue a bounded slice of the repeated buffer; positions are bytes. */

@@ -7,17 +7,16 @@ extern "C" {
 #endif
 /* Finite I/Q burst through ROM 1.24 command 0x0293, selector 0, after OOK
  * setup (docs/tx-discovery.md, docs/tx-playback.md). Signed interleaved I8,Q8.
- * By default the burst must stay inside this repository's tested contract:
- *   rates 4800, 9600, 19200, 38400, 76800, 125000 complex samples/s;
- *   at most 900 ms of samples; 1..16 repetitions; every sample
- *   I*I+Q*Q <= 56*56 (saturation starts near radius 64); LF PA, 150..960 MHz
- *   (433.92 and 915 MHz are the measured points); power -9.5..+10 dBm.
- * LR2021_IQ_TX_UNCHECKED keeps only hardware limits: at most 32767 samples per
- * run including repetitions (the ROM stores a 16-bit byte count for 2 x N),
- * 1..255 repetitions, 1..1000000 samples/s, 100..2740 MHz (the receive
- * synthesizer range), the datasheet SetTxParams range of the selected PA and a
- * SetTx timeout below 512 s. Anything outside the tested contract is then
- * reported in result.untested instead of refused.
+ * Only hardware limits apply: at most 32767 samples per run including
+ * repetitions (the ROM stores a 16-bit byte count for 2 x N), 1..255
+ * repetitions, 1..1000000 samples/s, 100..2740 MHz (the receive synthesizer
+ * range), the datasheet SetTxParams range of the selected PA and a SetTx
+ * timeout below 512 s. result.untested reports what leaves the measured
+ * contract: rates 4800, 9600, 19200, 38400, 76800, 125000 complex samples/s;
+ * at most 900 ms; 1..16 repetitions; every sample I*I+Q*Q <= 56*56
+ * (saturation starts near radius 64); LF PA, 150..960 MHz (433.92 and 915 MHz
+ * are the measured points); power -9.5..+10 dBm. LR2021_IQ_TX_CHECKED refuses
+ * such bursts instead.
  * The burst holds the radio, uses the 1 KiB TX FIFO and owned fast SPI, stops on
  * FIFO error or timeout, then resets and restores the receive configuration.
  * The service loop busy-polls; on an RTOS run it where no idle-task watchdog
@@ -35,7 +34,7 @@ extern "C" {
 /* LR2021_IQ_TX_SIMO: SetRegMode SIMO_NORMAL (DC-DC for VDCC and for VPAX in
  * TX) for the burst; the reset afterwards returns to LDO. The receive setup
  * uses LDO; whether this board's PA needs the SIMO is not yet measured. */
-enum { LR2021_IQ_TX_UNCHECKED=1u, LR2021_IQ_TX_SIMO=2u };
+enum { LR2021_IQ_TX_CHECKED=1u, LR2021_IQ_TX_SIMO=2u };
 enum { LR2021_IQ_PA_LF=0, LR2021_IQ_PA_HF=1, LR2021_IQ_PA_AUTO=2 };
 /* result.untested bits */
 enum {
@@ -51,7 +50,7 @@ typedef struct {
     uint32_t rate_hz, frequency_hz;
     int power_half_db;      /* SetTxParams units: LF -19..44, HF -39..24 */
     uint64_t start_us;      /* 0 = immediately, else wait for now_us() >= start_us */
-    uint8_t pa, flags;      /* LR2021_IQ_PA_*, LR2021_IQ_TX_UNCHECKED */
+    uint8_t pa, flags;      /* LR2021_IQ_PA_*, LR2021_IQ_TX_CHECKED | LR2021_IQ_TX_SIMO */
 } lr2021_iq_tx;
 typedef struct {
     int error, stop_error, recovery_error;

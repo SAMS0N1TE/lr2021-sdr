@@ -25,7 +25,7 @@ int lr2021_rs_serve_sim(int fd, int pattern)
         lr2021_sim_init(sim);
         sim->clock=clock_us; sim->sleep=sleep_cb; sim->pattern=pattern; sim->stall_tolerant=true;
         lr2021_iq_bus bus=lr2021_sim_bus(sim);
-        const lr2021_iq_rx rx={154785000,31250,13,0,LR2021_IQ_PATH_AUTO};
+        const lr2021_iq_rx rx={154785000,31250,13,0,LR2021_IQ_PATH_AUTO,0,0,0};
         e=lr2021_iq_dev_open(dev,&bus,NULL,&rx);
         if(!e) {
             lr2021_bridge_radio radio={dev,&dev->hal,NULL,configure,rx,1,24,

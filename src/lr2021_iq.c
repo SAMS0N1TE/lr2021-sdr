@@ -100,11 +100,24 @@ static int stream(const lr2021_iq_hal *h, unsigned duration,
     void *c=h->context;
     h->lock(c);
     lr2021_iq_profile p={0}; int e=preflight(h,&p);
-    if(!e && p.bandwidth_hz!=31250 && (!session || p.bandwidth_hz!=62500))e=LR2021_IQ_STATE;
+    if(!e && !session && (p.bandwidth_hz!=31250 || p.route))e=LR2021_IQ_STATE;
+    if(!e && session && !p.route && p.bandwidth_hz!=31250 && p.bandwidth_hz!=62500 &&
+       p.bandwidth_hz!=125000 && p.bandwidth_hz!=250000)e=LR2021_IQ_STATE;
+    if(!e && session && (p.route>3 || (p.route && !p.route_rate_hz)))e=LR2021_IQ_STATE;
+    const bool raw=session && p.route;
+    const unsigned pair_bytes=raw?2u:4u;
     bool touched=!e, fast=false;
     if(!e){e=h->fast(c,true);fast=!e;}
     if(!e)e=h->standby(c);
-    const uint8_t args[]={0xFF,0,0,0,0,0x0A,0,0,0,0,1};
+    /* 0x0290 route: byte 0 input code, bytes 1..4 output rate, byte 5 0x08|source
+     * for FIFO output, last byte FIFO enable. Source 2 uses its native rate. */
+    static const uint8_t sources[4]={2,0,1,6};
+    uint8_t args[]={0xFF,0,0,0,0,0x0A,0,0,0,0,1};
+    if(raw) {
+        uint32_t q=p.route_rate_hz;
+        args[0]=p.input_code; args[1]=(uint8_t)(q>>24); args[2]=(uint8_t)(q>>16);
+        args[3]=(uint8_t)(q>>8); args[4]=(uint8_t)q; args[5]=(uint8_t)(0x08|sources[p.route]);
+    }
     const uint8_t clear[]={0x3F,0x3F};
     if(!e)e=h->write(c,0x0290,args,sizeof(args));
     if(!e && capacity==1024)e=h->write32(c,0xF30028,0x804400);
@@ -155,7 +168,7 @@ static int stream(const lr2021_iq_hal *h, unsigned duration,
                         r->fifo_flags|=flags[0];
                         if(!e && (flags[0]&0x30))e=LR2021_IQ_DATA;
                         if(!e) {
-                            bool more=sink(context,pending,pending_bytes,r->validated_bytes/4);
+                            bool more=sink(context,pending,pending_bytes,r->validated_bytes/pair_bytes);
                             if(more)r->validated_bytes+=pending_bytes;
                             pending_bytes=0;
                             if(!more){r->stopped_by_sink=true;break;}
@@ -173,7 +186,7 @@ static int stream(const lr2021_iq_hal *h, unsigned duration,
         /* Validate and publish the final tail before stopping the producer.
          * Do not clear flags during a session: a failure must stay visible. */
         if(checked && !e && !f && !(flags[0]&0x30) && pending_bytes) {
-            if(!sink(context,pending,pending_bytes,r->validated_bytes/4))r->stopped_by_sink=true;
+            if(!sink(context,pending,pending_bytes,r->validated_bytes/pair_bytes))r->stopped_by_sink=true;
             else r->validated_bytes+=pending_bytes;
         }
         int stop=h->standby(c);
@@ -185,7 +198,8 @@ static int stream(const lr2021_iq_hal *h, unsigned duration,
         if(!r->recovery_error)r->recovery_error=h->restore(c,&p);
         if(!r->recovery_error)r->recovery_error=bus;
     }
-    r->capture_error=e; r->nominal_rate_hz=session && p.bandwidth_hz==62500?250000:125000;
+    r->capture_error=e;
+    r->nominal_rate_hz=raw?p.route_rate_hz:session?4*p.bandwidth_hz:125000;
     h->unlock(c); return outcome(r);
 }
 

@@ -3,16 +3,20 @@
 #include <string.h>
 
 unsigned lr2021_iq_rate(uint32_t bw)
-{ return bw==31250 ? 125000u : bw==62500 ? 250000u : 0; }
+{ return bw==31250 || bw==62500 || bw==125000 || bw==250000 ? 4*bw : 0; }
 uint32_t lr2021_iq_bandwidth(unsigned rate)
-{ return rate==125000 ? 31250u : rate==250000 ? 62500u : 0; }
+{ return lr2021_iq_rate(rate/4)==rate ? rate/4 : 0; }
+unsigned lr2021_iq_rx_rate(const lr2021_iq_rx *c)
+{ return c->route ? c->rate_hz : lr2021_iq_rate(c->bandwidth_hz); }
+unsigned lr2021_iq_rx_pair_bytes(const lr2021_iq_rx *c) { return c->route ? 2u : 4u; }
 unsigned lr2021_iq_path(uint32_t hz, unsigned path)
 { return path==LR2021_IQ_PATH_AUTO ? (hz>=LR2021_IQ_HF_HZ ? 1u : 0u) : path; }
 int lr2021_iq_rx_check(const lr2021_iq_rx *c)
 {
     return c && c->frequency_hz>=LR2021_IQ_MIN_HZ && c->frequency_hz<=LR2021_IQ_MAX_HZ &&
-        lr2021_iq_rate(c->bandwidth_hz) && c->gain_step<=13 && c->boost<=7 &&
-        c->path<=LR2021_IQ_PATH_AUTO ? 0 : LR2021_IQ_ARGUMENT;
+        c->route<=LR2021_IQ_ROUTE_SOURCE6 &&
+        (c->route ? c->rate_hz>=1000 && c->rate_hz<=4000000u : lr2021_iq_rate(c->bandwidth_hz)!=0) &&
+        c->gain_step<=13 && c->boost<=7 && c->path<=LR2021_IQ_PATH_AUTO ? 0 : LR2021_IQ_ARGUMENT;
 }
 const char *lr2021_iq_strerror(int e)
 {
@@ -78,19 +82,24 @@ int lr2021_iq_configure(const lr2021_iq_hal *h, const lr2021_iq_rx *c, uint16_t 
     const uint8_t type=0, cal[6]={(uint8_t)(cell>>8),(uint8_t)cell,0,0,0,0};
     const uint8_t freq[4]={(uint8_t)(hz>>24),(uint8_t)(hz>>16),(uint8_t)(hz>>8),(uint8_t)hz};
     const uint8_t rxpath[2]={(uint8_t)path,c->boost}, step=c->gain_step;
-    /* SF7, BW code 2 (31.25 kHz) or 3 (62.5 kHz), CR 4/5; source-2 rate is 4 x BW. */
-    const uint8_t mod[2]={(uint8_t)(0x70|(c->bandwidth_hz==62500?3:2)),0x10};
+    /* SF7, BW code 2..5 (31.25..250 kHz), CR 4/5; source-2 rate is 4 x BW. */
+    const uint8_t bwcode=c->bandwidth_hz==31250?2:c->bandwidth_hz==62500?3:c->bandwidth_hz==125000?4:5;
+    const uint8_t mod[2]={(uint8_t)(0x70|bwcode),0x10};
+    /* Raw routes: FSK at 10 kbit/s, no shaping, RX filter code input_code,
+     * 5 kHz deviation; the 0x0290 route sets the output rate. */
+    const uint8_t fsk_type=2, fsk[9]={0,0,0x27,0x10,0,c->input_code,0,0x13,0x88};
     const uint8_t pkt[4]={0,8,255,2}, sync=0x12;
     e=h->standby(h->context);
     if(!e)e=put(h,0x0111,NULL,0);
-    if(!e)e=put(h,0x0207,&type,1);
+    if(!e)e=put(h,0x0207,c->route?&fsk_type:&type,1);
     if(!e)e=put(h,0x0123,cal,6);
     if(!e)e=put(h,0x0200,freq,4);
     if(!e)e=put(h,0x0201,rxpath,2);
     if(!e)e=put(h,0x021A,&step,1);
-    if(!e)e=put(h,0x0220,mod,2);
-    if(!e)e=put(h,0x0221,pkt,4);
-    if(!e)e=put(h,0x0223,&sync,1);
+    if(!e && c->route)e=put(h,0x0240,fsk,9);
+    if(!e && !c->route)e=put(h,0x0220,mod,2);
+    if(!e && !c->route)e=put(h,0x0221,pkt,4);
+    if(!e && !c->route)e=put(h,0x0223,&sync,1);
     uint8_t err[2]={0};
     if(!e)e=h->read(h->context,0x0110,err,2);
     unsigned v=((unsigned)err[0]<<8)|err[1];
@@ -202,6 +211,7 @@ static int configure(lr2021_iq_dev *d, const lr2021_iq_rx *c)
         p->spreading_factor=7; p->exclusive_lora=true; p->configured=true;
         p->rx_path=(uint8_t)lr2021_iq_path(c->frequency_hz,c->path);
         p->gain_step=c->gain_step; p->rx_boost=c->boost;
+        p->route=c->route; p->input_code=c->input_code; p->route_rate_hz=c->route?c->rate_hz:0;
     }
     return e;
 }

@@ -19,6 +19,19 @@ static bool count(void *c, const uint8_t *p, size_t n, uint64_t first)
     k->blocks++;
     return true;
 }
+/* Two-byte pairs from the simulator's counter: byte 0 is the pair index. */
+static unsigned iq8_gaps;
+static uint8_t iq8_last;
+static bool iq8_count(void *c, const uint8_t *p, size_t n, uint64_t first)
+{
+    uint64_t *pairs=c;
+    if(first!=*pairs || n%2)return false;
+    for(size_t i=0;i<n;i+=2) {
+        if(*pairs && p[i]!=(uint8_t)(iq8_last+1))iq8_gaps++;
+        iq8_last=p[i]; ++*pairs;
+    }
+    return true;
+}
 static bool gain(void *c, uint8_t *step, uint8_t *boost)
 {
     counter *k=c;
@@ -32,8 +45,8 @@ int main(void)
     lr2021_iq_bus bus=lr2021_sim_bus(&sim);
     const lr2021_iq_board board={.tcxo=1,.tcxo_voltage=7,.tcxo_ticks=32768,.rfsw_count=1,
         .rfsw={{8,2,3}}};
-    lr2021_iq_rx rx={154785000,31250,13,0,LR2021_IQ_PATH_AUTO};
-    CHECK(lr2021_iq_rate(31250)==125000 && lr2021_iq_rate(62500)==250000 && !lr2021_iq_rate(125000));
+    lr2021_iq_rx rx={154785000,31250,13,0,LR2021_IQ_PATH_AUTO,0,0,0};
+    CHECK(lr2021_iq_rate(31250)==125000 && lr2021_iq_rate(62500)==250000 && lr2021_iq_rate(125000)==500000 && !lr2021_iq_rate(100000));
     CHECK(lr2021_iq_bandwidth(250000)==62500 && lr2021_iq_path(2400000000u,2)==1 && !lr2021_iq_path(1499999999u,2));
     CHECK(!lr2021_iq_dev_open(&dev,&bus,&board,&rx));
     CHECK(dev.profile.configured && dev.profile.fw_minor==24 && sim.lora_bw==2 && sim.step==13);
@@ -49,7 +62,11 @@ int main(void)
     CHECK(!lr2021_iq_dev_configure(&dev,&rx) && sim.path==1 && !dev.errors);
     rx.frequency_hz=433920000; rx.bandwidth_hz=62500;
     CHECK(!lr2021_iq_dev_configure(&dev,&rx) && sim.lora_bw==3 && sim.path==0);
-    rx.bandwidth_hz=125000; CHECK(lr2021_iq_dev_configure(&dev,&rx)==LR2021_IQ_ARGUMENT);
+    rx.bandwidth_hz=125000; CHECK(!lr2021_iq_dev_configure(&dev,&rx) && sim.lora_bw==4);
+    rx.bandwidth_hz=250000; CHECK(!lr2021_iq_dev_configure(&dev,&rx) && sim.lora_bw==5);
+    CHECK(lr2021_iq_rate(250000)==1000000 && lr2021_iq_bandwidth(500000)==125000);
+    rx.bandwidth_hz=100000; CHECK(lr2021_iq_dev_configure(&dev,&rx)==LR2021_IQ_ARGUMENT);
+    rx.bandwidth_hz=62500; CHECK(!lr2021_iq_dev_configure(&dev,&rx));
 
     /* 250 ksample/s session: continuous counter, live gain change, restore keeps it. */
     lr2021_iq_result r; counter k={0}; k.stop_after=400;
@@ -76,10 +93,31 @@ int main(void)
     CHECK(lr2021_iq_stream_session(&dev.hal,NULL,count,&k,&r)==LR2021_IQ_ARGUMENT);
     s.fifo_capacity=512; CHECK(lr2021_iq_stream_session(&dev.hal,&s,count,&k,&r)==LR2021_IQ_ARGUMENT);
 
+    /* Raw routes: FSK setup, explicit output rate, two-byte pairs. Source 0 at
+     * 576000 pairs/s with input code 17, then source 6. */
+    lr2021_iq_rx raw={433920000,0,8,0,2,LR2021_IQ_ROUTE_SOURCE0,17,576000};
+    CHECK(lr2021_iq_rx_rate(&raw)==576000 && lr2021_iq_rx_pair_bytes(&raw)==2);
+    CHECK(!lr2021_iq_dev_configure(&dev,&raw) && sim.packet_type==2 && dev.profile.route==1);
+    memset(&k,0,sizeof(k)); s=(lr2021_iq_session){50,1024,NULL,NULL,0};
+    uint64_t raw_pairs=0;
+    CHECK(!lr2021_iq_stream_session(&dev.hal,&s,iq8_count,&raw_pairs,&r));
+    CHECK(r.nominal_rate_hz==576000 && raw_pairs==r.validated_bytes/2 && raw_pairs>25000 && raw_pairs<31000);
+    CHECK(sim.route_code==17 && sim.route_rate==576000 && !iq8_gaps); /* route resets with the radio */
+    raw.route=LR2021_IQ_ROUTE_SOURCE6; raw.rate_hz=50000;
+    CHECK(!lr2021_iq_dev_configure(&dev,&raw));
+    raw_pairs=0;
+    CHECK(!lr2021_iq_stream_session(&dev.hal,&s,iq8_count,&raw_pairs,&r) && sim.route_rate==50000);
+    CHECK(r.nominal_rate_hz==50000 && raw_pairs>2000 && raw_pairs<3000);
+    raw.rate_hz=0; CHECK(lr2021_iq_dev_configure(&dev,&raw)==LR2021_IQ_ARGUMENT);
+    /* Legacy streams stay source-2 only. */
+    raw.rate_hz=576000; raw.route=1; CHECK(!lr2021_iq_dev_configure(&dev,&raw));
+    CHECK(lr2021_iq_stream_checked(&dev.hal,10,iq8_count,&raw_pairs,&r)==LR2021_IQ_STATE);
+    CHECK(!lr2021_iq_dev_configure(&dev,&rx));
+
     /* TX contract checks. */
     static int8_t iq[2*32767];
     for(unsigned i=0;i<32767;i++){ iq[2*i]=(int8_t)(i%97-48); iq[2*i+1]=(int8_t)(i%31-15); }
-    lr2021_iq_tx t={iq,1000,1,9600,433920000,LR2021_IQ_TX_DEFAULT_POWER,0,0,0};
+    lr2021_iq_tx t={iq,1000,1,9600,433920000,LR2021_IQ_TX_DEFAULT_POWER,0,0,LR2021_IQ_TX_CHECKED};
     CHECK(!lr2021_iq_tx_check(&t));
     t.rate_hz=10000; CHECK(lr2021_iq_tx_check(&t)); t.rate_hz=9600;
     t.pairs=32767; t.rate_hz=125000; CHECK(!lr2021_iq_tx_check(&t));
@@ -89,8 +127,8 @@ int main(void)
     t.pairs=2000; t.repeats=17; CHECK(lr2021_iq_tx_check(&t)); t.repeats=1;
     t.frequency_hz=1000000000u; CHECK(lr2021_iq_tx_check(&t)); t.frequency_hz=915000000;
     t.power_half_db=21; CHECK(lr2021_iq_tx_check(&t)); t.power_half_db=-18;
-    /* Unchecked: only hardware limits, the rest reported as untested. */
-    t.flags=LR2021_IQ_TX_UNCHECKED; t.rate_hz=10000; t.frequency_hz=2440000000u; t.pa=LR2021_IQ_PA_AUTO;
+    /* Default: only hardware limits, the rest reported as untested. */
+    t.flags=0; t.rate_hz=10000; t.frequency_hz=2440000000u; t.pa=LR2021_IQ_PA_AUTO;
     t.power_half_db=24; t.repeats=16; t.pairs=2047;
     CHECK(!lr2021_iq_tx_check(&t) && lr2021_iq_tx_pa(&t)==1);
     CHECK(lr2021_iq_tx_untested(&t)==(LR2021_IQ_TX_UNTESTED_RATE|LR2021_IQ_TX_UNTESTED_FREQUENCY|
@@ -98,9 +136,9 @@ int main(void)
     t.power_half_db=25; CHECK(lr2021_iq_tx_check(&t)); t.power_half_db=0;
     t.pairs=2048; CHECK(lr2021_iq_tx_check(&t)); t.pairs=2047;       /* ROM 16-bit count */
     t.frequency_hz=2741000000u; CHECK(lr2021_iq_tx_check(&t));
-    t=(lr2021_iq_tx){iq,32767,1,4800,433920000,-18,0,0,LR2021_IQ_TX_UNCHECKED};
+    t=(lr2021_iq_tx){iq,32767,1,4800,433920000,-18,0,0,0};
     CHECK(!lr2021_iq_tx_check(&t) && lr2021_iq_tx_untested(&t)==LR2021_IQ_TX_UNTESTED_DURATION);
-    t=(lr2021_iq_tx){iq,1000,1,9600,915000000,-18,0,0,0};
+    t=(lr2021_iq_tx){iq,1000,1,9600,915000000,-18,0,0,LR2021_IQ_TX_CHECKED};
     iq[10]=40; iq[11]=40; CHECK(lr2021_iq_tx_check(&t)); iq[10]=39; iq[11]=39;
     CHECK(!lr2021_iq_tx_check(&t));
 

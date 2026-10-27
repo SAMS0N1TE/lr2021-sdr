@@ -30,8 +30,8 @@ extern "C" {
 #define LR2021_BRIDGE_MAX_PAYLOAD 2048u
 #define LR2021_BRIDGE_MAX_FRAME (LR2021_BRIDGE_HEADER+LR2021_BRIDGE_MAX_PAYLOAD+4u)
 #define LR2021_BRIDGE_RX_DATA_HEADER 32u
-#define LR2021_BRIDGE_RX_MAX_PAIRS 480u
-#define LR2021_BRIDGE_RX_MAX_BYTES (4u*LR2021_BRIDGE_RX_MAX_PAIRS)
+#define LR2021_BRIDGE_RX_MAX_PAIRS 960u   /* two-byte formats; CS16 frames hold 480 */
+#define LR2021_BRIDGE_RX_MAX_BYTES 1920u
 #define LR2021_BRIDGE_TX_CHUNK 1024u
 #define LR2021_BRIDGE_TX_CAPACITY 65534u
 #define LR2021_BRIDGE_TCP_PORT 51021u
@@ -72,7 +72,7 @@ enum {
 enum {
     LR2021_BRIDGE_CAP_RX=1u, LR2021_BRIDGE_CAP_TX=2u, LR2021_BRIDGE_CAP_TIMED_TX=4u,
     LR2021_BRIDGE_CAP_LIVE_GAIN=8u, LR2021_BRIDGE_CAP_RATE_250K=16u,
-    LR2021_BRIDGE_CAP_CS12=32u, LR2021_BRIDGE_CAP_TX_UNCHECKED=64u
+    LR2021_BRIDGE_CAP_CS12=32u, LR2021_BRIDGE_CAP_TX_CHECKED=64u, LR2021_BRIDGE_CAP_RAW_ROUTES=128u
 };
 /* RX_DATA sample formats. Both carry the radio's source-2 int16 pairs.
  * CS16: 4 bytes per pair, I then Q, int16 little endian.
@@ -80,7 +80,12 @@ enum {
  * the frame is arithmetically shifted right by the header's shift (0..4, the
  * smallest that fits -2048..2047), then the 24-bit word I12 | Q12 << 12 is
  * stored little endian. A host multiplies by 2^shift. Exact when shift is 0. */
-enum { LR2021_BRIDGE_CS16=0, LR2021_BRIDGE_CS12=1 };
+/* IQ8: 2 bytes per pair, int8 I then Q, from sources 0 and 1 (a host scales
+ * by 256 to the CS16 range). IQ6G: 2 bytes per pair from source 6, each byte
+ * a signed 6-bit component in bits 7..2; the low two bits of byte 0 and of
+ * byte 1 are bits 1..0 and 3..2 of the gain step. These carry the radio's
+ * bytes unchanged. A frame never holds more than 1920 sample bytes. */
+enum { LR2021_BRIDGE_CS16=0, LR2021_BRIDGE_CS12=1, LR2021_BRIDGE_IQ8=2, LR2021_BRIDGE_IQ6G=3 };
 /* RX_END reasons. */
 enum {
     LR2021_BRIDGE_END_REQUEST=0,  /* RX_STOP or duration reached */
@@ -98,9 +103,11 @@ typedef struct {
     char name[32], id[32];      /* NUL-padded firmware name/version, board id */
 } lr2021_bridge_hello;          /* 84-byte response payload */
 typedef struct {
-    uint32_t frequency_hz, bandwidth_hz; /* LoRa BW 31250 or 62500 */
+    uint32_t frequency_hz, bandwidth_hz; /* route 0: LoRa BW 31250..250000 */
     uint8_t gain_step, boost, path;      /* path 0 LF, 1 HF, 2 auto */
-} lr2021_bridge_rx;                      /* 11 bytes */
+    uint8_t route, input_code;           /* 0 source 2; 1, 2, 3 sources 0, 1, 6 */
+    uint32_t rate_hz;                    /* output rate of routes 1..3 */
+} lr2021_bridge_rx;                      /* 17 bytes; 11 = route 0 */
 typedef struct {
     int32_t status;
     uint16_t radio_errors;      /* GetErrors after configuration */
@@ -112,7 +119,7 @@ typedef struct {
     uint8_t repeats;
     uint64_t start_time;        /* device time units, 0 = immediately */
     uint8_t pa;                 /* 0 LF, 1 HF, 2 by frequency */
-    uint8_t flags;              /* bit 0: unchecked, hardware limits only; bit 1: SIMO for the burst */
+    uint8_t flags;              /* bit 0: refuse bursts outside the measured contract; bit 1: SIMO */
 } lr2021_bridge_tx_begin;       /* 28 bytes */
 typedef struct {
     uint32_t generation;        /* increments on every RX_START */

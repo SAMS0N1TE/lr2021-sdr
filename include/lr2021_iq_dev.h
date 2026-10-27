@@ -29,9 +29,17 @@ typedef struct {
     uint32_t tcxo_ticks;                    /* startup delay, 32 MHz periods */
     lr2021_iq_rfsw rfsw[LR2021_IQ_RFSW_MAX];
 } lr2021_iq_board;
+/* route 0: LoRa source 2, IQ16 at 4 x bandwidth (BW 31250, 62500, 125000 or
+ * 250000 Hz). Routes 1, 2, 3: sources 0, 1 and 6 from an FSK setup whose RX
+ * filter code is input_code, two bytes per pair at rate_hz (IQ8 for sources 0
+ * and 1, gain-tagged IQ6 for source 6). */
+enum { LR2021_IQ_ROUTE_SOURCE2=0, LR2021_IQ_ROUTE_SOURCE0=1, LR2021_IQ_ROUTE_SOURCE1=2,
+       LR2021_IQ_ROUTE_SOURCE6=3 };
 typedef struct {
-    uint32_t frequency_hz, bandwidth_hz; /* LoRa BW 31250 or 62500 */
+    uint32_t frequency_hz, bandwidth_hz;
     uint8_t gain_step, boost, path;      /* step 0 AGC or 1..13, boost 0..7 */
+    uint8_t route, input_code;
+    uint32_t rate_hz;                    /* routes 1..3 */
 } lr2021_iq_rx;
 
 typedef struct {
@@ -55,10 +63,13 @@ typedef struct {
     bool bus_owned;
 } lr2021_iq_dev;
 
-/* Nominal complex pairs/s = 4 x LoRa bandwidth for the two streamable rows of
- * docs/protocol.md; 0 for anything else. */
+/* Nominal source-2 complex pairs/s = 4 x LoRa bandwidth for the four measured
+ * rows of docs/protocol.md; 0 for anything else. */
 unsigned lr2021_iq_rate(uint32_t bandwidth_hz);
 uint32_t lr2021_iq_bandwidth(unsigned rate);
+/* Pairs/s and bytes per pair of a receive configuration. */
+unsigned lr2021_iq_rx_rate(const lr2021_iq_rx *);
+unsigned lr2021_iq_rx_pair_bytes(const lr2021_iq_rx *);
 unsigned lr2021_iq_path(uint32_t hz, unsigned path);
 int lr2021_iq_rx_check(const lr2021_iq_rx *);
 const char *lr2021_iq_strerror(int);

@@ -11,7 +11,8 @@ pub const VERSION: u8 = 1;
 pub const HEADER: usize = 8;
 pub const MAX_PAYLOAD: usize = 2048;
 pub const RX_DATA_HEADER: usize = 32;
-pub const RX_MAX_PAIRS: usize = 480;
+pub const RX_MAX_PAIRS: usize = 960;
+pub const RX_MAX_BYTES: usize = 1920;
 pub const TX_CHUNK: usize = 1024;
 pub const TCP_PORT: u16 = 51021;
 
@@ -42,6 +43,10 @@ pub mod status {
 }
 pub const CS16: u8 = 0;
 pub const CS12: u8 = 1;
+/// Sources 0 and 1: int8 I, Q.
+pub const IQ8: u8 = 2;
+/// Source 6: signed 6-bit I, Q in bits 7..2, gain step in the low bits.
+pub const IQ6G: u8 = 3;
 
 /// CRC-32 (IEEE, reflected 0xEDB88320, init and final XOR 0xFFFFFFFF).
 pub fn crc32(data: &[u8]) -> u32 {
@@ -137,17 +142,25 @@ impl Hello {
     }
 }
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct RxConfig { pub frequency_hz: u32, pub bandwidth_hz: u32, pub gain_step: u8, pub boost: u8, pub path: u8 }
+pub struct RxConfig {
+    pub frequency_hz: u32, pub bandwidth_hz: u32, pub gain_step: u8, pub boost: u8, pub path: u8,
+    /// 0 source 2; 1, 2, 3 sources 0, 1, 6 at `rate_hz` with FSK filter code `input_code`.
+    pub route: u8, pub input_code: u8, pub rate_hz: u32,
+}
 impl RxConfig {
     pub fn to_bytes(&self) -> Vec<u8> {
-        let mut v = Vec::with_capacity(11);
+        let mut v = Vec::with_capacity(17);
         v.extend(self.frequency_hz.to_le_bytes()); v.extend(self.bandwidth_hz.to_le_bytes());
-        v.extend([self.gain_step, self.boost, self.path]); v
+        v.extend([self.gain_step, self.boost, self.path, self.route, self.input_code]);
+        v.extend(self.rate_hz.to_le_bytes()); v
     }
+    /// Accepts the 17-byte record and the 11-byte source-2 form.
     pub fn parse(b: &[u8]) -> Option<Self> {
-        sized!(b, 11);
+        if b.len() != 11 && b.len() != 17 { return None; }
         let mut r = R(b, 0);
-        Some(RxConfig { frequency_hz: r.u32(), bandwidth_hz: r.u32(), gain_step: r.u8(), boost: r.u8(), path: r.u8() })
+        let mut c = RxConfig { frequency_hz: r.u32(), bandwidth_hz: r.u32(), gain_step: r.u8(), boost: r.u8(), path: r.u8(), ..Default::default() };
+        if b.len() == 17 { c.route = r.u8(); c.input_code = r.u8(); c.rate_hz = r.u32(); }
+        Some(c)
     }
 }
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -179,8 +192,9 @@ impl RxData {
         let mut r = R(b, 0);
         let d = RxData { generation: r.u32(), rate_hz: r.u32(), first_pair: r.u64(), start_time: r.u64(),
             dropped: r.u32(), pairs: r.u16(), format: r.u8(), shift: r.u8() };
-        let ok = d.pairs >= 1 && d.pairs as usize <= RX_MAX_PAIRS && d.shift <= 4 && d.format <= CS12
-            && !(d.format == CS16 && d.shift != 0)
+        let ok = d.pairs >= 1 && d.pairs as usize <= RX_MAX_PAIRS && d.shift <= 4 && d.format <= IQ6G
+            && !(d.format != CS12 && d.shift != 0)
+            && sample_bytes(d.format, d.pairs as usize) <= RX_MAX_BYTES
             && b.len() - RX_DATA_HEADER == sample_bytes(d.format, d.pairs as usize);
         ok.then_some(d)
     }
@@ -218,12 +232,20 @@ impl TxEnd {
     }
 }
 
-pub fn sample_bytes(format: u8, pairs: usize) -> usize { if format == CS12 { 3 * pairs } else { 4 * pairs } }
+pub fn sample_bytes(format: u8, pairs: usize) -> usize {
+    match format { CS12 => 3 * pairs, IQ8 | IQ6G => 2 * pairs, _ => 4 * pairs }
+}
 /// Decodes packed pairs into interleaved int16 I, Q.
 pub fn unpack_samples(format: u8, shift: u8, data: &[u8], out: &mut Vec<i16>) -> bool {
     if format == CS16 {
         if data.len() % 4 != 0 || shift != 0 { return false; }
         out.extend(data.chunks_exact(2).map(|c| i16::from_le_bytes([c[0], c[1]])));
+        return true;
+    }
+    if format == IQ8 || format == IQ6G {
+        if shift != 0 { return false; }
+        // Scaled to the CS16 range: IQ8 by 256, IQ6 (bits 7..2) by 1024.
+        out.extend(data.iter().map(|&b| if format == IQ8 { (b as i8 as i16) * 256 } else { ((b as i8 >> 2) as i16) * 1024 }));
         return true;
     }
     if format != CS12 || data.len() % 3 != 0 || shift > 4 { return false; }

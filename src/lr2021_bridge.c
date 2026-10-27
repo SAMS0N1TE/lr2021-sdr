@@ -95,13 +95,16 @@ int lr2021_bridge_unpack_hello(const uint8_t *p, size_t n, lr2021_bridge_hello *
 size_t lr2021_bridge_pack_rx(uint8_t *p, const lr2021_bridge_rx *m)
 {
     P32(p,m->frequency_hz); P32(p+4,m->bandwidth_hz);
-    p[8]=m->gain_step; p[9]=m->boost; p[10]=m->path; return 11;
+    p[8]=m->gain_step; p[9]=m->boost; p[10]=m->path;
+    p[11]=m->route; p[12]=m->input_code; P32(p+13,m->rate_hz); return 17;
 }
 int lr2021_bridge_unpack_rx(const uint8_t *p, size_t n, lr2021_bridge_rx *m)
 {
-    if(n!=11)return -1;
+    if(n!=11 && n!=17)return -1;
     m->frequency_hz=G32(p); m->bandwidth_hz=G32(p+4);
-    m->gain_step=p[8]; m->boost=p[9]; m->path=p[10]; return 0;
+    m->gain_step=p[8]; m->boost=p[9]; m->path=p[10];
+    m->route=n==17?p[11]:0; m->input_code=n==17?p[12]:0; m->rate_hz=n==17?G32(p+13):0;
+    return 0;
 }
 size_t lr2021_bridge_pack_rx_ack(uint8_t *p, const lr2021_bridge_rx_ack *m)
 { P32(p,(uint32_t)m->status); P16(p+4,m->radio_errors); P32(p+6,m->rate_hz); return 10; }
@@ -135,18 +138,20 @@ int lr2021_bridge_unpack_rx_data(const uint8_t *p, size_t n, lr2021_bridge_rx_da
     m->generation=G32(p); m->rate_hz=G32(p+4); m->first_pair=G64(p+8);
     m->start_time=G64(p+16); m->dropped=G32(p+24); m->pairs=G16(p+28);
     m->format=p[30]; m->shift=p[31];
-    if(!m->pairs || m->pairs>LR2021_BRIDGE_RX_MAX_PAIRS || m->format>LR2021_BRIDGE_CS12 ||
-       m->shift>4 || (m->format==LR2021_BRIDGE_CS16 && m->shift) ||
+    if(!m->pairs || m->pairs>LR2021_BRIDGE_RX_MAX_PAIRS || m->format>LR2021_BRIDGE_IQ6G ||
+       m->shift>4 || (m->format!=LR2021_BRIDGE_CS12 && m->shift) ||
+       lr2021_bridge_sample_bytes(m->format,m->pairs)>LR2021_BRIDGE_RX_MAX_BYTES ||
        n-LR2021_BRIDGE_RX_DATA_HEADER!=lr2021_bridge_sample_bytes(m->format,m->pairs))return -1;
     return 0;
 }
 size_t lr2021_bridge_sample_bytes(unsigned format, size_t pairs)
-{ return format==LR2021_BRIDGE_CS12 ? 3*pairs : 4*pairs; }
+{ return format==LR2021_BRIDGE_CS12 ? 3*pairs : format>=LR2021_BRIDGE_IQ8 ? 2*pairs : 4*pairs; }
 static int floor_shift(int v, unsigned s) { return v>=0 ? v>>s : -((-v-1)>>s)-1; }
 size_t lr2021_bridge_pack_samples(uint8_t *out, unsigned format, const uint8_t *in, size_t pairs,
                                   uint8_t *shift)
 {
     *shift=0;
+    if(format>=LR2021_BRIDGE_IQ8) { memmove(out,in,2*pairs); return 2*pairs; }
     if(format!=LR2021_BRIDGE_CS12) { memmove(out,in,4*pairs); return 4*pairs; }
     int peak=0;
     for(size_t i=0;i<2*pairs;i++) {
@@ -167,8 +172,16 @@ size_t lr2021_bridge_pack_samples(uint8_t *out, unsigned format, const uint8_t *
 int lr2021_bridge_unpack_samples(int16_t *out, unsigned format, unsigned shift,
                                  const uint8_t *in, size_t bytes, size_t pairs)
 {
-    if(format>LR2021_BRIDGE_CS12 || shift>4 || (format==LR2021_BRIDGE_CS16 && shift) ||
+    if(format>LR2021_BRIDGE_IQ6G || shift>4 || (format!=LR2021_BRIDGE_CS12 && shift) ||
        bytes!=lr2021_bridge_sample_bytes(format,pairs))return -1;
+    if(format==LR2021_BRIDGE_IQ8) {
+        for(size_t i=0;i<2*pairs;i++)out[i]=(int16_t)((int8_t)in[i]*256);
+        return 0;
+    }
+    if(format==LR2021_BRIDGE_IQ6G) {
+        for(size_t i=0;i<2*pairs;i++)out[i]=(int16_t)(((int8_t)in[i]>>2)*1024);
+        return 0;
+    }
     if(format==LR2021_BRIDGE_CS16) {
         for(size_t i=0;i<2*pairs;i++)out[i]=(int16_t)G16(in+2*i);
         return 0;

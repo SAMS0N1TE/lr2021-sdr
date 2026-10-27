@@ -9,7 +9,9 @@ extern "C" {
  * hardware. It implements only the commands this repository uses: status words
  * (previous command status, CMD_DAT on read responses), version, errors, IRQs,
  * FIFO levels/flags, register access for the FIFO mapping, LoRa RX with the
- * source-2 FIFO route at 4 x bandwidth, and the 0x0293 selector-0 TX path that
+ * source-2 FIFO route at 4 x bandwidth, FSK RX with the source-0/1/6 FIFO
+ * routes at the route's output rate (two bytes per pair: IQ8, or IQ6 with the
+ * gain step in the low bits for source 6), and the 0x0293 selector-0 TX path that
  * drains the TX FIFO at the configured rate. It does not model RF, filters,
  * calibration quality or the SRAM capture route. Not thread-safe except
  * lr2021_sim_now_us in real-time mode. */
@@ -31,7 +33,8 @@ typedef struct {
     bool stall_tolerant;
     /* chip */
     bool in_reset, reset_seen;
-    uint8_t mode, cmd_status, packet_type, path, boost, step, lora_bw, route;
+    uint8_t mode, cmd_status, packet_type, path, boost, step, lora_bw, route, route_code;
+    uint32_t route_rate;
     uint16_t errors;
     uint32_t irq, freq, rx_base, rx_size, tx_base, tx_size;
     uint8_t resp[256]; size_t resp_len; bool have_resp;

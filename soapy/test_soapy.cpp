@@ -24,10 +24,14 @@ int main()
     auto fr=d->getFrequencyRange(SOAPY_SDR_RX,0);
     CHECK(fr.size()==1 && fr[0].minimum()==100e6 && fr[0].maximum()==2740e6);
     auto tfr=d->getFrequencyRange(SOAPY_SDR_TX,0);
+    CHECK(tfr[0].minimum()==100e6 && tfr[0].maximum()==2740e6);
+    d->writeSetting("tx_checked","true");
+    tfr=d->getFrequencyRange(SOAPY_SDR_TX,0);
     CHECK(tfr[0].minimum()==150e6 && tfr[0].maximum()==960e6);
-    CHECK(d->listSampleRates(SOAPY_SDR_RX,0).size()==2 && d->listSampleRates(SOAPY_SDR_TX,0).size()==6);
+    d->writeSetting("tx_checked","false");
+    CHECK(d->listSampleRates(SOAPY_SDR_RX,0).size()==4 && d->listSampleRates(SOAPY_SDR_TX,0).size()==6);
     bool threw=false;
-    try { d->setSampleRate(SOAPY_SDR_RX,0,500000); } catch(const std::exception &) { threw=true; }
+    try { d->setSampleRate(SOAPY_SDR_RX,0,300000); } catch(const std::exception &) { threw=true; }
     CHECK(threw);
     threw=false;
     try { d->setFrequency(SOAPY_SDR_RX,0,99e6); } catch(const std::exception &) { threw=true; }
@@ -98,6 +102,33 @@ int main()
     CHECK(saw_overflow && got==10);
     d->deactivateStream(rx); d->closeStream(rx);
 
+    // Raw route: source 0 IQ8 at 576000 pairs/s, counter in the int8 I byte.
+    d->writeSetting("route","source0");
+    d->setSampleRate(SOAPY_SDR_RX,0,576000);
+    CHECK(d->getSampleRate(SOAPY_SDR_RX,0)==576000 && d->readSetting("route")=="source0");
+    rx=d->setupStream(SOAPY_SDR_RX,SOAPY_SDR_CS16);
+    CHECK(d->activateStream(rx)==0);
+    pairs=0; gaps=0; have=false;
+    end=now_ns()+300000000LL;
+    while(now_ns()<end) {
+        int flags=0; long long ts=0;
+        int n=d->readStream(rx,bufs,4096,flags,ts,200000);
+        if(n==SOAPY_SDR_OVERFLOW){ have=false; continue; }
+        if(n<=0)continue;
+        for(int i=0;i<n;i++) {
+            uint32_t v=(uint8_t)(buf[2*i]/256);
+            CHECK(buf[2*i]%256==0);
+            if(have && v!=((last+1)&255))gaps++;
+            last=v; have=true;
+        }
+        pairs+=(uint64_t)n;
+    }
+    std::fprintf(stderr,"source 0: %llu pairs in 0.3 s\n",(unsigned long long)pairs);
+    CHECK(!gaps && pairs>50000);
+    d->deactivateStream(rx); d->closeStream(rx);
+    d->writeSetting("route","source2");
+    d->setSampleRate(SOAPY_SDR_RX,0,250000);
+
     // CF32 RX in range -1..1.
     rx=d->setupStream(SOAPY_SDR_RX,SOAPY_SDR_CF32);
     std::vector<float> fbuf(2*4096); void *fbufs[]={fbuf.data()};
@@ -134,12 +165,13 @@ int main()
     d->closeStream(tx);
     tx=d->setupStream(SOAPY_SDR_TX,SOAPY_SDR_CS8);
     flags=SOAPY_SDR_END_BURST;
-    CHECK(d->writeStream(tx,bb,40000,flags,0)==SOAPY_SDR_STREAM_ERROR);
+    CHECK(d->writeStream(tx,bb,40000,flags,0)==SOAPY_SDR_STREAM_ERROR); // ROM limit 32767
     big[0]=57; flags=SOAPY_SDR_END_BURST;
-    CHECK(d->writeStream(tx,bb,100,flags,0)==SOAPY_SDR_STREAM_ERROR); // radius above 56, checked mode
-    d->writeSetting("tx_unchecked","true");
+    CHECK(d->writeStream(tx,bb,100,flags,0)==100); // radius above 56: sent, reported untested
+    d->writeSetting("tx_checked","true");
     flags=SOAPY_SDR_END_BURST;
-    CHECK(d->writeStream(tx,bb,100,flags,0)==100);
+    CHECK(d->writeStream(tx,bb,100,flags,0)==SOAPY_SDR_STREAM_ERROR);
+    d->writeSetting("tx_checked","false");
     d->closeStream(tx);
     SoapySDR::Device::unmake(d);
     std::puts("SoapySDR module over the simulator passed");

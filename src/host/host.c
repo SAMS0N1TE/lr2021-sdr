@@ -245,7 +245,7 @@ static int start_local(lr2021_host *h, const lr2021_host_args *a, char *err, siz
         if(!(h->bus=lrh_spidev_open(&bus,a,err,n)))return -1;
     }
     if(!(h->dev=calloc(1,sizeof(*h->dev))))return -1;
-    const lr2021_iq_rx rx={154785000,31250,13,0,LR2021_IQ_PATH_AUTO};
+    const lr2021_iq_rx rx={154785000,31250,13,0,LR2021_IQ_PATH_AUTO,0,0,0};
     int e=lr2021_iq_dev_open(h->dev,&bus,&board,&rx);
     if(e){ snprintf(err,n,"radio setup failed: %s",lr2021_iq_strerror(e)); return -1; }
     int sv[2];

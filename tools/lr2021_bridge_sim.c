@@ -45,7 +45,7 @@ int main(int argc, char **argv)
         sim.clock=clock_us; sim.sleep=sleep_cb; sim.pattern=pattern; sim.tone_hz=tone;
         sim.stall_tolerant=true;
         lr2021_iq_bus bus=lr2021_sim_bus(&sim);
-        const lr2021_iq_rx rx={154785000,31250,13,0,LR2021_IQ_PATH_AUTO};
+        const lr2021_iq_rx rx={154785000,31250,13,0,LR2021_IQ_PATH_AUTO,0,0,0};
         if(lr2021_iq_dev_open(&dev,&bus,NULL,&rx)){ close(fd); continue; }
         lr2021_bridge_radio radio={&dev,&dev.hal,&dev.board,configure,rx,1,24,
             LR2021_BRIDGE_CAP_RX|LR2021_BRIDGE_CAP_TX|LR2021_BRIDGE_CAP_TIMED_TX|

@@ -86,11 +86,19 @@ fn records_match_both_ways() {
         unsafe { sys::lr2021_bridge_pack_hello(c.as_mut_ptr(), &h) };
         assert_eq!(Hello::parse(&name).unwrap().to_bytes(), c.to_vec());
 
-        let rx = RxConfig { frequency_hz: rng.next() as u32, bandwidth_hz: rng.next() as u32, gain_step: rng.next() as u8, boost: rng.next() as u8, path: rng.next() as u8 };
+        let rx = RxConfig { frequency_hz: rng.next() as u32, bandwidth_hz: rng.next() as u32, gain_step: rng.next() as u8, boost: rng.next() as u8, path: rng.next() as u8,
+            route: rng.next() as u8, input_code: rng.next() as u8, rate_hz: rng.next() as u32 };
         let mut m = sys::lr2021_bridge_rx::default();
         let rb = rx.to_bytes();
+        assert_eq!(rb.len(), 17);
         assert_eq!(unsafe { sys::lr2021_bridge_unpack_rx(rb.as_ptr(), rb.len(), &mut m) }, 0);
-        assert_eq!((m.frequency_hz, m.bandwidth_hz, m.gain_step, m.boost, m.path), (rx.frequency_hz, rx.bandwidth_hz, rx.gain_step, rx.boost, rx.path));
+        assert_eq!((m.frequency_hz, m.bandwidth_hz, m.gain_step, m.boost, m.path, m.route, m.input_code, m.rate_hz),
+            (rx.frequency_hz, rx.bandwidth_hz, rx.gain_step, rx.boost, rx.path, rx.route, rx.input_code, rx.rate_hz));
+        let mut cb = [0u8; 17];
+        assert_eq!(unsafe { sys::lr2021_bridge_pack_rx(cb.as_mut_ptr(), &m) }, 17);
+        assert_eq!(RxConfig::parse(&cb), Some(rx));
+        let short = RxConfig::parse(&cb[..11]).unwrap();
+        assert_eq!((short.route, short.rate_hz), (0, 0));
 
         let tb = TxBegin { bytes: rng.next() as u32, crc32: rng.next() as u32, rate_hz: rng.next() as u32, frequency_hz: rng.next() as u32,
             power_half_db: rng.next() as i8, repeats: rng.next() as u8, start_time: rng.next(), pa: rng.next() as u8, flags: rng.next() as u8 };
@@ -172,7 +180,7 @@ fn rust_client_against_c_server_and_simulator() {
     let c = Client::connect_tcp(addr).unwrap();
     let h = c.hello().unwrap();
     assert_eq!((h.version, h.rom_major, h.rom_minor, h.id.as_str()), (1, 1, 24, "rust-test"));
-    assert_eq!(c.set_rx(&RxConfig { frequency_hz: 433_920_000, bandwidth_hz: 62_500, gain_step: 13, boost: 0, path: 2 }).unwrap().1, 250_000);
+    assert_eq!(c.set_rx(&RxConfig { frequency_hz: 433_920_000, bandwidth_hz: 62_500, gain_step: 13, boost: 0, path: 2, ..Default::default() }).unwrap().1, 250_000);
     assert!(matches!(c.set_rx(&RxConfig { frequency_hz: 50_000_000, bandwidth_hz: 62_500, ..Default::default() }), Err(ClientError::Status(-1))));
     for format in [CS16, CS12] {
         let (generation, rate) = c.rx_start(0, format).unwrap();
@@ -202,12 +210,29 @@ fn rust_client_against_c_server_and_simulator() {
         assert!(flagged == 0 || end.dropped > 0);
         assert!(pairs > 30_000 && end.capture_error == 0 && end.gain_changes == 1);
     }
+    // Source 0 at 576000 pairs/s arrives as IQ8 in frames of up to 960 pairs.
+    let raw = RxConfig { frequency_hz: 433_920_000, gain_step: 8, path: 2, route: 1, input_code: 17, rate_hz: 576_000, ..Default::default() };
+    assert_eq!(c.set_rx(&raw).unwrap().1, 576_000);
+    c.rx_start(0, CS16).unwrap();
+    let (mut pairs, mut largest, mut next) = (0u64, 0u16, None::<u64>);
+    let until = std::time::Instant::now() + Duration::from_millis(300);
+    while std::time::Instant::now() < until {
+        let Some(b) = c.read(Duration::from_millis(200)).unwrap() else { continue };
+        assert_eq!(b.header.format, IQ8);
+        assert!(next.map_or(true, |n| n <= b.header.first_pair));
+        next = Some(b.header.first_pair + b.header.pairs as u64);
+        largest = largest.max(b.header.pairs);
+        pairs += b.header.pairs as u64;
+    }
+    let end = c.rx_stop().unwrap();
+    assert!(pairs > 50_000 && end.capture_error == 0 && largest == 960, "{pairs} {largest}");
+    c.set_rx(&RxConfig { frequency_hz: 433_920_000, bandwidth_hz: 31_250, gain_step: 13, path: 2, ..Default::default() }).unwrap();
     let iq: Vec<i8> = (0..4000).map(|i| (i % 60 - 30) as i8).collect();
     let t = c.transmit(&iq, TxBegin { rate_hz: 19_200, frequency_hz: 433_920_000, power_half_db: -18, repeats: 2, ..Default::default() }).unwrap();
     assert_eq!((t.samples, t.untested), (4000, 0));
-    let r = c.transmit(&iq, TxBegin { rate_hz: 20_000, frequency_hz: 433_920_000, power_half_db: -18, repeats: 1, ..Default::default() });
+    let r = c.transmit(&iq, TxBegin { rate_hz: 20_000, frequency_hz: 433_920_000, power_half_db: -18, repeats: 1, flags: 1, ..Default::default() });
     assert!(matches!(r, Err(ClientError::Status(status::ERANGE))));
-    let t = c.transmit(&iq, TxBegin { rate_hz: 20_000, frequency_hz: 433_920_000, power_half_db: -18, repeats: 1, flags: 1, ..Default::default() }).unwrap();
+    let t = c.transmit(&iq, TxBegin { rate_hz: 20_000, frequency_hz: 433_920_000, power_half_db: -18, repeats: 1, ..Default::default() }).unwrap();
     assert_eq!(t.untested, 1);
     assert!(c.time_us().unwrap() > 0);
     c.bye().unwrap();

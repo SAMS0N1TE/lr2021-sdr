@@ -24,6 +24,12 @@ const double TX_FULL_SCALE=56.0; // tested radius limit; CF32 magnitude 1.0 maps
 const long long NS=1000000000LL;
 
 bool truthy(const std::string &v) { return v=="1" || v=="true" || v=="yes" || v=="on"; }
+const char *const ROUTES[]={"source2","source0","source1","source6"};
+int route_index(const std::string &v)
+{
+    for(int i=0;i<4;i++)if(v==ROUTES[i])return i;
+    throw std::invalid_argument("lr2021: route is source2, source0, source1 or source6");
+}
 std::string text(const SoapySDR::Range &r)
 { return std::to_string(r.minimum())+".."+std::to_string(r.maximum()); }
 
@@ -34,21 +40,26 @@ public:
         lr2021_host_args a;
         lr2021_host_args_init(&a);
         for(const auto &kv : args) {
-            if(kv.first=="driver" || kv.first=="label" || kv.first=="tx_unchecked" || kv.first=="tx_simo")continue;
+            if(kv.first=="driver" || kv.first=="label" || kv.first=="tx_checked" || kv.first=="tx_simo" ||
+               kv.first=="route" || kv.first=="input_code")continue;
             if(lr2021_host_args_set(&a,kv.first.c_str(),kv.second.c_str())<0)
                 throw std::runtime_error("lr2021: bad value for "+kv.first);
         }
-        auto u=args.find("tx_unchecked");
-        unchecked=u!=args.end() && truthy(u->second);
+        auto u=args.find("tx_checked");
+        checked=u!=args.end() && truthy(u->second);
+        rx={154785000,31250,13,0,LR2021_IQ_PATH_AUTO,0,17,576000};
+        auto ro=args.find("route");
+        if(ro!=args.end())rx.route=(uint8_t)route_index(ro->second);
+        auto ic=args.find("input_code");
+        if(ic!=args.end())rx.input_code=(uint8_t)std::strtoul(ic->second.c_str(),nullptr,0);
         auto sm=args.find("tx_simo");
         simo=sm!=args.end() && truthy(sm->second);
         char err[256];
         host=lr2021_host_open(&a,err,sizeof(err));
         if(!host)throw std::runtime_error(std::string("lr2021: ")+err);
         const lr2021_bridge_hello *h=lr2021_host_hello(host);
-        if(unchecked && !(h->caps&LR2021_BRIDGE_CAP_TX_UNCHECKED))
-            SoapySDR::logf(SOAPY_SDR_WARNING,"lr2021: firmware does not offer unchecked TX");
-        rx={154785000,31250,13,0,LR2021_IQ_PATH_AUTO};
+        if(rx.route && !(h->caps&LR2021_BRIDGE_CAP_RAW_ROUTES))
+            SoapySDR::logf(SOAPY_SDR_WARNING,"lr2021: firmware does not report raw-route support");
         apply_rx();
     }
     ~LR2021Device() override { lr2021_host_close(host); }
@@ -63,7 +74,7 @@ public:
         return {{"firmware",h->name},{"id",h->id},{"backend",names[b>=0 && b<=4?b:0]},
             {"rom",std::to_string(h->rom_major)+"."+std::to_string(h->rom_minor)},
             {"protocol",std::to_string(h->version)},{"caps",std::to_string(h->caps)},
-            {"tx_unchecked",unchecked?"true":"false"}};
+            {"tx_checked",checked?"true":"false"},{"route",ROUTES[rx.route]}};
     }
     size_t getNumChannels(const int) const override { return 1; }
     bool getFullDuplex(const int, const size_t) const override { return false; }
@@ -87,7 +98,7 @@ public:
     // Frequency
     SoapySDR::RangeList getFrequencyRange(const int dir, const size_t) const override
     {
-        if(dir==SOAPY_SDR_TX && !unchecked)return {SoapySDR::Range(LR2021_IQ_TX_MIN_HZ,LR2021_IQ_TX_MAX_HZ)};
+        if(dir==SOAPY_SDR_TX && checked)return {SoapySDR::Range(LR2021_IQ_TX_MIN_HZ,LR2021_IQ_TX_MAX_HZ)};
         return {SoapySDR::Range(LR2021_IQ_MIN_HZ,LR2021_IQ_MAX_HZ)};
     }
     void setFrequency(const int dir, const size_t, const double f, const SoapySDR::Kwargs &) override
@@ -101,15 +112,18 @@ public:
     double getFrequency(const int dir, const size_t) const override
     { return dir==SOAPY_SDR_TX?tx_hz:rx.frequency_hz; }
 
-    // Sample rates: RX is 4 x LoRa bandwidth (docs/protocol.md); TX the tested list.
+    // Sample rates. Source 2 is 4 x LoRa bandwidth (docs/protocol.md); the raw
+    // routes take an explicit output rate. TX lists the measured rates.
     std::vector<double> listSampleRates(const int dir, const size_t) const override
     {
         if(dir==SOAPY_SDR_TX)return {4800,9600,19200,38400,76800,125000};
-        return {125000,250000};
+        if(rx.route)return {50000,125000,250000,500000,576000,1000000};
+        return {125000,250000,500000,1000000};
     }
     SoapySDR::RangeList getSampleRateRange(const int dir, const size_t ch) const override
     {
-        if(dir==SOAPY_SDR_TX && unchecked)return {SoapySDR::Range(1,1000000)};
+        if(dir==SOAPY_SDR_TX && !checked)return {SoapySDR::Range(1,1000000)};
+        if(dir==SOAPY_SDR_RX && rx.route)return {SoapySDR::Range(1000,4000000)};
         SoapySDR::RangeList l;
         for(double r : listSampleRates(dir,ch))l.push_back(SoapySDR::Range(r,r));
         return l;
@@ -119,16 +133,23 @@ public:
         std::lock_guard<std::mutex> l(mu);
         unsigned r=(unsigned)std::llround(rate);
         if(dir==SOAPY_SDR_TX) {
-            if(!(unchecked ? r>=1 && r<=1000000 : lr2021_iq_tx_rate_ok(r)))
-                throw std::invalid_argument("lr2021: TX rate must be 4800, 9600, 19200, 38400, 76800 or 125000");
+            if(!(checked ? lr2021_iq_tx_rate_ok(r) : r>=1 && r<=1000000))
+                throw std::invalid_argument("lr2021: TX rate outside the allowed range");
             tx_rate=r; return;
         }
-        uint32_t bw=lr2021_iq_bandwidth(r);
-        if(!bw)throw std::invalid_argument("lr2021: RX rate must be 125000 or 250000");
-        lr2021_iq_rx next=rx; next.bandwidth_hz=bw; set_rx_locked(next);
+        lr2021_iq_rx next=rx;
+        if(rx.route) {
+            if(r<1000 || r>4000000)throw std::invalid_argument("lr2021: raw-route rate must be 1000..4000000");
+            next.rate_hz=r;
+        } else {
+            uint32_t bw=lr2021_iq_bandwidth(r);
+            if(!bw)throw std::invalid_argument("lr2021: source-2 rate must be 125000, 250000, 500000 or 1000000");
+            next.bandwidth_hz=bw;
+        }
+        set_rx_locked(next);
     }
     double getSampleRate(const int dir, const size_t) const override
-    { return dir==SOAPY_SDR_TX?tx_rate:lr2021_iq_rate(rx.bandwidth_hz); }
+    { return dir==SOAPY_SDR_TX?tx_rate:lr2021_iq_rx_rate(&rx); }
     std::vector<double> listBandwidths(const int dir, const size_t ch) const override { return {getSampleRate(dir,ch)}; }
     double getBandwidth(const int dir, const size_t ch) const override { return getSampleRate(dir,ch); }
 
@@ -200,23 +221,40 @@ public:
     SoapySDR::ArgInfoList getSettingInfo() const override
     {
         SoapySDR::ArgInfo u;
-        u.key="tx_unchecked"; u.value=unchecked?"true":"false"; u.name="Unchecked TX";
+        u.key="tx_checked"; u.value=checked?"true":"false"; u.name="Checked TX";
         u.type=SoapySDR::ArgInfo::BOOL;
-        u.description="Only hardware limits for TX; values outside the tested contract are reported, not refused";
+        u.description="Refuse TX bursts outside the measured contract instead of reporting them";
+        SoapySDR::ArgInfo r;
+        r.key="route"; r.value=ROUTES[rx.route]; r.name="Receive route";
+        r.type=SoapySDR::ArgInfo::STRING; r.options={"source2","source0","source1","source6"};
+        r.description="source2: LoRa IQ16 at 4 x bandwidth; source0/1: IQ8, source6: gain-tagged IQ6, at the set rate";
+        SoapySDR::ArgInfo c;
+        c.key="input_code"; c.value=std::to_string(rx.input_code); c.name="Raw-route input code";
+        c.type=SoapySDR::ArgInfo::INT;
+        c.description="FSK RX filter code for the raw routes (17 measured with source 0)";
         SoapySDR::ArgInfo m;
         m.key="tx_simo"; m.value=simo?"true":"false"; m.name="TX on SIMO";
         m.type=SoapySDR::ArgInfo::BOOL;
         m.description="Run TX bursts with the SIMO DC-DC supplying the PA instead of the LDO (experimental)";
-        return {u,m};
+        return {u,m,r,c};
     }
     void writeSetting(const std::string &key, const std::string &value) override
     {
-        if(key=="tx_unchecked")unchecked=truthy(value);
+        if(key=="tx_checked")checked=truthy(value);
         if(key=="tx_simo")simo=truthy(value);
+        if(key=="route" || key=="input_code") {
+            std::lock_guard<std::mutex> l(mu);
+            lr2021_iq_rx next=rx;
+            if(key=="route")next.route=(uint8_t)route_index(value);
+            else next.input_code=(uint8_t)std::strtoul(value.c_str(),nullptr,0);
+            set_rx_locked(next);
+        }
     }
     std::string readSetting(const std::string &key) const override
     {
-        if(key=="tx_unchecked")return unchecked?"true":"false";
+        if(key=="tx_checked")return checked?"true":"false";
+        if(key=="route")return ROUTES[rx.route];
+        if(key=="input_code")return std::to_string(rx.input_code);
         if(key=="tx_simo")return simo?"true":"false";
         return "";
     }
@@ -376,12 +414,12 @@ private:
     uint8_t manual_step=13, tx_pa=LR2021_IQ_PA_AUTO;
     uint32_t tx_hz=433920000, tx_rate=125000;
     int tx_power=LR2021_IQ_TX_DEFAULT_POWER;
-    bool unchecked=false, simo=false, rx_wanted=false;
+    bool checked=false, simo=false, rx_wanted=false;
     long long time_offset=0;
 
     SoapySDR::Range pa_range() const
     {
-        if(!unchecked)return SoapySDR::Range(LR2021_IQ_TX_MIN_POWER/2.0,LR2021_IQ_TX_MAX_POWER/2.0,0.5);
+        if(checked)return SoapySDR::Range(LR2021_IQ_TX_MIN_POWER/2.0,LR2021_IQ_TX_MAX_POWER/2.0,0.5);
         bool hf=tx_pa==1 || (tx_pa==2 && tx_hz>=LR2021_IQ_HF_HZ);
         return hf?SoapySDR::Range(-19.5,12,0.5):SoapySDR::Range(-9.5,22,0.5);
     }
@@ -393,7 +431,7 @@ private:
     }
     void apply_rx()
     {
-        lr2021_bridge_rx m={rx.frequency_hz,rx.bandwidth_hz,rx.gain_step,rx.boost,rx.path};
+        lr2021_bridge_rx m={rx.frequency_hz,rx.bandwidth_hz,rx.gain_step,rx.boost,rx.path,rx.route,rx.input_code,rx.rate_hz};
         lr2021_bridge_rx_ack ack;
         int e=lr2021_host_set_rx(host,&m,&ack);
         if(e)throw std::runtime_error(std::string("lr2021: receive configuration: ")+lr2021_host_strerror(e));
@@ -433,7 +471,7 @@ private:
         lr2021_bridge_tx_begin p{};
         p.rate_hz=tx_rate; p.frequency_hz=tx_hz; p.power_half_db=(int8_t)tx_power;
         p.repeats=(uint8_t)std::min(255u,s->repeats); p.pa=tx_pa;
-        p.flags=(uint8_t)((unchecked?LR2021_IQ_TX_UNCHECKED:0)|(simo?LR2021_IQ_TX_SIMO:0));
+        p.flags=(uint8_t)((checked?LR2021_IQ_TX_CHECKED:0)|(simo?LR2021_IQ_TX_SIMO:0));
         if(s->have_time)p.start_time=(uint64_t)std::max(0LL,(s->time_ns-time_offset)/1000);
         s->have_time=false;
         // Half duplex: stop receive for the burst and resume it afterwards.

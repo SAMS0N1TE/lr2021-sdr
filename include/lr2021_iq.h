@@ -18,6 +18,10 @@ typedef struct {
     uint32_t frequency_hz, bandwidth_hz;
     /* Receive path (0 LF, 1 HF), gain step (0 = chip AGC, 1..13) and boost 0..7. */
     uint8_t rx_path, gain_step, rx_boost;
+    /* Session receive route: 0 LoRa source 2 (IQ16), 1 source 0, 2 source 1,
+     * 3 source 6 (two-byte pairs from an FSK setup with explicit output rate). */
+    uint8_t route, input_code;
+    uint32_t route_rate_hz;
 } lr2021_iq_profile;
 
 /* All I/O hooks return 0 on success and must validate radio command status.
@@ -98,9 +102,12 @@ int lr2021_iq_stream_checked_fifo(const lr2021_iq_hal *, unsigned duration_ms,
                                  unsigned fifo_capacity, lr2021_iq_sink,
                                  void *, lr2021_iq_result *);
 /* Open-ended checked session for host streaming. Same contract as the checked
- * stream: false from the sink rejects that block and ends the session. The
- * profile may use BW31.25 kHz (125000 pairs/s) or BW62.5 kHz (250000 pairs/s);
- * the second rate is only validated in short captures. duration_ms 0 runs until
+ * stream: false from the sink rejects that block and ends the session. Route 0
+ * is LoRa source 2 at 4 x bandwidth for BW 31.25, 62.5, 125 and 250 kHz (125k
+ * to 1M pairs/s, four bytes per pair); whether the bus keeps up above 250k is
+ * a property of the adapter. Routes 1..3 stream two-byte pairs from sources 0,
+ * 1 and 6 at the profile's route rate. first_pair counts pairs of the route's
+ * size. duration_ms 0 runs until
  * the sink stops it; otherwise 1..60000. start_us is written before the first
  * block reaches the sink. gain, when set, is polled between FIFO reads and may
  * request a new gain step (0 AGC, 1..13) and boost (0..7); the library applies
