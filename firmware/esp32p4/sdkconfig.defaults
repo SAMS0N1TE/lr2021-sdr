@@ -5,3 +5,8 @@ CONFIG_ESP_CONSOLE_UART_DEFAULT=y
 CONFIG_FREERTOS_HZ=1000
 CONFIG_COMPILER_OPTIMIZATION_PERF=y
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+# The bridge's radio worker busy-polls the FIFO on core 1: its idle task is not watched.
+CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1=n
+# PSRAM for the TX upload buffer; boards without it fall back to internal RAM.
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_IGNORE_NOTFOUND=y
