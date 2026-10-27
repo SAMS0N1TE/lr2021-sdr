@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/media/LR2021-SDR-banner-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="docs/media/LR2021-SDR-banner-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="docs/media/LR2021-SDR-banner-light.png">
     <img src="docs/media/LR2021-SDR-banner-light.png" alt="LR2021-SDR" width="900">
   </picture>
 </p>
