@@ -182,7 +182,7 @@ static int stream(const lr2021_iq_hal *h, unsigned duration,
             uint8_t level_bytes[2]={0};
             e=h->read(c,0x011C,level_bytes,2); r->polls++;
             unsigned level=((unsigned)level_bytes[0]<<8)|level_bytes[1];
-            sample_us=h->now_us(c); sample_level=level; drained=0;
+            if(level_every>1){ sample_us=h->now_us(c); sample_level=level; drained=0; }
             if(level>r->max_fifo_level)r->max_fifo_level=level;
             if(!e && level>=capacity)e=LR2021_IQ_DATA;
             remaining=level&~3u;
@@ -193,7 +193,8 @@ static int stream(const lr2021_iq_hal *h, unsigned duration,
             /* Checked streams read straight into the staging buffer. */
             e=h->read_fifo(c,checked?pending+pending_bytes:data,n);
             if(!e) {
-                uint64_t first=r->bytes/4; r->bytes+=n; drained+=n;
+                uint64_t first=r->bytes/4; r->bytes+=n;
+                if(level_every>1)drained+=n;
                 if(checked) {
                     pending_bytes+=n;
                     if(pending_bytes>=check) {

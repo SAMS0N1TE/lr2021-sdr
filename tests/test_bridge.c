@@ -107,6 +107,9 @@ int main(void)
     CHECK(!lr2021_bridge_server_init(&srv,&io,&radio,txbuf,sizeof(txbuf)));
     CHECK(lr2021_bridge_server_tune(&srv,1024,4096) && lr2021_bridge_server_tune(&srv,1020,32768));
     CHECK(!lr2021_bridge_server_tune(&srv,1020,4096));
+    CHECK(lr2021_bridge_server_tune(&srv,1020,8192)); /* needs a larger buffer */
+    static uint8_t stagebig[16384+1024];
+    CHECK(lr2021_bridge_server_buffer(&srv,stagebig,100) && !lr2021_bridge_server_buffer(&srv,stagebig,sizeof(stagebig)));
     CHECK(!lr2021_bridge_server_tune(&srv,1020,16384) && lr2021_bridge_server_tune(&srv,1020,16388));
     CHECK(!lr2021_bridge_server_predict(&srv,3) && lr2021_bridge_server_predict(&srv,65));
     uint8_t p[64]={1,0};

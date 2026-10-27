@@ -150,14 +150,17 @@ gap 465 us; through SoapySDR, 30 s with no overflow and exact timestamps.
 1000000 samples/s needs 4 MB/s, above the 26.67 MHz bus.
 
 Each session can raise its FIFO read size to 1020 bytes and check the FIFO
-flags once per 4 KiB or up to 16 KiB instead of once per 1 KiB
-(`lr2021_iq_session.max_read`, `check_bytes`, `buffer`;
-`lr2021_bridge_server_tune` on the device). With `level_every` N
+flags once per 4 KiB instead of once per 1 KiB (`lr2021_iq_session.max_read`,
+`check_bytes`, `buffer`; `lr2021_bridge_server_tune` on the device). Longer
+intervals, up to 16 KiB, use a staging buffer the device supplies
+(`lr2021_bridge_server_buffer`). With `level_every` N
 (`lr2021_bridge_server_predict`), the session reads the FIFO level on every
 Nth pass and in between reads 90% of what the nominal rate delivered since the
-last level read, saving a two-frame level query per pass; a short estimate
-shows as FIFO underflow and the staged block is rejected at its flag check.
-The local spidev backend and the simulator use 1020 and 4096.
+last level read; a short estimate shows as FIFO underflow and the staged block
+is rejected at its flag check. The LilyGO firmware uses 1020-byte reads with a
+check per 4 KiB and no prediction, which gave the most consistent results at
+2 MB/s in 60-second runs. The local spidev backend and the simulator use 1020
+and 4096.
 
 ### Raw receive routes
 

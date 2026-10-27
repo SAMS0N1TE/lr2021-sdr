@@ -29,7 +29,7 @@ int main()
     tfr=d->getFrequencyRange(SOAPY_SDR_TX,0);
     CHECK(tfr[0].minimum()==150e6 && tfr[0].maximum()==960e6);
     d->writeSetting("tx_checked","false");
-    CHECK(d->listSampleRates(SOAPY_SDR_RX,0).size()==4 && d->listSampleRates(SOAPY_SDR_TX,0).size()==6);
+    CHECK(d->listSampleRates(SOAPY_SDR_RX,0).size()==4 && d->listSampleRates(SOAPY_SDR_TX,0).size()==9);
     bool threw=false;
     try { d->setSampleRate(SOAPY_SDR_RX,0,300000); } catch(const std::exception &) { threw=true; }
     CHECK(threw);
