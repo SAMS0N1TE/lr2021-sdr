@@ -117,7 +117,7 @@ static bool same(const settings *a, const settings *b)
 static int set_rx(lr2021_tcp *t, const settings *s)
 {
     uint8_t step, boost; gain_of(s,&step,&boost);
-    lr2021_bridge_rx rx={lr2021_tcp_correct(s->frequency_hz,s->ppm),s->rate_hz/4u,step,boost,(uint8_t)s->path};
+    lr2021_bridge_rx rx={lr2021_tcp_correct(s->frequency_hz,s->ppm),s->rate_hz/4u,step,boost,(uint8_t)s->path,0,0,0};
     lr2021_bridge_rx_ack ack={0};
     int e=lr2021_host_set_rx(t->host,&rx,&ack);
     if(!e && ack.radio_errors)
@@ -126,15 +126,17 @@ static int set_rx(lr2021_tcp *t, const settings *s)
     return e;
 }
 /* Brings the device to t->want: a live gain change while streaming, else
- * stop, configure and start. A rejected frequency reverts to the last good
- * one, keeping the other new settings when the device takes them. Returns a
- * host error only when the device is unusable. */
+ * stop, configure and start. The chip takes a new boost only between
+ * sessions, so a boost change restarts the stream. A rejected frequency
+ * reverts to the last good one, keeping the other new settings when the
+ * device takes them. Returns a host error only when the device is unusable. */
 static int apply(lr2021_tcp *t, client *c)
 {
     char g[64];
-    if(t->streaming && t->have_valid && same_tune(&t->want,&t->have)) {
+    uint8_t step, boost, have_step, have_boost;
+    gain_of(&t->want,&step,&boost); gain_of(&t->have,&have_step,&have_boost);
+    if(t->streaming && t->have_valid && same_tune(&t->want,&t->have) && boost==have_boost) {
         if(same(&t->want,&t->have)){ t->have=t->want; return 0; }
-        uint8_t step, boost; gain_of(&t->want,&step,&boost);
         int e=lr2021_host_set_gain(t->host,step,boost);
         if(e==LR2021_HOST_ELINK)return e;
         if(e) {

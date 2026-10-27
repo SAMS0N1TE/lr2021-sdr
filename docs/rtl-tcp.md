@@ -132,7 +132,8 @@ big-endian value.
 
 Commands that arrive together are applied together: one retune for a burst of
 settings, and a gain change on its own is applied live without interrupting
-the stream.
+the stream. A change that moves the boost (levels 14 to 20) restarts the
+stream, because the chip only takes a new boost between sessions.
 
 ## Gain
 

@@ -33,7 +33,7 @@ static void *serve(void *c)
     s->sim.clock=clock_us; s->sim.sleep=sleep_cb; s->sim.pattern=LR2021_SIM_TONE;
     s->sim.tone_hz=TONE_HZ; s->sim.stall_tolerant=true;
     lr2021_iq_bus bus=lr2021_sim_bus(&s->sim);
-    const lr2021_iq_rx rx={154785000,31250,13,0,2};
+    const lr2021_iq_rx rx={154785000,31250,13,0,2,0,0,0};
     if(!lr2021_iq_dev_open(&s->dev,&bus,NULL,&rx)) {
         lr2021_bridge_radio radio={&s->dev,&s->dev.hal,NULL,configure,rx,1,24,
             LR2021_BRIDGE_CAP_RX|LR2021_BRIDGE_CAP_LIVE_GAIN|LR2021_BRIDGE_CAP_RATE_250K,"t","rtl-tcp-test"};
