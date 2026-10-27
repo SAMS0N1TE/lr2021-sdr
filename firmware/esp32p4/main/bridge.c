@@ -96,7 +96,8 @@ int bridge_session(const bridge_transport *t)
         .rx=radio_dev()->rx, .rom_major=(uint8_t)radio_dev()->profile.fw_major,
         .rom_minor=(uint8_t)radio_dev()->profile.fw_minor,
         .caps=LR2021_BRIDGE_CAP_RX|LR2021_BRIDGE_CAP_TX|LR2021_BRIDGE_CAP_TIMED_TX|
-              LR2021_BRIDGE_CAP_LIVE_GAIN|LR2021_BRIDGE_CAP_RATE_250K,
+              LR2021_BRIDGE_CAP_LIVE_GAIN|LR2021_BRIDGE_CAP_RATE_250K|LR2021_BRIDGE_CAP_CS12|
+              LR2021_BRIDGE_CAP_TX_UNCHECKED,
         .name="lr2021-sdr esp32p4 " CONFIG_LRIQ_FW_VERSION, .id=board_id};
     int e = lr2021_bridge_server_init(&server, &io, &radio, tx_buf, tx_capacity);
     if(!e) {
