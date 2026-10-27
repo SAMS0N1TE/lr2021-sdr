@@ -157,6 +157,9 @@ int bridge_session(const bridge_transport *t)
               LR2021_BRIDGE_CAP_TX_CHECKED|LR2021_BRIDGE_CAP_RAW_ROUTES,
         .name="lr2021-sdr esp32p4 " CONFIG_LRIQ_FW_VERSION, .id=board_id};
     int e = lr2021_bridge_server_init(&server, &io, &radio, tx_buf, tx_capacity);
+    /* 1020-byte FIFO reads and one flag check per 4 KiB: the register-path bus
+     * pays about 1 us per 64 bytes, so fewer, larger frames carry 500000 pairs/s. */
+    if(!e) e = lr2021_bridge_server_tune(&server, 1020, 4096);
     if(!e) {
         atomic_store(&spool_head, 0); atomic_store(&spool_tail, 0); atomic_store(&spool_failed, false);
         spool_drops = spool_peak = 0;
