@@ -5,9 +5,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-/* Host-side device for Linux and macOS (POSIX threads). Every backend speaks
- * the bridge protocol (docs/bridge-protocol.md):
- *   serial: a bridge firmware on a USB serial port
+/* Host-side device for Linux, macOS and Windows (MinGW-w64). Every backend
+ * speaks the bridge protocol (docs/bridge-protocol.md):
+ *   serial: a bridge firmware on a USB serial port (/dev/ttyACM0, COM5)
  *   tcp:    a bridge firmware over Wi-Fi, or tools/lr2021_bridge_sim
  *   local:  the chip on this host's spidev and GPIO lines (Linux); the bridge
  *           server runs in-process over a socket pair
@@ -78,7 +78,7 @@ int lr2021_host_time(lr2021_host *, uint64_t *device_us);
 const char *lr2021_host_strerror(int);
 /* Probe-free listing of likely bridge serial ports (USB VID:PID 1A86:55D3
  * CH343, 303A:1001 ESP USB Serial/JTAG, 303A:4001 TinyUSB). Writes up to
- * max paths, returns the count. Ports are not opened. */
+ * max paths, returns the count. Ports are not opened. Returns 0 on Windows. */
 size_t lr2021_host_list_serial(char paths[][256], size_t max);
 #ifdef __cplusplus
 }

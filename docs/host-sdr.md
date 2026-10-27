@@ -27,8 +27,10 @@ firmware, the local Linux backend and the simulator alike.
 
 ## Install
 
-Linux (Debian, Ubuntu, Fedora, Raspberry Pi OS) and macOS. Windows builds the
-C library, simulator and tests.
+Linux (Debian, Ubuntu, Fedora, Raspberry Pi OS) and macOS. Windows (MinGW-w64)
+builds the host client with its serial (`serial=COM5`), TCP and simulator
+backends, the bridge simulator tool and the [rtl_tcp server](rtl-tcp.md),
+but not the SoapySDR module or the local spidev backend.
 
 ```bash
 sudo apt-get install cmake g++ libsoapysdr-dev soapysdr-tools libgpiod-dev
@@ -136,10 +138,12 @@ within about 0.5% of 4 x bandwidth for source 2, counted from the first
 retained FIFO data of the stream. They are exact from sample to sample within a
 stream.
 
-The source-2 data rate is 4 bytes per pair: 2 MB/s at 500000 and 4 MB/s at
-1000000 samples/s. The radio's FIFO must be drained at that rate, so these
-rates depend on the adapter's SPI clock and service loop: the LilyGO board
-adapter runs its SPI at 26.67 MHz.
+Source 2 carries 4 bytes per pair, so the radio's FIFO has to be drained at
+0.5, 1, 2 and 4 MB/s for the four rates. The LilyGO board adapter (SPI at
+26.67 MHz) drains it at about 1.2 MB/s sustained: source 2 streams at 125000
+and 250000 samples/s there, and the 500000 and 1000000 settings reach FIFO
+overflow within the first kilobyte. A faster service loop or bus raises that
+ceiling; the library and protocol already carry the higher rates.
 
 ### Raw receive routes
 
@@ -153,22 +157,25 @@ deviation, RX filter code `input_code`):
 | Route | Source | Bytes per pair | Stream format |
 | --- | --- | --- | --- |
 | `source0` | 0 | 2 | IQ8: int8 I, Q |
-| `source1` | 1 | 2 | IQ8: int8 I, Q |
+| `source1` | 1 | 2 | IQ8: int8 I, Q, at the source's own rate (about 740000 pairs/s; the route's rate field does not change it) |
 | `source6` | 6 | 2 | IQ6G: signed 6-bit I and Q in bits 7..2 of each byte, gain step in the low bits |
 
 The module scales IQ8 by 256 and IQ6 by 1024 into CS16 (CF32 full scale is
 the same). The bridge carries these bytes unchanged, up to 960 pairs per
 frame, so 576000 pairs/s is about 1.2 MB/s on the link.
 
-Results on the LilyGO T-Display-P4 board (ROM 1.24) in a bounded-capture lab
-build:
+Results on the LilyGO T-Display-P4 board (ROM 1.24), streamed through the
+bridge firmware over Wi-Fi TCP with SPI at 26.67 MHz:
 
 | Route | Setting | Result |
 | --- | --- | --- |
-| Source 0 | input code 17, 576000 pairs/s, route `11 00 08 CA 00 08 00 00 00 00 01` | 3 s sessions delivered 575955 pairs/s, FIFO peak 364 bytes, largest service gap 314 us, flags `0x04`; a tone at +200 kHz is within 0.91 dB of the +50 kHz level |
-| Source 0 | input code 33, 576000 pairs/s | same transport; +200 kHz response 16.4 dB below +50 kHz |
-| Source 6 | input code `0x1C`, 50000 pairs/s, route `1C 00 00 C3 50 0E 00 00 00 00 01` | two-byte words `I = signed(byte0) >> 2`, `Q = signed(byte1) >> 2`, gain step = `(byte0 & 3) | (byte1 & 3) << 2`; the tag matched manual steps 1, 7, 8 and 13 and read 13 under AGC |
-| IQ8 transport | large DMA FIFO reads | bounded captures at about 666000 pairs/s |
+| Source 0 | input code 17, 576000 pairs/s, route `11 00 08 CA 00 08 00 00 00 00 01` | 60 s: 34561720 pairs, every pair delivered, device rate 575984 pairs/s, FIFO peak 538 bytes, largest service gap 476 us, flags `0x04`. Through SoapySDR, 60 s of `readStream` gave 34562880 samples with no overflow and timestamp steps exact to 1 ns |
+| Source 0 | rate and orientation | a fixed RF line from the board moved 49.99 kHz for a 50.000 kHz retune (rate within 0.02% of 576000), positive frequency is RF above the tuned frequency, and the line passes at +203.66 kHz, 20.1 dB over its surroundings |
+| Source 6 | input code 28 (`0x1C`), 50000 pairs/s, route `1C 00 00 C3 50 0E 00 00 00 00 01` | 49897 pairs/s; every pair tagged with the manual gain step (249884 pairs at step 9, 250076 at step 4) |
+
+In earlier bounded lab captures on the same board, source 0 at 576000 pairs/s
+with input code 17 kept a +200 kHz tone within 0.91 dB of the +50 kHz level,
+against 16.4 dB below with input code 33.
 
 The bridge server streams these routes through the same checked FIFO session
 as source 2.
@@ -179,7 +186,7 @@ as source 2.
 | --- | --- |
 | CH343 UART at 4 Mbaud (400 kB/s) | source 2 at 125000/s as CS12 (386 kB/s) |
 | TCP over the board's Wi-Fi | source 2 at 250000/s as CS16 (1023 kB/s): 10 minutes with every pair delivered |
-| TCP, two-byte routes | 576000 pairs/s is 1.2 MB/s |
+| TCP, two-byte routes | source 0 at 576000 pairs/s (1.2 MB/s): 60 s with every pair delivered |
 
 CS12 packs source-2 samples as block floating point: exact while a frame stays
 within ±2047 counts, and stronger frames keep their top 12 bits with the shift
@@ -198,7 +205,7 @@ millisecond.
 | --- | --- | --- |
 | Samples per burst | up to 32767 including the `repeats` stream argument (the ROM keeps a 16-bit byte count) | 32767 at 915 MHz, 125000/s |
 | Burst length | up to the 512 s SetTx timeout | 0.82 s (31648 samples at 38400/s) |
-| Rates | 1 to 1000000 samples/s | 4800, 9600, 19200, 38400, 76800, 125000 |
+| Rates | 1 to 1000000 samples/s | 4800, 9600, 19200, 38400, 76800, 125000, 250000 (16000 samples at 915 MHz, received for 64.0 ms by an RTL-SDR) |
 | Frequency | 100 to 2740 MHz, LF or HF PA (`AUTO` antenna: HF from 1.5 GHz) | 433.92 and 915 MHz, LF PA |
 | Power (`PA` gain) | LF -9.5 to +22 dBm, HF -19.5 to +12 dBm (datasheet SetTxParams ranges) | -9 dBm |
 | Sample magnitude | int8 | amplitude follows the input up to radius 56; saturation from about radius 64 |
@@ -233,6 +240,19 @@ The in-process server runs the radio loop in its own thread with `SCHED_FIFO`
 when the process has `CAP_SYS_NICE` (or runs as root), which keeps the FIFO
 serviced within its 2 ms window at 125000 samples/s.
 
+## rtl_tcp clients
+
+[`lr2021_tcp`](rtl-tcp.md) serves the board to rtl_tcp clients (SDR++, SDR#,
+gqrx, OpenWebRX, GNU Radio) on Windows, Linux and macOS without SoapySDR. It
+takes the same device arguments:
+
+```bash
+lr2021_tcp -d serial=COM5,baud=4000000,format=cs12
+```
+
+Set the client to 250000 samples/s; the [rtl_tcp page](rtl-tcp.md) has the
+command, gain and sample-format mapping.
+
 ## Rust
 
 [`rust/`](../rust/README.md) has three crates: `lr2021-sys` (bindings to this C
@@ -244,7 +264,8 @@ blocking client, cross-tested against the C code).
 
 Hardware results come from a LilyGO T-Display-P4 LR2021 board (ROM 1.24),
 2026-10-27. The automated tests run every part below against the chip
-simulator on Linux and macOS; the C library tests also run on Windows.
+simulator on Linux and macOS; the C library, host client and rtl_tcp tests also
+run on Windows.
 
 | Part | Automated tests | Measured on the board |
 | --- | --- | --- |
@@ -252,6 +273,9 @@ simulator on Linux and macOS; the C library tests also run on Windows.
 | Bridge protocol, server, CS12 | `bridge_protocol`, Rust cross tests | USB serial at 4 Mbaud, CS12, 60 s at 125000/s: every pair delivered by the radio side, 99.8% received by the host |
 | SoapySDR module over TCP | `soapy_module`, SoapySDRUtil in CI | RX 60 s at 125000 and 250000 S/s with exact timestamp steps; 10 minutes at 250000 S/s with every pair delivered; live STEP changes without a gap; one overflow per retune. TX: a CF32 writeStream burst of 16000 samples at 125000 S/s lasted 129 ms on a HackRF (128 nominal); a HAS_TIME burst 2 s ahead started 11 us after the requested time; receive at 250000 S/s resumed 0.4 s after a burst with one overflow |
 | Host client: serial (pty), TCP, in-process | `host_client` | TCP over Wi-Fi |
-| Raw routes, 500000 and 1000000 S/s source 2 | `device_session_tx`, `bridge_protocol`, `soapy_module`, Rust cross tests | raw-route results above (lab build) |
+| Raw routes | `device_session_tx`, `bridge_protocol`, `soapy_module`, Rust cross tests | source 0 at 576000 pairs/s for 60 s over Wi-Fi and through SoapySDR, every pair delivered; source 6 gain tags match the manual step |
+| Source 2 above 250000 S/s | same | the LilyGO adapter's FIFO service (about 1.2 MB/s) sets the ceiling at 250000 |
 | Local spidev/libgpiod backend | builds with libgpiod 1.6 in CI | |
 | HF PA, `tx_simo` | `device_session_tx` | |
+| Windows host client (TCP, simulator) | `host_client` | COM ports build but are not tested |
+| rtl_tcp server | `rtl_tcp_server`, `rtl_tcp_client` | no rtl_tcp client program run against the board yet |

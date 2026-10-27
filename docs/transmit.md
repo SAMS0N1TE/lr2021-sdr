@@ -12,6 +12,8 @@
 | Temperature packets | rtl_433 decoded readings of 23.4, -12.3, and 37.8 °C, plus sensor IDs and status. | [Generator and received packets](../research/tx-temperature/README.md) |
 | Custom amplitude and phase | A two-ring waveform delivered 235 valid frames containing 15,040 payload bits with zero bit errors. | [Payload experiment](../research/tx-payload/README.md) |
 
+**Generated, not yet transmitted:** [DMR Tier II bursts](dmr-tx.md) (voice header and terminator, CSBK, packet data) decode in a software loopback. No DMR signal has been sent on air.
+
 These examples give you a starting point for packet generators, decoder test signals, and experiments with modulation that the chip's normal packet interface does not provide.
 
 ## Use it in LakeShark

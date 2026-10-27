@@ -2,6 +2,7 @@
 #define _DEFAULT_SOURCE
 #define _DARWIN_C_SOURCE
 #include "host_internal.h"
+#include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <netdb.h>
@@ -11,6 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <sched.h>
 #include <sys/socket.h>
 #include <termios.h>
 #include <time.h>
@@ -29,6 +31,54 @@ void lrh_sleep_us(unsigned us)
 {
     struct timespec t={us/1000000u,(long)(us%1000000u)*1000};
     while(nanosleep(&t,&t) && errno==EINTR){}
+}
+void lrh_mutex_init(lrh_mutex *m) { pthread_mutex_init(m,NULL); }
+void lrh_mutex_destroy(lrh_mutex *m) { pthread_mutex_destroy(m); }
+void lrh_lock(lrh_mutex *m) { pthread_mutex_lock(m); }
+void lrh_unlock(lrh_mutex *m) { pthread_mutex_unlock(m); }
+void lrh_cond_init(lrh_cond *c) { pthread_cond_init(c,NULL); }
+void lrh_cond_destroy(lrh_cond *c) { pthread_cond_destroy(c); }
+void lrh_cond_broadcast(lrh_cond *c) { pthread_cond_broadcast(c); }
+void lrh_cond_wait(lrh_cond *c, lrh_mutex *m) { pthread_cond_wait(c,m); }
+bool lrh_cond_wait_until(lrh_cond *c, lrh_mutex *m, uint64_t deadline_us)
+{
+    /* Condition variables wait on CLOCK_REALTIME (macOS has no other). */
+    uint64_t now=lrh_now_us();
+    if(now>=deadline_us)return false;
+    uint64_t left=deadline_us-now;
+    struct timespec t;
+    clock_gettime(CLOCK_REALTIME,&t);
+    t.tv_sec+=(time_t)(left/1000000u); t.tv_nsec+=(long)(left%1000000u)*1000L;
+    if(t.tv_nsec>=1000000000L){ t.tv_sec++; t.tv_nsec-=1000000000L; }
+    return pthread_cond_timedwait(c,m,&t)!=ETIMEDOUT;
+}
+int lrh_thread_start(lrh_thread *t, void *(*fn)(void *), void *arg)
+{ return pthread_create(t,NULL,fn,arg)?-1:0; }
+void lrh_thread_join(lrh_thread t) { pthread_join(t,NULL); }
+void lrh_thread_realtime(void)
+{
+    struct sched_param sp={.sched_priority=50};
+    pthread_setschedparam(pthread_self(),SCHED_FIFO,&sp);
+}
+int lrh_net_init(void) { return 0; }
+long lrh_read(lrh_fd fd, void *p, size_t n)
+{
+    ssize_t r;
+    do r=read(fd,p,n); while(r<0 && errno==EINTR);
+    if(r<0)return errno==EAGAIN || errno==EWOULDBLOCK ? LRH_AGAIN : -1;
+    return (long)r;
+}
+void lrh_shutdown(lrh_fd fd) { shutdown(fd,SHUT_RDWR); }
+void lrh_close(lrh_fd fd) { close(fd); }
+int lrh_socketpair(lrh_fd sv[2])
+{
+    if(socketpair(AF_UNIX,SOCK_STREAM,0,sv))return -1;
+#ifdef SO_NOSIGPIPE
+    int one=1;
+    setsockopt(sv[0],SOL_SOCKET,SO_NOSIGPIPE,&one,sizeof(one));
+    setsockopt(sv[1],SOL_SOCKET,SO_NOSIGPIPE,&one,sizeof(one));
+#endif
+    return 0;
 }
 int lrh_write_all(int fd, const uint8_t *p, size_t n)
 {
@@ -112,15 +162,48 @@ int lrh_tcp_connect(const char *host, unsigned port, unsigned timeout_ms, char *
 #endif
     return fd;
 }
-int lrh_tcp_listen(unsigned port, char *err, size_t n)
+int lrh_tcp_listen(const char *addr, unsigned port, char *err, size_t n)
 {
+    struct sockaddr_in a={0};
+    a.sin_family=AF_INET; a.sin_port=htons((uint16_t)port); a.sin_addr.s_addr=htonl(INADDR_ANY);
+    if(addr && *addr && inet_pton(AF_INET,addr,&a.sin_addr)!=1) {
+        snprintf(err,n,"%s: not an IPv4 address",addr); return -1;
+    }
     int fd=socket(AF_INET,SOCK_STREAM,0), one=1;
     if(fd<0){ snprintf(err,n,"socket: %s",strerror(errno)); return -1; }
     setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,&one,sizeof(one));
-    struct sockaddr_in a={0};
-    a.sin_family=AF_INET; a.sin_port=htons((uint16_t)port); a.sin_addr.s_addr=htonl(INADDR_ANY);
     if(bind(fd,(struct sockaddr *)&a,sizeof(a)) || listen(fd,1)) {
         snprintf(err,n,"port %u: %s",port,strerror(errno)); close(fd); return -1;
+    }
+    return fd;
+}
+unsigned lrh_tcp_port(lrh_fd fd)
+{
+    struct sockaddr_in a; socklen_t len=sizeof(a);
+    if(getsockname(fd,(struct sockaddr *)&a,&len) || a.sin_family!=AF_INET)return 0;
+    return ntohs(a.sin_port);
+}
+int lrh_poll_read(lrh_fd fd, unsigned timeout_ms)
+{
+    struct pollfd q={fd,POLLIN,0};
+    int r;
+    do r=poll(&q,1,timeout_ms==LRH_FOREVER?-1:(int)timeout_ms); while(r<0 && errno==EINTR);
+    return r<0?-1:r?1:0;
+}
+lrh_fd lrh_tcp_accept(lrh_fd ls, unsigned timeout_ms, char *peer, size_t peer_size)
+{
+    if(lrh_poll_read(ls,timeout_ms)<=0)return -1;
+    struct sockaddr_in a; socklen_t len=sizeof(a);
+    int fd=accept(ls,(struct sockaddr *)&a,&len);
+    if(fd<0)return -1;
+    int one=1; setsockopt(fd,IPPROTO_TCP,TCP_NODELAY,&one,sizeof(one));
+#ifdef SO_NOSIGPIPE
+    setsockopt(fd,SOL_SOCKET,SO_NOSIGPIPE,&one,sizeof(one));
+#endif
+    if(peer && peer_size) {
+        char ip[INET_ADDRSTRLEN]="?";
+        if(a.sin_family==AF_INET)inet_ntop(AF_INET,&a.sin_addr,ip,sizeof(ip));
+        snprintf(peer,peer_size,"%s:%u",ip,(unsigned)ntohs(a.sin_port));
     }
     return fd;
 }
