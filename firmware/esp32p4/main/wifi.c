@@ -44,7 +44,7 @@ static void on_event(void *arg, esp_event_base_t base, int32_t id, void *data)
         const ip_event_got_ip_t *e = data;
         snprintf(ip, sizeof(ip), IPSTR, IP2STR(&e->ip_info.ip));
         connected = true;
-        printf("wifi: connected ip=%s bridge=tcp:%d\n", ip, PORT);
+        ESP_LOGI("wifi", "connected ip=%s bridge=tcp:%d", ip, PORT); /* muted in a serial session */
     }
 }
 
@@ -75,7 +75,7 @@ static void tcp_server(void *arg)
     setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
     struct sockaddr_in a = {.sin_family=AF_INET, .sin_port=htons(PORT), .sin_addr.s_addr=htonl(INADDR_ANY)};
     if(ls < 0 || bind(ls, (struct sockaddr *)&a, sizeof(a)) || listen(ls, 1)) {
-        printf("wifi: TCP listen on %d failed\n", PORT); vTaskDelete(NULL);
+        ESP_LOGE("wifi", "TCP listen on %d failed", PORT); vTaskDelete(NULL);
     }
     for(;;) {
         struct sockaddr_in peer; socklen_t len = sizeof(peer);
