@@ -251,6 +251,9 @@ static int start_local(lr2021_host *h, const lr2021_host_args *a, char *err, siz
     int sv[2];
     if(socketpair(AF_UNIX,SOCK_STREAM,0,sv)){ snprintf(err,n,"socketpair: %s",strerror(errno)); return -1; }
     h->fd=sv[0]; h->server_fd=sv[1];
+#ifdef SO_NOSIGPIPE
+    int one=1; setsockopt(h->fd,SOL_SOCKET,SO_NOSIGPIPE,&one,sizeof(one));
+#endif
     static char ids[2][32];
     bool sim=h->backend==LR2021_HOST_SIM;
     snprintf(ids[sim],sizeof(ids[0]),"%.31s",sim?"sim":a->spidev);

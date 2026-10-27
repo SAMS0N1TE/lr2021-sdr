@@ -89,6 +89,9 @@ lrh_server *lrh_server_start(int fd, const lr2021_bridge_radio *radio, size_t tx
     lrh_server *s=calloc(1,sizeof(*s));
     if(!s)return NULL;
     s->fd=fd;
+#ifdef SO_NOSIGPIPE
+    int one=1; setsockopt(fd,SOL_SOCKET,SO_NOSIGPIPE,&one,sizeof(one)); /* macOS has no MSG_NOSIGNAL */
+#endif
     if(tx_capacity && !(s->tx_buf=malloc(tx_capacity))){ free(s); return NULL; }
     pthread_mutex_init(&s->send_mu,NULL); pthread_mutex_init(&s->mu,NULL); pthread_cond_init(&s->cv,NULL);
     lr2021_bridge_io io={s,send_cb,lock_cb,unlock_cb,wake_cb};

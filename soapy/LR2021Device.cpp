@@ -8,6 +8,7 @@
 #include <SoapySDR/Time.hpp>
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <mutex>
 #include <stdexcept>

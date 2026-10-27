@@ -156,6 +156,11 @@ int main(void)
     lr2021_host_close(h);
     pthread_join(th,NULL);
 
+#ifdef __APPLE__
+    /* IOSSIOSPEED does not apply to ptys; the serial path is Linux-tested. */
+    puts("host client over simulator and TCP passed (pty skipped on macOS)");
+    return 0;
+#endif
     /* A pty in place of the USB serial port; the client sets 3 Mbaud. */
     int master=posix_openpt(O_RDWR|O_NOCTTY);
     CHECK(master>=0 && !grantpt(master) && !unlockpt(master));

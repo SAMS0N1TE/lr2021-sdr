@@ -61,6 +61,18 @@ This repository holds the radio access library, capture firmware, waveform tools
 
 The standalone capture firmware records I/Q. Use LakeShark for live decoding, audio, and the handheld UI. The work is experimental and has been tested on **LR2021 ROM 1.24**. See [hardware and setup](docs/hardware.md) for board requirements.
 
+## Use it as an SDR on a computer
+
+A SoapySDR module (`driver=lr2021`) and Rust crates make the LR2021 an ordinary SDR on Linux and macOS: receive from 100 MHz to 2.74 GHz at 125 or 250 ksample/s with manual gain steps or the chip AGC, timestamps, and half-duplex transmit bursts through `writeStream` on the repository's `0x0293` path. The radio can sit behind ESP32-P4 bridge firmware on USB serial or Wi-Fi, or on a Linux host's own SPI and GPIO lines; a simulator covers everything without hardware.
+
+```bash
+SoapySDRUtil --probe="driver=lr2021,serial=/dev/ttyACM0,baud=4000000,format=cs12"
+```
+
+[Install, device arguments, rates, gain and TX limits](docs/host-sdr.md) · [Bridge protocol](docs/bridge-protocol.md) · [SoapySDR module](soapy/README.md) · [Rust crates](rust/README.md) · [udev rules](udev/60-lr2021-sdr.rules)
+
+Hardware results come from a LilyGO T-Display-P4 LR2021 board; the automated tests run against the simulator. [What is tested where](docs/host-sdr.md#what-is-tested-where).
+
 ## P25 receive and transmit
 
 Live reception has produced audible P25 Phase 1 calls. A saved recording also decoded back into voice offline.
