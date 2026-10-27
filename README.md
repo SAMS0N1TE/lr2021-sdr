@@ -1,6 +1,6 @@
 # LR2021-SDR
 
-**A LoRa chip that tunes from 100 MHz to 2.74 GHz and streams 16-bit I/Q.**
+**A LoRa chip that tunes from 100 MHz to 2.74 GHz and streams I/Q at up to 800,000 samples/s.**
 
 P25 voice, pagers, FM, Bluetooth LE and custom transmit from the Semtech LR2021: on a handheld with no SDR dongle, or as an ordinary SoapySDR device on a computer, over USB or Wi-Fi.
 
@@ -13,17 +13,21 @@ P25 voice, pagers, FM, Bluetooth LE and custom transmit from the Semtech LR2021:
 | | |
 | --- | --- |
 | **100 MHz to 2.74 GHz** | Continuous receive, well past the datasheet's 150 to 960 MHz and 1.5 to 2.5 GHz. Airband, the top of FM and 2.5 to 2.7 GHz included. |
-| **250,000 samples/s over Wi-Fi** | 16-bit I/Q from the board to a computer: 10 minutes at 250,000 samples/s with every sample delivered. |
+| **Up to 800,000 samples/s over Wi-Fi** | 16-bit I/Q at 500,000 samples/s and 8-bit I/Q at 576,000 and 800,000 samples/s from the board to a computer, every sample delivered. |
 | **SoapySDR on Linux and macOS** | `driver=lr2021` for GNU Radio, SDR++ and other SoapySDR software: timestamps, live gain, retuning, transmit bursts. Rust crates too. |
 | **Transmit** | Bursts from SoapySDR `writeStream`, immediate or timed to within microseconds, received at 433.92 and 915 MHz; P25 test bursts, custom waveforms and replayed remotes, confirmed by independent receivers. |
 | **P25 Phase 1 voice** | Live calls decoded and played on the handheld. |
 | **Bluetooth LE** | The chip's own BLE engine picks up advertising on all three channels. |
 
+[![Sustained receive over Wi-Fi with every sample delivered: 125k, 250k and 500k samples/s of 16-bit I/Q, 576k and 800k samples/s of 8-bit I/Q](docs/images/receive-rates.png)](docs/host-sdr.md#receive)
+
+*Five receive modes, each run for 60 seconds or longer with every sample reaching the computer over the board's Wi-Fi. 250,000 samples/s also ran for 10 minutes.*
+
 [![Tone over noise floor from 40 MHz to 3.8 GHz on both inputs](docs/images/rx-tuning-range.svg)](research/rx-range-and-gain/README.md)
 
 *Every dot is a real signal that moved when the receiver was retuned. Shaded areas are the bands the datasheet promises.*
 
-Measured on one LilyGO T-Display-P4 LR2021 board. The range depends on the module's front end and may differ on other boards or module builds. The bridge firmware reads the 16-bit source-2 FIFO with the CPU over SPI at 26.67 MHz; over a 10-minute Wi-Fi run at 250,000 samples/s the chip's 1,024-byte FIFO peaked at 644 bytes. [GNSS and 2.4 GHz](research/gnss-wifi/README.md) and [L76K](research/l76k/README.md) notes cover the signal and GPS-module experiments.
+Measured on one LilyGO T-Display-P4 LR2021 board. The range depends on the module's front end and may differ on other boards or module builds. The bridge firmware drives the radio's SPI bus through the ESP32-P4's registers at 26.67 MHz and reads the FIFO in frames of up to 1,020 bytes. [GNSS and 2.4 GHz](research/gnss-wifi/README.md) and [L76K](research/l76k/README.md) notes cover the signal and GPS-module experiments.
 
 ## How it works
 
@@ -45,7 +49,7 @@ This repository holds the radio access library, the host SDR support (C client, 
 
 | Feature | What works | Guide |
 | --- | --- | --- |
-| Stream to a computer | 125,000 or 250,000 samples/s into SoapySDR over Wi-Fi or USB serial, with timestamps, live gain and retuning. | [Host SDR](docs/host-sdr.md) |
+| Stream to a computer | 16-bit I/Q at 125,000 to 500,000 samples/s and 8-bit I/Q at 576,000 or 800,000 samples/s into SoapySDR or rtl_tcp programs, over Wi-Fi or USB serial, with timestamps, live gain and retuning. | [Host SDR](docs/host-sdr.md) |
 | Transmit from a computer | I/Q bursts through SoapySDR `writeStream`, immediately or at a device time. | [Host SDR: transmit](docs/host-sdr.md#transmit) |
 | Receive on the handheld | P25 Phase 1 voice, POCSAG, and analog FM through the LR2021 in LakeShark. | [Receive](docs/receive.md) |
 | Record | Capture raw I/Q for offline decoding, replay, and signal analysis. | [Recording](docs/voice-capture.md) |
@@ -63,7 +67,7 @@ Tested on **LR2021 ROM 1.24**. See [hardware and setup](docs/hardware.md) for bo
 
 ## Use it as an SDR on a computer
 
-A SoapySDR module (`driver=lr2021`) and Rust crates make the LR2021 an ordinary SDR on Linux and macOS: receive from 100 MHz to 2.74 GHz at 125 or 250 ksample/s with manual gain steps or the chip AGC, timestamps, and half-duplex transmit bursts through `writeStream` on the repository's `0x0293` path. The radio can sit behind the ESP32-P4 bridge firmware on USB serial or Wi-Fi, or on a Linux host's own SPI and GPIO lines; a simulator covers everything without hardware.
+A SoapySDR module (`driver=lr2021`) and Rust crates make the LR2021 an ordinary SDR on Linux and macOS: receive from 100 MHz to 2.74 GHz as 16-bit I/Q at 125 to 500 ksample/s or 8-bit I/Q from the chip's other sources at up to 800 ksample/s, with manual gain steps or the chip AGC, timestamps, and half-duplex transmit bursts through `writeStream` on the repository's `0x0293` path. The radio can sit behind the ESP32-P4 bridge firmware on USB serial or Wi-Fi, or on a Linux host's own SPI and GPIO lines; a simulator covers everything without hardware.
 
 On the board's console, join a network once:
 
@@ -91,13 +95,20 @@ lr2021_tcp -d serial=COM5,baud=4000000,format=cs12
 
 *Wi-Fi carries 16-bit samples at 250,000/s without loss, and USB serial carries 125,000/s as CS12, a 12-bit packing of the same samples. The radio side was lossless in every run.*
 
+[![Radio transaction times and the highest sustained 16-bit rate before and after the register-path SPI bus](docs/images/radio-bus-speedup.png)](firmware/esp32p4/README.md#use-it-from-a-computer)
+
+*The bridge firmware talks to the radio through the ESP32-P4's SPI registers instead of DMA transactions, and reads the FIFO in large frames: each transaction is up to 2.7 times faster, and 16-bit receive doubled from 250,000 to 500,000 samples/s.*
+
 [![HackRF spectrogram of a 433.92 MHz burst sent through SoapySDR writeStream](docs/images/tx-433-burst.png)](docs/host-sdr.md#transmit)
 
 *A burst sent from SoapySDR, received by a HackRF One: the +10 kHz tone at the expected offset, 129 ms long for 16,000 samples at 125,000 samples/s.*
 
 | Check on the LilyGO board | Result |
 | --- | --- |
-| SoapySDR receive over Wi-Fi, 60 s at 125k and 250k | No overflows; timestamps step by exactly one sample period |
+| SoapySDR receive over Wi-Fi, 60 s at 125k, 250k and 576k, 30 s at 500k | No overflows; timestamps step by exactly one sample period |
+| 8-bit I/Q at 576,000 samples/s, rate and orientation | A known signal moves 49.99 kHz for a 50.000 kHz retune; the passband reaches ±200 kHz |
+| Gain-tagged samples (source 6) | Every sample carries the manual gain step |
+| Transmit at 250,000 samples/s, 915 MHz | Burst received for exactly its 64 ms length |
 | Live gain change while streaming | No gap; gain step 13 to 3 lowers the level by 38 dB |
 | Retune while streaming | One overflow, then data at the new frequency |
 | Timed transmit burst 2 s ahead | Started 11 µs after the requested time |
@@ -165,7 +176,7 @@ The recorder waits for a signal 10 dB over the floor and keeps 10 ms from before
 
 [![Measured complex sample rates follow four times the configured LoRa bandwidth](docs/images/sample-rates.png)](docs/technical-overview.md#hardware)
 
-Known-tone estimates for four tested bandwidths ranged from about **125,000 to 1,000,000 complex samples per second**. These are short-window measurements. Continuous 16-bit streaming is verified at up to **250,000 samples per second** over SPI at 26.67 MHz.
+Known-tone estimates for four tested bandwidths ranged from about **125,000 to 1,000,000 complex samples per second**. These are short-window measurements. Continuous 16-bit streaming runs at up to **500,000 samples per second** over SPI at 26.67 MHz.
 
 ### I/Q orientation
 

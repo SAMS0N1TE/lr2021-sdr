@@ -160,7 +160,9 @@ or MMCX1 for receive and transmit and is saved.
 | wifi | `set <ssid> <password>`, `clear`, or none for status | Joins the saved network at boot |
 | antenna | `internal` or `external` | external (MMCX1) |
 
-The radio worker runs on core 1 and the radio SPI clock is 26.67 MHz. A
+The radio worker runs on core 1. The radio SPI bus runs at 26.67 MHz through
+the ESP32-P4's SPI registers in 64-byte pieces, and the FIFO is read in frames of
+up to 1,020 bytes. `spibench` times the bus and `spiclk` sets its clock. A
 PSRAM output queue (8 MiB) holds about 8 s of 16-bit samples at 250000
 pairs/s, so a Wi-Fi pause does not cost samples.
 
@@ -169,6 +171,9 @@ pairs/s, so a Wi-Fi pause does not cost samples.
 | USB serial, 4 Mbaud | 125000 pairs/s, CS12 | 60 s: no device drops; 99.8% delivered |
 | Wi-Fi TCP | 125000 pairs/s, CS16 | 60 s, every pair delivered |
 | Wi-Fi TCP | 250000 pairs/s, CS16 | 10 min, 150,003,050 pairs, every pair delivered |
+| Wi-Fi TCP | 500000 pairs/s, CS16 | 60 s, 30,001,910 pairs, every pair delivered |
+| Wi-Fi TCP | source 0, 576000 pairs/s, IQ8 | 60 s, 34,561,720 pairs, every pair delivered |
+| Wi-Fi TCP | source 1, 800000 pairs/s, IQ8 | 60 s, 48,000,354 pairs, every pair delivered |
 
 The bridge runs the LilyGO CH343 at 4 Mbaud, with CS12 for 125000 pairs/s.
 On Windows, give the serial port a receive buffer of a few megabytes before
