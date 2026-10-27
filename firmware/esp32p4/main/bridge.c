@@ -2,12 +2,14 @@
 #include "bridge.h"
 #include "radio.h"
 #include "lr2021_bridge_server.h"
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "sdkconfig.h"
 #include "driver/uart.h"
 #include "driver/uart_vfs.h"
+#include "esp_attr.h"
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "esp_mac.h"
@@ -26,6 +28,9 @@
 #define RX_BUFFER 8192
 #define TX_BUFFER 32768
 
+/* 128 queue slots (CMakeLists sets LR2021_BRIDGE_SLOTS), 0.25 s at 250000 pairs/s,
+ * in internal RAM: with the queue in PSRAM the radio worker's copies stretched the
+ * worst FIFO service gap from about 400 to 761 us, past the 1 KiB FIFO's ~1 ms. */
 static lr2021_bridge_server server;
 static SemaphoreHandle_t send_lock, session_lock;
 static TaskHandle_t worker_task, sender_task;
@@ -34,11 +39,57 @@ static size_t tx_capacity;
 static char board_id[32];
 static const bridge_transport *active;
 
+/* Spool: every outgoing frame goes into a PSRAM byte ring and a drain task
+ * writes it to the transport, so a link stall (Wi-Fi pauses of about a second
+ * were measured) waits in PSRAM instead of overflowing the 0.25 s slot queue.
+ * Only the sender and drain tasks on core 0 touch PSRAM; the radio worker on
+ * core 1 keeps to internal RAM. When the spool is full, RX_DATA frames are
+ * dropped whole (the host sees the first_pair gap); responses wait for room. */
+static uint8_t *spool;
+static size_t spool_size;
+static atomic_size_t spool_head, spool_tail;   /* monotonic byte counts */
+static atomic_bool spool_failed;
+static uint32_t spool_drops, spool_peak;
+static TaskHandle_t drain_task;
+
+static int spool_put(const uint8_t *p, size_t n)
+{
+    size_t h = atomic_load(&spool_head);
+    for(int i = 0; spool_size - (h - atomic_load(&spool_tail)) < n; i++) {
+        if(atomic_load(&spool_failed)) return -1;
+        if(n >= 4 && p[3] == LR2021_BRIDGE_RX_DATA) { spool_drops++; return 0; }
+        if(i >= 1000) return -1;                   /* a response waited 1 s for room */
+        vTaskDelay(pdMS_TO_TICKS(1));
+    }
+    size_t at = h % spool_size, first = spool_size - at < n ? spool_size - at : n;
+    memcpy(spool + at, p, first);
+    memcpy(spool, p + first, n - first);
+    atomic_store(&spool_head, h + n);
+    size_t used = h + n - atomic_load(&spool_tail);
+    if(used > spool_peak) spool_peak = (uint32_t)used;
+    xTaskNotifyGive(drain_task);
+    return 0;
+}
+static void drain(void *arg)
+{
+    (void)arg;
+    for(;;) {
+        size_t t = atomic_load(&spool_tail), h = atomic_load(&spool_head);
+        const bridge_transport *x = active;
+        if(h == t || !x) { ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(10)); continue; }
+        size_t at = t % spool_size, n = h - t;
+        if(n > spool_size - at) n = spool_size - at;
+        if(n > 16384) n = 16384;
+        if(!atomic_load(&spool_failed) && x->send(x->context, spool + at, n)) atomic_store(&spool_failed, true);
+        atomic_store(&spool_tail, t + n);
+    }
+}
 static int send_active(void *ctx, const uint8_t *p, size_t n)
 {
     (void)ctx;
     const bridge_transport *t = active;
-    return t ? t->send(t->context, p, n) : -1;
+    if(!t) return -1;
+    return spool ? spool_put(p, n) : t->send(t->context, p, n);
 }
 static void send_take(void *ctx) { (void)ctx; xSemaphoreTake(send_lock, portMAX_DELAY); }
 static void send_give(void *ctx) { (void)ctx; xSemaphoreGive(send_lock); }
@@ -76,6 +127,12 @@ int bridge_init(void)
     tx_buf = heap_caps_malloc(tx_capacity, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
     if(!tx_buf) tx_buf = heap_caps_malloc(tx_capacity, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
     if(!tx_buf) tx_capacity = 0;
+    for(spool_size = (size_t)CONFIG_LRIQ_SPOOL_KB * 1024; spool_size >= 65536 && !spool; spool_size /= 2)
+        spool = heap_caps_malloc(spool_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if(!spool) spool_size = 0;
+    if(spool && xTaskCreatePinnedToCore(drain, "lrb_drain", 4096, NULL, 9, &drain_task, 0) != pdPASS) {
+        heap_caps_free(spool); spool = NULL; spool_size = 0;
+    }
     uint8_t mac[6] = {0};
     esp_efuse_mac_get_default(mac);
     snprintf(board_id, sizeof(board_id), "esp32p4-%02x%02x%02x%02x%02x%02x",
@@ -101,6 +158,8 @@ int bridge_session(const bridge_transport *t)
         .name="lr2021-sdr esp32p4 " CONFIG_LRIQ_FW_VERSION, .id=board_id};
     int e = lr2021_bridge_server_init(&server, &io, &radio, tx_buf, tx_capacity);
     if(!e) {
+        atomic_store(&spool_head, 0); atomic_store(&spool_tail, 0); atomic_store(&spool_failed, false);
+        spool_drops = spool_peak = 0;
         active = t;
         static uint8_t in[2048];
         while(!lr2021_bridge_server_exit_requested(&server)) {
@@ -113,7 +172,11 @@ int bridge_session(const bridge_transport *t)
         for(int i = 0; i < 300 && atomic_load(&server.busy); i++) vTaskDelay(pdMS_TO_TICKS(10));
         for(int i = 0; i < 100 && atomic_load(&server.head) != atomic_load(&server.tail); i++)
             vTaskDelay(pdMS_TO_TICKS(10));
+        for(int i = 0; i < 300 && spool && !atomic_load(&spool_failed) &&
+            atomic_load(&spool_head) != atomic_load(&spool_tail); i++) vTaskDelay(pdMS_TO_TICKS(10));
         send_take(NULL); active = NULL; send_give(NULL);
+        ESP_LOGI("lrbridge", "session end: spool %u KiB, peak %lu B, dropped frames %lu",
+                 (unsigned)(spool_size / 1024), (unsigned long)spool_peak, (unsigned long)spool_drops);
     }
     xSemaphoreGive(session_lock);
     return e;
@@ -167,7 +230,8 @@ int bridge_command(int argc, char **argv)
     }
     uart_mode(115200, 256, 0);
     esp_log_level_set("*", ESP_LOG_INFO);
-    printf("lrbridge: console; result=%d send_errors=%lu rx_crc_errors=%lu\n", e,
-           (unsigned long)server.send_errors, (unsigned long)server.parser.crc_errors);
+    printf("lrbridge: console; result=%d send_errors=%lu rx_crc_errors=%lu spool_peak=%lu spool_drops=%lu\n", e,
+           (unsigned long)server.send_errors, (unsigned long)server.parser.crc_errors,
+           (unsigned long)spool_peak, (unsigned long)spool_drops);
     return e ? 1 : 0;
 }

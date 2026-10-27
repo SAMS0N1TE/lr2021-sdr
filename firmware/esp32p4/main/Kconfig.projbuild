@@ -67,6 +67,10 @@ config LRIQ_BRIDGE_BAUD
     int "Default bridge UART baud (4000000 is the tested ceiling on the LilyGO CH343)"
     range 115200 5000000
     default 4000000
+config LRIQ_SPOOL_KB
+    int "Bridge output spool in PSRAM, KiB (8192 = 8 s of CS16 at 250000 pairs/s)"
+    range 0 16384
+    default 8192
 config LRIQ_FW_VERSION
     string "Firmware version reported in the bridge HELLO"
     default "0.3.0"
