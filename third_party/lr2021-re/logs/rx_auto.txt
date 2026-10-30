@@ -1,0 +1,15 @@
+07:12:31 RXSTAT len=53 st=0 rssi=-93.5 snr=13.75 raw=11 35 37 5D 5C 07 FF FC FD 0D gain=13
+07:12:41 RXSTAT len=53 st=0 rssi=-93.5 snr=14.00 raw=11 35 38 5D 5B 07 FF FC FD 0D gain=13
+07:12:51 RXSTAT len=58 st=0 rssi=-93.5 snr=13.50 raw=11 3A 36 5D 5B 07 FF FC FD 0D gain=13
+07:13:06 RXSTAT len=73 st=0 rssi=-93.5 snr=13.75 raw=11 49 37 5D 5B 07 FF FD 01 0D gain=13
+07:13:31 RXSTAT len=144 st=0 rssi=-93.5 snr=14.00 raw=11 90 38 5D 5B 07 FF FD 01 0D gain=13
+07:13:56 RXSTAT len=67 st=0 rssi=-93.5 snr=13.50 raw=11 43 36 5D 5C 07 FF FD 05 0D gain=13
+07:14:36 RXSTAT len=47 st=0 rssi=-93.5 snr=13.75 raw=11 2F 37 5D 5C 07 FF FC FD 0D gain=13
+07:14:56 RXSTAT len=60 st=0 rssi=-93.5 snr=13.50 raw=11 3C 36 5D 5C 07 FF FD 05 0D gain=13
+07:15:26 RXSTAT len=159 st=0 rssi=-93.5 snr=13.75 raw=11 9F 37 5D 5B 07 FF FD 01 0D gain=13
+07:15:31 RXSTAT len=154 st=0 rssi=-93.5 snr=13.50 raw=11 9A 36 5D 5B 07 FF FC F9 0D gain=13
+07:15:41 RXSTAT len=71 st=0 rssi=-93.5 snr=13.75 raw=11 47 37 5D 5B 07 FF FD 01 0D gain=13
+07:15:47 RXSTAT len=101 st=0 rssi=-93.5 snr=13.50 raw=11 65 36 5D 5B 07 FF FC F5 0D gain=13
+07:15:57 RXSTAT len=59 st=0 rssi=-93.5 snr=13.50 raw=11 3B 36 5D 5B 07 FF FC F9 0D gain=13
+07:16:17 RXSTAT len=122 st=0 rssi=-93.5 snr=13.25 raw=11 7A 35 5D 5C 07 FF FC F5 0D gain=13
+07:16:21 RXSTAT len=133 st=0 rssi=-93.5 snr=13.25 raw=11 85 35 5D 5C 07 FF FC F9 0D gain=13

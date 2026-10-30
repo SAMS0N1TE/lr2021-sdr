@@ -1,0 +1,32 @@
+{
+  "port": "/dev/ttyACM2",
+  "baud_setting": 115200,
+  "transport": "native USB CDC",
+  "simultaneous_spi": false,
+  "trials": [
+    {
+      "trial": 0,
+      "bytes": 131072,
+      "body_s": 0.25527424400206655,
+      "total_s": 0.2568515389575623,
+      "body_bytes_s": 513455.63870885037,
+      "total_bytes_s": 510302.5682927914
+    },
+    {
+      "trial": 1,
+      "bytes": 131072,
+      "body_s": 0.25504744495265186,
+      "total_s": 0.2597957319812849,
+      "body_bytes_s": 513912.2253286356,
+      "total_bytes_s": 504519.45072539576
+    },
+    {
+      "trial": 2,
+      "bytes": 131072,
+      "body_s": 0.2554773170268163,
+      "total_s": 0.2568568790447898,
+      "body_bytes_s": 513047.5046684554,
+      "total_bytes_s": 510291.95903740666
+    }
+  ]
+}

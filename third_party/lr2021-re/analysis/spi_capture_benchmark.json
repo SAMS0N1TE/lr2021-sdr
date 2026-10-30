@@ -1,0 +1,27 @@
+{
+  "port": "/dev/ttyACM2",
+  "duration_ms": 1000,
+  "decimation": 3,
+  "simultaneous_usb": false,
+  "rf_quality_checked": false,
+  "trials": [
+    {
+      "spi_mhz_requested": 8,
+      "summary": "stream src=0 dec=3 routest=0 rxst=0 bytes=166566 ms=1000 Bps=166566 maxlvl=224 polls=3518 fifoflags=04 hit=0 base=201250 gainbase=13 trigger=none gain=0",
+      "returned_iq_bytes": 131072,
+      "timing": {
+        "command_sent": 286054.891589976,
+        "completion_observed": 286055.993560867
+      }
+    },
+    {
+      "spi_mhz_requested": 16,
+      "summary": "stream src=0 dec=3 routest=0 rxst=0 bytes=166586 ms=1000 Bps=166586 maxlvl=160 polls=6487 fifoflags=00 hit=0 base=217289 gainbase=13 trigger=none gain=0",
+      "returned_iq_bytes": 131072,
+      "timing": {
+        "command_sent": 286056.250684083,
+        "completion_observed": 286057.353520126
+      }
+    }
+  ]
+}
