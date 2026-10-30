@@ -1,0 +1,6 @@
+pktstatus 180 906875000 250000 11 0x2B 0
+pktstatus: 906875000 Hz bw 250000 sf 11 sync 0x2B gain 0 preamble 16 for 180 s
+pktstatus: t_ms,irq,len,b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,gain_b9,step_now,rssi_dbm,snr_db,fei_raw
+pktstatus: 0 packets, error=0 restore=0
+lriq>  
+lriq>  

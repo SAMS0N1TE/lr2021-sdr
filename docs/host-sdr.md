@@ -167,19 +167,22 @@ and 4096.
 `lr2021_iq_read_gain` reads the gain step the chip is using, on any route,
 with three ReadRegMem32 calls. The registers come from
 [beala/lr2021-re](https://github.com/beala/lr2021-re/blob/main/docs/agc-gain.md)
-and have not yet run on this repository's board, so every field below is
-tagged [RE] (taken from lr2021-re, not yet checked here) until
-[the AGC readback research](../research/agc-readback/README.md) confirms it.
+and were checked on the LilyGO board in
+[the AGC readback research](../research/agc-readback/README.md). [HW] means
+verified there, [RE] taken from lr2021-re and not yet checked, [guess]
+unverified.
 
 | Field | Register | Meaning |
 | --- | --- | --- |
-| `step` | 0xF30154 bits 23:20 | gain step in use, 1 to 13; 13 in AGC mode with no signal [RE] |
-| `manual` | 0xF30154 bits 19:16 | the SetAgcGainManual setting, 0 for AGC [RE] |
-| `gain_value` | 0xF3012C bits 26:18 | 16, 28, 38, 49, 57, 64, 73, 85, 96, 108, 120, 127, 138 for steps 1 to 13, 139 idle in AGC mode; possibly 0.5 dB units [guess] |
-| `rssi_raw` | 0xF301A8 bits 26:18 | instantaneous RSSI, the field GetRssiInst returns [RE] |
+| `step` | 0xF30154 bits 23:20 | gain step in use while receiving, 1 to 13; equals the forced step on all 13 steps, 13 in AGC mode with no signal [HW] |
+| `manual` | 0xF30154 bits 19:16 | the SetAgcGainManual setting, 0 for AGC [HW] |
+| `gain_value` | 0xF3012C bits 26:18 | in LoRa RX within -2 to +4 of lr2021-re's 16, 28, 38, 49, 57, 64, 73, 85, 96, 108, 120, 127, 138 for steps 1 to 13, and it varies between reads [HW]; about 153 at step 9 in the FSK setup of the raw routes [HW]; units possibly 0.5 dB [guess] |
+| `rssi_raw` | 0xF301A8 bits 26:18 | instantaneous RSSI, the value GetRssiInst returns, -raw/2 dBm [HW] |
 
-The call returns `LR2021_IQ_DATA` when the step is outside 1 to 13 and
-`LR2021_IQ_STATE` on anything but ROM 1.24. It takes the HAL lock, so it
+In standby the step field reads 10 and both 9-bit fields read 0x1FF [HW], so
+the call fills in the fields and returns `LR2021_IQ_STATE` unless the radio
+is receiving. It returns `LR2021_IQ_DATA` when the step is outside 1 to 13
+and `LR2021_IQ_STATE` on anything but ROM 1.24. It takes the HAL lock, so it
 waits while a receive session runs. To watch the gain during a session, set
 `lr2021_iq_session.gain_read_every` to N: the session then reads all three
 registers on every Nth service pass, calls `chip_gain` (with `gain_context`)
@@ -189,8 +192,8 @@ with an out-of-range step is skipped; a bus error ends the session like any
 other. The default, 0, adds no bus traffic, so existing throughput figures are
 unchanged. Each sample costs three register reads, about six SPI frames.
 
-The simulator models the three registers. In manual mode the step is the
-manual setting. In AGC mode it picks the highest step that keeps the tone
+The simulator models the three registers, including the standby values. In
+manual mode the step is the manual setting. In AGC mode it picks the highest step that keeps the tone
 below 8192 counts, so the default tone stays at step 13 and a stronger
 `tone_amplitude` lowers it. Its RSSI field is a placeholder that falls as the
 tone grows; it is not a model of the chip's units.
@@ -201,8 +204,11 @@ registers every 64 service passes while it streams, so a host can poll the
 step during reception without stopping it. The host client calls it
 `lr2021_host_get_gain`, the Rust crates `Host::gain` and `Client::gain`, and
 the SoapySDR module exposes the RX sensors `chip_gain_step` and
-`chip_gain_value`. Before the first sample of a stream the request returns
-EBUSY and the sensors throw.
+`chip_gain_value`. While the radio is idle the request returns STATE, and
+before the first sample of a stream EBUSY; the sensors throw in both cases.
+Over USB serial on the LilyGO board, GET_GAIN answered idle and during a
+30 s stream at 125000 samples/s with no lost samples [HW]; the Wi-Fi check
+is pending.
 
 ### Raw receive routes
 

@@ -32,15 +32,20 @@ configuration when it finishes.
 
 | Opcode | Probe | What lr2021-re reports | Status here |
 | --- | --- | --- | --- |
-| 0x0103 | aux 0x290 (`jli_base`), 4 bytes back | Read CPU auxiliary register through `guarded_lr` (0xD798); a bad aux returns -707 cleanly. [HW] in lr2021-re | [RE], not run yet |
-| 0x0213 | one parameter byte, sub-index 0x0B to 0x15, 1 byte back | Get/set internal parameters in the struct at 0x800438; `0x0B` reads 0x04. [HW] in lr2021-re | [RE], not run yet |
-| 0x023E | no parameters, 6 bytes back, in standby and in LoRa RX | Getter for RAM 0x8004B8; all zero in LoRa RX. [HW] in lr2021-re | [RE], not run yet |
-| 0x023F | no parameters, 18 bytes back, in standby and in LoRa RX | Getter for RAM 0x8004C4; all zero in LoRa RX. [HW] in lr2021-re | [RE], not run yet |
+| 0x0103 | aux 0x290 (`jli_base`), 4 bytes back | Read CPU auxiliary register through `guarded_lr` (0xD798); a bad aux returns -707 cleanly. [HW] in lr2021-re | [HW]: reads 0x00000100 with data status |
+| 0x0213 | one parameter byte, sub-index 0x0B to 0x15, 1 byte back | Get/set internal parameters in the struct at 0x800438; `0x0B` reads 0x04. [HW] in lr2021-re | [HW]: 0x0B reads 0x04 and 0x0C reads 0x00, both with data status; 0x0D, 0x11, 0x12 and 0x15 answer OK with no data; 0x0E to 0x10, 0x13 and 0x14 answer PERR |
+| 0x023E | no parameters, 6 bytes back, in standby and in LoRa RX | Getter for RAM 0x8004B8; all zero in LoRa RX. [HW] in lr2021-re | [HW]: all zero in standby and in LoRa RX |
+| 0x023F | no parameters, 18 bytes back, in standby and in LoRa RX | Getter for RAM 0x8004C4; all zero in LoRa RX. [HW] in lr2021-re | [HW]: bytes 0 to 16 zero and byte 17 0x79, in standby and in LoRa RX |
 
-Expected output: on an unpatched chip with no PRAM loaded, `jli_base` should
-point at the ROM's own JLI table rather than 0x1018C0, the address Semtech's
-patch installs [guess]. Record the values and the status words here once the
-probe has run.
+Run on 2026-10-30 on the LilyGO board with no PRAM loaded
+([log](../research/undocumented-commands/logs/undocprobe_20261030.txt));
+the radio restored cleanly. `jli_base` 0x100 points at a table in ROM, not
+at 0x1018C0, the address Semtech's patch installs, as expected for an
+unpatched chip. The 0x0213 sub-indexes that answer OK without data may take
+a longer parameter list, which lr2021-re's notes do not give; a one-byte
+call to them could be a set with a missing value [guess], so they are not
+probed again. The final 0x79 of 0x023F differs from lr2021-re's all-zero
+result and is unexplained.
 
 ## Documented from ROM only
 

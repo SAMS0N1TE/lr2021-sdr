@@ -20,14 +20,19 @@ LR2021 (ROM 1.24) used for every other report in this repository.
 
 | Experiment | Question | Status |
 | --- | --- | --- |
-| 1. Manual step sweep | Do 0xF30154 and 0xF3012C read back each forced step and the lr2021-re gain values? | Not run yet |
-| 2. AGC against signal level | Which steps does the chip AGC pick for weak, medium and strong carriers, and which does host gain control pick? | Not run yet |
-| 3. Gain units | Is `gain_value` in 0.5 dB units? | Not run yet |
-| 4. Source 6 cross-check | Do the IQ6G gain bits equal the register readback? | Not run yet |
-| 5. RSSI field | Is 0xF301A8 bits 26:18 the value GetRssiInst returns? | Not run yet |
-| Per-packet gain | Is GetLoraPacketStatus byte 9 the step latched during the packet? | Not run yet |
+| 1. Manual step sweep | Do 0xF30154 and 0xF3012C read back each forced step and the lr2021-re gain values? | **Step and manual: yes, all 13 steps [HW].** Gain value: within -2 to +4 of the table, varies between reads |
+| 2. AGC against signal level | Which steps does the chip AGC pick for weak, medium and strong carriers, and which does host gain control pick? | Quiet band only: AGC stays at step 13 [HW]. Carrier runs pending (no HackRF tools on the test PC) |
+| 3. Gain units | Is `gain_value` in 0.5 dB units? | Pending, needs a carrier |
+| 4. Source 6 cross-check | Do the IQ6G gain bits equal the register readback? | **Yes**, in AGC (13) and at forced step 9, in every interval while streaming [HW] |
+| 5. RSSI field | Is 0xF301A8 bits 26:18 the value GetRssiInst returns? | **Yes** [HW]: 94 of 100 back-to-back reads equal, the rest within 4 |
+| Per-packet gain | Is GetLoraPacketStatus byte 9 the step latched during the packet? | Pending: no packets heard in 5 minutes; needs a known transmitter |
+| GET_GAIN over the bridge | Does it work idle and while streaming? | USB serial: **yes** [HW]. Wi-Fi: pending (the board has no Wi-Fi credentials yet) |
 
-The software side is done and tested against the simulator: the library call
+The runs on 2026-10-30 used the LilyGO T-Display-P4 LR2021 (ROM 1.24)
+on its USB serial link, with this branch's bridge
+firmware plus the two research patches. Raw logs are in [`logs/`](logs/).
+
+The software side is also tested against the simulator: the library call
 `lr2021_iq_read_gain`, session sampling, bridge request `GET_GAIN` (cap 256),
 the host, Rust and SoapySDR wrappers, and the tools below. The simulator only
 checks the plumbing. It models the registers from the lr2021-re table, so its
@@ -44,6 +49,21 @@ results say nothing about the chip.
 
 lr2021-re suggests the gain value is total gain in 0.5 dB units [guess]. If
 that holds, the table spans 61 dB, about 5 dB per step.
+
+On this board [HW]:
+
+- The fields only mean something while the radio receives. In standby,
+  0xF30154 bits 23:20 read 10 for every setting and both 9-bit fields read
+  0x1FF; bits 19:16 still hold the manual setting. `lr2021_iq_read_gain`
+  therefore returns `LR2021_IQ_STATE` outside RX, with the fields filled in.
+- In LoRa RX, bits 23:20 and 19:16 equal the forced step for all 13 steps.
+- `gain_value` is a live reading, not a constant. At step 7 it read 74, 75,
+  76 and 77 in different runs, and it stays within -2 to +4 of the lr2021-re
+  table. In the FSK setup of the raw routes it reads about 153 at step 9,
+  against 95 to 99 in LoRa RX, so the table only describes LoRa reception.
+- 0xF301A8 bits 26:18 is the GetRssiInst value. GetRssiInst returns two
+  bytes, and byte 1 only ever reads 0 or 1 here, so the value is
+  `b0 << 1 | (b1 & 1)`, and -value/2 is the level in dBm.
 
 ## Setup
 
@@ -74,7 +94,15 @@ Pass: for every step, `step` and `manual` equal the forced step and
 `gain_value` equals the lr2021-re table, both idle and while streaming.
 Record any difference here.
 
-Result: not run yet.
+Result [HW], no carrier, LoRa BW 31.25 kHz at 433.9 MHz, 1.5 s per step
+([`logs/sweep_quiet_usb.csv`](logs/sweep_quiet_usb.csv)): step and manual
+equal the forced step on all 13 steps while streaming, so the step fields
+pass. The gain values read 16, 27, 38, 50, 58, 67, 76, 86, 95, 108, 119,
+129, 139 for steps 1 to 13, against the lr2021-re table 16, 28, 38, 49, 57,
+64, 73, 85, 96, 108, 120, 127, 138: the same shape, up to 3 units higher in
+the middle, and slightly different in every run (an earlier run read 40, 59,
+66, 77 and 99 at steps 3, 5, 6, 7 and 9). Idle, in standby, every request
+answered `STATE` with the manual setting.
 
 ## Experiment 2: AGC against signal level
 
@@ -98,7 +126,11 @@ What to look for: the steps the chip AGC settles on at each level, against
 the step host gain control settles on. That explains the measured 9 to 18 dB
 gap between the two on medium and strong carriers.
 
-Result: not run yet.
+Result: the quiet band only, so far. Over 30 s of AGC reception at 125000
+samples/s with no carrier, the chip stayed at step 13 in all 150 readbacks
+([`logs/agc_quiet_usb_30s.csv`](logs/agc_quiet_usb_30s.csv)). The weak,
+medium and strong carrier runs are pending: the HackRF is connected to the
+test PC, but `hackrf_transfer`, which `cw.py` drives, is not installed there.
 
 ## Experiment 3: gain units
 
@@ -119,7 +151,9 @@ holds, add a dB-per-step table to
 Host gain control could later use that table in place of its fixed 2 dB
 threshold; that change is outside this work.
 
-Result: not run yet.
+Result: pending, needs the carrier. The quiet sweep shows the analysis
+guard working: with no single carrier present, it declines to report a
+unit.
 
 ## Experiment 4: source 6 cross-check
 
@@ -134,7 +168,18 @@ python analyze_agc.py iq6 logs/iq6.csv
 They should agree in every interval, in AGC mode and with a forced step
 (`--step 9`).
 
-Result: not run yet.
+Result [HW]: in AGC with no carrier, the IQ6G bits read 13 in every pair
+and the readback read 13; at forced step 9 both read 9
+([`logs/iq6_agc_usb.csv`](logs/iq6_agc_usb.csv),
+[`logs/iq6_step9_usb.csv`](logs/iq6_step9_usb.csv)). Each log has one
+mismatched last row with a readback of 10: that request arrived after the
+device's bounded stream had ended, with the radio back in standby.
+
+Source 6 ran at 333332 pairs/s whatever `rate_hz` asked for (50000 and
+125000 both gave 333332 with input code 17), while the RX_DATA headers
+reported the requested rate. That is a defect in route 3, outside this
+work, and needs its own fix. It also means source 6 outruns the 3 Mbaud
+serial link, so these runs used bounded 3 s streams that the device spooled.
 
 ## Experiment 5: RSSI field
 
@@ -151,7 +196,19 @@ Each line has GetRssiInst's two bytes, its 9-bit value
 match. Run it with no carrier and with each carrier level. The command
 starts RX if needed and reapplies the saved receive configuration at the end.
 
-Result: not run yet.
+Result [HW], LoRa RX at 433.9 MHz, AGC, no carrier, 100 reads 20 ms apart
+([`logs/agcrssi_lora_quiet.txt`](logs/agcrssi_lora_quiet.txt)): with the
+value decoded as `b0 << 1 | (b1 & 1)`, 94 reads equal the 0xF301A8 field
+exactly and the rest differ by at most 4, as expected for two reads taken
+microseconds apart. Mean and spread are identical (249.7, standard
+deviation 26.3; the first read after SetRx is 511 in both). Decoded as
+`b0 << 1 | b1 >> 7`, the half-dB bit is always 0, because byte 1 never has
+bit 7 set here. LakeShark's `lr20xx_rssi_dbm` uses that decoding, so its
+instantaneous RSSI loses the half-dB bit; that is for LakeShark to fix. An
+earlier run in the FSK setup
+([`logs/agcrssi_fsk_step9.txt`](logs/agcrssi_fsk_step9.txt)) shows the same
+range; it ends early because the first probe build hung in its restore
+step, which is fixed.
 
 ## Per-packet gain from GetLoraPacketStatus
 
@@ -186,7 +243,14 @@ three conditions:
 | Forced step 5 | `pktstatus 300 910525000 62500 7 0x12 5` | 5 on every packet |
 | Strong nearby transmitter, AGC | as the first, transmitter within a few metres | below 13 |
 
-Result: not run yet.
+Result: no packets heard. Two minutes on MeshCore's US settings
+(910.525 MHz, BW 62.5 kHz, SF7, sync 0x12) and three on Meshtastic LongFast
+(906.875 MHz, BW 250 kHz, SF11, sync 0x2B), both in AGC, received nothing
+([`logs/pktstatus_meshcore_agc.txt`](logs/pktstatus_meshcore_agc.txt),
+[`logs/pktstatus_meshtastic_agc.txt`](logs/pktstatus_meshtastic_agc.txt)).
+Either nothing was transmitting in range or the probe has a gap; byte 9
+needs a known transmitter before it can be checked. The probe ran and
+restored the radio cleanly both times.
 
 ### For MeshCore and Meshtastic driver authors
 
@@ -219,5 +283,12 @@ a strong simulated tone.
   the samples by up to one sampling interval (64 service passes on the
   bridge).
 - Reading the registers costs about six SPI frames per sample. The 500000
-  samples/s figure in [host-sdr](../../docs/host-sdr.md) was measured without
-  sampling; rerun it with sampling on before relying on both together.
+  samples/s figure in [host-sdr](../../docs/host-sdr.md) was measured over
+  Wi-Fi without sampling; rerun it with sampling on before relying on both
+  together. Over USB, 30 s at 125000 samples/s (CS12, 4 Mbaud) with
+  sampling and 150 GET_GAIN polls delivered all 3750426 pairs.
+- The bridge firmware sends every frame, replies included, through one
+  spool in order. When the samples outrun the link (source 6 over serial,
+  or CS12 at 125000 samples/s at 3 Mbaud), a GET_GAIN reply waits behind
+  the backlog for seconds. Size the link for the stream, or stop the stream
+  first.

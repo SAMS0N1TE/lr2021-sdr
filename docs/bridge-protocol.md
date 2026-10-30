@@ -123,12 +123,16 @@ chip registers that `lr2021_iq_read_gain` reads
 ([chip gain readback](host-sdr.md#chip-gain-readback)): the gain step in use
 (1 to 13), the SetAgcGainManual setting (0 for AGC), the gain value of the
 step and the instantaneous RSSI field, all unscaled. `device_time` is when
-they were read. When idle, the worker reads the chip on request; a status of
--4 (DATA) means the step read back outside 1 to 13, and the fields still carry
-what was read. While a stream runs, the device samples the registers inside
+they were read. When idle, the worker reads the chip on request. The chip
+only reports the step while it receives, so with the radio in standby the
+status is -2 (STATE) and only `manual` is meaningful (the step field reads 10
+there). A status of -4 (DATA) means the step read back outside 1 to 13. With
+either error the fields still carry what was read. While a stream runs, the device samples the registers inside
 the stream session every 64 service passes and answers from the latest
 sample without touching the radio; before the first sample of a stream it
 answers EBUSY. During a TX burst the worker is busy and GET_GAIN gets EBUSY.
+Replies share the device's output queue with RX_DATA, so on a link slower
+than the stream a reply arrives after the backlog ahead of it.
 The register map is from
 [beala/lr2021-re](https://github.com/beala/lr2021-re/blob/main/docs/agc-gain.md)
 [RE]; [the AGC readback research](../research/agc-readback/README.md) tracks
