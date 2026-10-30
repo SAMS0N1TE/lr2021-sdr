@@ -25,6 +25,7 @@ LR2021 (ROM 1.24) used for every other report in this repository.
 | 3. Gain units | Is `gain_value` in 0.5 dB units? | Not run yet |
 | 4. Source 6 cross-check | Do the IQ6G gain bits equal the register readback? | Not run yet |
 | 5. RSSI field | Is 0xF301A8 bits 26:18 the value GetRssiInst returns? | Not run yet |
+| Per-packet gain | Is GetLoraPacketStatus byte 9 the step latched during the packet? | Not run yet |
 
 The software side is done and tested against the simulator: the library call
 `lr2021_iq_read_gain`, session sampling, bridge request `GET_GAIN` (cap 256),
@@ -152,6 +153,50 @@ starts RX if needed and reapplies the saved receive configuration at the end.
 
 Result: not run yet.
 
+## Per-packet gain from GetLoraPacketStatus
+
+lr2021-re reports that GetLoraPacketStatus (0x022A) returns 10 bytes, not
+the 6 RadioLib reads [RE]:
+
+| Byte | Meaning |
+| --- | --- |
+| 0 to 5 | documented fields; byte 1 is the payload length |
+| 6 to 8 | frequency offset, signed 24 bits (in datasheet Rev 2.2) |
+| 9 | gain step latched during the packet (undocumented) |
+
+Semtech's PRAM patch does not override 0x022A, so this repository's
+unpatched chip should behave the same [RE].
+
+This repository has no LoRa packet receive path and this work does not add
+one. The console command `pktstatus` in the same probe include receives LoRa
+packets on its own and prints all 10 status bytes per packet, plus the live
+0xF30154 step for comparison:
+
+```
+pktstatus 120 910525000 62500 7 0x12 0
+```
+
+Arguments: seconds, frequency (150 to 960 MHz), bandwidth, spreading factor,
+sync word, gain (0 for AGC), preamble length. It never transmits. Run it in
+three conditions:
+
+| Condition | Command | Expected byte 9 |
+| --- | --- | --- |
+| AGC, normal traffic | `pktstatus 300 910525000 62500 7 0x12 0` | 13 for weak packets |
+| Forced step 5 | `pktstatus 300 910525000 62500 7 0x12 5` | 5 on every packet |
+| Strong nearby transmitter, AGC | as the first, transmitter within a few metres | below 13 |
+
+Result: not run yet.
+
+### For MeshCore and Meshtastic driver authors
+
+Read 10 bytes from GetLoraPacketStatus instead of 6. Byte 9 then gives the
+gain step the chip used for that packet, at no extra cost: it shows whether a
+node is being desensitized by a strong neighbour. Bytes 6 to 8 are the
+frequency offset. LakeShark already reads 9 bytes for the offset. lr2021-re
+has a MeshCore branch that reports byte 9 as `last_gain`. This stays [RE]
+here until `pktstatus` confirms it on this board.
+
 ## Tools
 
 | File | Purpose |
@@ -159,8 +204,8 @@ Result: not run yet.
 | [`bridge.py`](bridge.py) | Minimal Python bridge client: frames, HELLO, SET_RX, SET_GAIN, RX_START/STOP, GET_GAIN, raw RX_DATA |
 | [`agc_readback.py`](agc_readback.py) | Experiments 1 to 4: `sweep`, `log`, `iq6` |
 | [`analyze_agc.py`](analyze_agc.py) | Pass/fail table, dB per gain unit, step distribution, source 6 agreement |
-| [`packet_status_probe/lr2021_agc_probe.inc`](packet_status_probe/lr2021_agc_probe.inc) | Firmware console command `agcrssi` (experiment 5) |
-| [`packet_status_probe/firmware-integration.patch`](packet_status_probe/firmware-integration.patch) | Adds the command to `firmware/esp32p4/main/main.c` |
+| [`packet_status_probe/lr2021_agc_probe.inc`](packet_status_probe/lr2021_agc_probe.inc) | Firmware console commands `agcrssi` (experiment 5) and `pktstatus` |
+| [`packet_status_probe/firmware-integration.patch`](packet_status_probe/firmware-integration.patch) | Adds both commands to `firmware/esp32p4/main/main.c` |
 
 `tests/test_agc_tools.py` (CTest `agc_readback_tools`) runs `sweep`, `log`,
 `log --host-agc` and `iq6` against `tools/lr2021_bridge_sim` with a normal and
