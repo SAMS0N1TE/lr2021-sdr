@@ -30,7 +30,8 @@ LR2021 (ROM 1.24) used for every other report in this repository.
 
 The runs on 2026-10-30 used the LilyGO T-Display-P4 LR2021 (ROM 1.24)
 on its USB serial link, with this branch's bridge
-firmware plus the two research patches. Raw logs are in [`logs/`](logs/).
+firmware; its console commands `agcrssi` and `pktstatus` are now part of
+the [debug console](../../docs/debug-console.md). Raw logs are in [`logs/`](logs/).
 
 The software side is also tested against the simulator: the library call
 `lr2021_iq_read_gain`, session sampling, bridge request `GET_GAIN` (cap 256),
@@ -182,9 +183,7 @@ serial link, so these runs used bounded 3 s streams that the device spooled.
 
 ## Experiment 5: RSSI field
 
-GetRssiInst is not a bridge request, so this runs from the firmware console.
-Apply [`packet_status_probe/firmware-integration.patch`](packet_status_probe/firmware-integration.patch)
-to the firmware, build, flash, and run:
+GetRssiInst is not a bridge request, so this runs from the firmware console:
 
 ```
 agcrssi 200 50
@@ -222,7 +221,7 @@ Semtech's PRAM patch does not override 0x022A, so this repository's
 unpatched chip should behave the same [RE].
 
 This repository has no LoRa packet receive path and this work does not add
-one. The console command `pktstatus` in the same probe include receives LoRa
+one. The console command `pktstatus` receives LoRa
 packets on its own and prints all 10 status bytes per packet, plus the live
 0xF30154 step for comparison:
 
@@ -264,8 +263,7 @@ here until `pktstatus` confirms it on this board.
 | [`tools/lr2021_bridge.py`](../../tools/lr2021_bridge.py) | Minimal Python bridge client: frames, HELLO, SET_RX, SET_GAIN, RX_START/STOP, GET_GAIN, raw RX_DATA |
 | [`agc_readback.py`](agc_readback.py) | Experiments 1 to 4: `sweep`, `log`, `iq6` |
 | [`analyze_agc.py`](analyze_agc.py) | Pass/fail table, dB per gain unit, step distribution, source 6 agreement |
-| [`packet_status_probe/lr2021_agc_probe.inc`](packet_status_probe/lr2021_agc_probe.inc) | Firmware console commands `agcrssi` (experiment 5) and `pktstatus` |
-| [`packet_status_probe/firmware-integration.patch`](packet_status_probe/firmware-integration.patch) | Adds both commands to `firmware/esp32p4/main/main.c` |
+| [`firmware/esp32p4/main/debug.c`](../../firmware/esp32p4/main/debug.c) | Console commands `agcrssi` (experiment 5), `pktstatus` and `gain` |
 
 `tests/test_agc_tools.py` (CTest `agc_readback_tools`) runs `sweep`, `log`,
 `log --host-agc` and `iq6` against `tools/lr2021_bridge_sim` with a normal and

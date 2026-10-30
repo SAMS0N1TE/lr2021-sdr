@@ -17,18 +17,17 @@ board.
 
 ## Rules for this repository
 
-Only commands that leave the chip's state unchanged are probed. Nothing here
-writes an auxiliary register, programs an actionpoint or loads custom PRAM.
-The commands in [Do not call](#do-not-call) are documented from lr2021-re only.
+The purpose-built probes below only use commands that leave the chip's state
+unchanged. The [debug console](debug-console.md) also has lr2021-re's raw
+access (`mr`, `mw`, `rc`), which can send any opcode, including the ones in
+[Do not call](#do-not-call); those are documented from lr2021-re only and
+were not run here.
 
 ## Read-only probes
 
-[`research/undocumented-commands/lr2021_undoc_probe.inc`](../research/undocumented-commands/lr2021_undoc_probe.inc)
-adds the console command `undocprobe [all|aux|param|getters]` to the bridge
-firmware through
-[`firmware-integration.patch`](../research/undocumented-commands/firmware-integration.patch).
-It refuses anything but ROM 1.24 and reapplies the saved receive
-configuration when it finishes.
+The bridge firmware's console command `undocprobe [all|aux|param|getters]`
+([debug console](debug-console.md)) runs these probes. It reapplies the saved
+receive configuration when it finishes.
 
 | Opcode | Probe | What lr2021-re reports | Status here |
 | --- | --- | --- | --- |

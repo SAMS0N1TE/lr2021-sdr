@@ -1,4 +1,4 @@
-idf_component_register(SRCS "main.c" "radio.c" "board.c" "board_profile.c" "bridge.c" "wifi.c"
+idf_component_register(SRCS "main.c" "radio.c" "board.c" "board_profile.c" "bridge.c" "wifi.c" "debug.c"
     "../../../src/lr2021_iq.c" "../../../src/lr2021_iq_dev.c" "../../../src/lr2021_iq_tx.c"
     "../../../src/lr2021_bridge.c" "../../../src/lr2021_bridge_server.c"
     INCLUDE_DIRS "." "../../../include"

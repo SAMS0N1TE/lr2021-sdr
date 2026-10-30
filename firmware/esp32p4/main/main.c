@@ -2,6 +2,7 @@
 #include "board.h"
 #include "bridge.h"
 #include "wifi.h"
+#include "debug.h"
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -137,6 +138,7 @@ void app_main(void)
     };
     for(unsigned i=0;i<sizeof(commands)/sizeof(commands[0]);i++)
         ESP_ERROR_CHECK(esp_console_cmd_register(&commands[i]));
+    if(initialized) debug_register();
     ESP_ERROR_CHECK(esp_console_start_repl(repl));
     if(initialized) wifi_start();
 }
