@@ -12,6 +12,7 @@ and of the `raw0b` receive route, on the LilyGO T-Display-P4 LR2021
 | `info`, `err`, `gain` | radio configured, no errors; `gain` in standby answers STATE with step 10, as expected [HW] |
 | `rc 103 4 00 00 00 04` (aux IDENTITY) | 0x00000046, ARCv2 EM, as lr2021-re reports [HW] |
 | `romprobe`, `mr 0 ...` | ROM at base 0: reset vector 0x000000CC, then 0x000069A8, as lr2021-re reports [HW] |
+| `tools/lr2021_rom_dump.py` (`mr 0 32768`) | the 80 KB ROM's SHA-256 is `e531400a29f660aa50dbbb4de5df01d1b73818faa767c0494a5d0df3f48da821`, the same as lr2021-re's chip, so its ROM addresses apply here; last nonzero word at 0x13FFC. The dump stays in the ignored `dump/` folder [HW] |
 | `mr F30154 1` | 0x68A00A10 in standby: step field 10, manual 0 [HW] |
 | `mw 804000 12345678` right after boot | **timed out (-3)**: the boot capture route owns the 0x804000 bank, and writing it stalls the chip, the hazard lr2021-re describes; `rxrestore` recovered the radio [HW] |
 | `rc 207 0 0B`, then `cap D0 2048 100` | the 8 KiB one-shot capture filled all 2048 words; the write pointer reached 0x2000 in about 35 ms; stopped, read and restored cleanly [HW] |
