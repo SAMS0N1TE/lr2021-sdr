@@ -19,5 +19,6 @@ Follow the measurements behind the features, or reproduce an experiment.
 | Custom amplitude-and-phase payloads | [8-APSK experiment](../research/tx-payload/README.md) |
 | Temperature packets decoded by rtl_433 | [Sensor-packet experiment](../research/tx-temperature/README.md) |
 | P25 frames and reconstructed audio | [P25 TX experiment](../research/tx-p25/README.md) |
+| Undocumented host opcodes, read-only probes, commands not to call | [Undocumented commands](undocumented-commands.md) |
 
 The transmit reports include independent receiver results and reproduction tools. The [remaining TX work](tx-playback.md#remaining-scope) tracks what comes next.

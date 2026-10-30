@@ -1,0 +1,79 @@
+# Undocumented LR2021 commands
+
+[Guide hub](README.md) / Undocumented commands
+
+Host opcodes that ROM 1.24 implements but the LR20xx datasheet (Rev 2.2) does
+not list, beyond the 0x0290 to 0x0294 capture and TX family this repository
+already uses ([capture engine](capture-engine.md), [TX discovery](tx-discovery.md)).
+The opcode list, handler addresses and descriptions come from
+[beala/lr2021-re](https://github.com/beala/lr2021-re/blob/main/docs/commands.md)
+by Alex Beal (MIT), which in turn credits this repository for 0x0290 to 0x0293.
+
+Tags follow lr2021-re: **[HW]** verified on this repository's LilyGO
+T-Display-P4 LR2021 (ROM 1.24), **[RE]** read from ROM or taken from lr2021-re
+and not yet run here, **[guess]** unverified. Where lr2021-re has its own [HW]
+result, the entry says so, but the tag here stays [RE] until it runs on this
+board.
+
+## Rules for this repository
+
+Only commands that leave the chip's state unchanged are probed. Nothing here
+writes an auxiliary register, programs an actionpoint or loads custom PRAM.
+The commands in [Do not call](#do-not-call) are documented from lr2021-re only.
+
+## Read-only probes
+
+[`research/undocumented-commands/lr2021_undoc_probe.inc`](../research/undocumented-commands/lr2021_undoc_probe.inc)
+adds the console command `undocprobe [all|aux|param|getters]` to the bridge
+firmware through
+[`firmware-integration.patch`](../research/undocumented-commands/firmware-integration.patch).
+It refuses anything but ROM 1.24 and reapplies the saved receive
+configuration when it finishes.
+
+| Opcode | Probe | What lr2021-re reports | Status here |
+| --- | --- | --- | --- |
+| 0x0103 | aux 0x290 (`jli_base`), 4 bytes back | Read CPU auxiliary register through `guarded_lr` (0xD798); a bad aux returns -707 cleanly. [HW] in lr2021-re | [RE], not run yet |
+| 0x0213 | one parameter byte, sub-index 0x0B to 0x15, 1 byte back | Get/set internal parameters in the struct at 0x800438; `0x0B` reads 0x04. [HW] in lr2021-re | [RE], not run yet |
+| 0x023E | no parameters, 6 bytes back, in standby and in LoRa RX | Getter for RAM 0x8004B8; all zero in LoRa RX. [HW] in lr2021-re | [RE], not run yet |
+| 0x023F | no parameters, 18 bytes back, in standby and in LoRa RX | Getter for RAM 0x8004C4; all zero in LoRa RX. [HW] in lr2021-re | [RE], not run yet |
+
+Expected output: on an unpatched chip with no PRAM loaded, `jli_base` should
+point at the ROM's own JLI table rather than 0x1018C0, the address Semtech's
+patch installs [guess]. Record the values and the status words here once the
+probe has run.
+
+## Documented from ROM only
+
+| Opcode | What lr2021-re reports | Status |
+| --- | --- | --- |
+| 0x022F | AGC configuration, next to SetAgcGainManual (handler 0xE404): writes 0xF30C28 bits 28:24, 22:21 and 20, and RAM 0x8004C0 | [RE]. Not called: it changes AGC behaviour, and this work only reads the AGC ([chip gain readback](host-sdr.md#chip-gain-readback)) |
+
+## Do not call
+
+These change chip state in ways this repository does not recover from, or
+reach test hardware. They are listed so nobody tries them by accident. All
+[RE] from lr2021-re's [command notes](https://github.com/beala/lr2021-re/blob/main/docs/commands.md).
+
+| Opcode | What lr2021-re reports |
+| --- | --- |
+| 0x0102 | Write CPU auxiliary register (`guarded_sr`, 0xD80C). Includes `jli_base` and the mapping register that decides what RAM banks the CPU sees |
+| 0x012C | Program the two hardware actionpoints (aux 0x220 to 0x222 + 3n): a breakpoint and ROM patch mechanism |
+| 0x012F | Writes 0xF2F020 with a selector 0x00 to 0x5F; selector 0xFF reconfigures pads. Looks like an internal test bus or signal mux, possibly routed to DIOs [guess] |
+| 0x0134, 0x0135 | Per-frequency calibration variants through the CalibFE frequency-list parser; they touch 0xF30154 (AGC), the synthesizer and 0xF40024 |
+| 0x0136 | CalibFE with a leading block-mask byte |
+
+## PRAM load window
+
+lr2021-re reports that host address 0x801000, where PRAM is loaded, is a
+write-only window: reading it stalls the chip [RE]. Capture banks 1 to 3 of
+the 0x0290 RAM route also start at 0x801000 ([capture engine](capture-engine.md#sram-capacity-and-ownership)).
+
+Checked in the code: no path in the library, the device adapter, the bridge
+server, the firmware or the tools reads 0x801000 to 0x801FFF. Captures use
+bank 4 (0x802000), the PRAM check reads the marker at 0x800FF8, and the gain
+readback reads fixed registers at 0xF30xxx. So no guard was added to
+`lr2021_iq.c`.
+
+Not yet checked on hardware: whether a read of 0x801000 also stalls while a
+bank 1 to 3 capture owns that memory. The read is expected to need a chip
+reset afterwards, so it waits for an explicit decision to run it.
