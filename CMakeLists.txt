@@ -143,6 +143,9 @@ if(UNIX OR MINGW)
       add_test(NAME rtl_tcp_client COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_rtl_tcp_client.py $<TARGET_FILE:lr2021_tcp>)
       set_tests_properties(rtl_tcp_client PROPERTIES TIMEOUT 60)
+      add_test(NAME agc_readback_tools COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_agc_tools.py $<TARGET_FILE:lr2021_bridge_sim>)
+      set_tests_properties(agc_readback_tools PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
     endif()
   endif()
   option(LR2021_WITH_SOAPY "Build the SoapySDR module when SoapySDR is found" ON)
