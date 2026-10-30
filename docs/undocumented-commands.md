@@ -38,9 +38,10 @@ receive configuration when it finishes.
 
 Run on 2026-10-30 on the LilyGO board with no PRAM loaded
 ([log](../research/undocumented-commands/logs/undocprobe_20261030.txt));
-the radio restored cleanly. `jli_base` 0x100 points at a table in ROM, not
-at 0x1018C0, the address Semtech's patch installs, as expected for an
-unpatched chip. The 0x0213 sub-indexes that answer OK without data may take
+the radio restored cleanly. `jli_base` 0x100 is the ROM's own 460-entry JLI
+table, the value lr2021-re reads in the reset code at 0x0000CC, not 0x1018C0,
+the address Semtech's patch installs, as expected for an unpatched chip
+([ROM and memory map](rom-and-memory.md)). The 0x0213 sub-indexes that answer OK without data may take
 a longer parameter list, which lr2021-re's notes do not give; a one-byte
 call to them could be a set with a missing value [guess], so they are not
 probed again. The final 0x79 of 0x023F differs from lr2021-re's all-zero

@@ -135,6 +135,35 @@ cycle about 73.4%. A hypothetical overlapping design has 10.438 ms of margin
 under those assumptions. Positive margin proves only sufficient transport
 budget; the required simultaneous access and atomic switch are unverified.
 
+## Findings from lr2021-re
+
+[beala/lr2021-re](https://github.com/beala/lr2021-re/blob/main/docs/raw-iq.md)
+(MIT, Alex Beal) followed the same 0x0290 code paths from the ROM side and
+agrees with the bank map and mapping register above. It adds, all [RE] here
+until run on the LilyGO board:
+
+- **Packet type 0x0B.** SetPacketType value 0x0B, "RFU" in the datasheet, is
+  a raw capture mode. The capture DMA only fully starts in 0x0B; in LoRa it
+  arms but writes nothing, and the LoRa demodulator stops while it is armed.
+  With Semtech's PRAM patch loaded, the FIFO route only produces data in
+  0x0B. The chip AGC keeps working in 0x0B. This repository offers it as
+  receive route `raw0b` ([raw routes](host-sdr.md#raw-receive-routes)).
+- **Armed banks stall reads.** While a capture is armed, its RAM bank belongs
+  to the DMA, and a host read of the bank hangs the chip. Stop the capture
+  with 0x0290 mode 0 before reading it.
+- **One-shot 8 KiB capture.** In packet type 0x0B, `0x0290 FF 00000000 D0 00
+  00 08 00` (size 6, mode 2, source 0) then SetRx fills 0x804000 with 4096
+  int8 I/Q pairs at 250000 pairs/s (BW 62.5 kHz) in about 17 ms; poll 0x0291
+  until 0x2000, stop with mode 0, then read. The debug console's `cap` and
+  `capwait` do this ([debug console](debug-console.md)).
+- **Source 0** is interleaved int8 I, Q at 4 x the LoRa bandwidth in 0x0B; the
+  output-rate field had no effect with byte 0 = 0xFF. Source 2 hung the chip
+  once in LoRa packet type during one-shot experiments.
+- **SPI clock.** On an nRF52840, 16 MHz streamed source 0 for 60 s without
+  loss; 32 MHz failed with every MISO sampling delay (impossible status bits,
+  wrong counts). The ESP32-P4 bus here runs at 26.67 MHz
+  ([receive](host-sdr.md#receive)).
+
 ## Further SRAM experiments
 
 The documented 1024-byte FIFO relocation has been

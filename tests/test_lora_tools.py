@@ -104,5 +104,23 @@ class LoraToolTests(unittest.TestCase):
             self.assertTrue(metas[0]['decoded']['crc_ok'])
 
 
+class RomDumpTests(unittest.TestCase):
+    def test_mr_listing_becomes_little_endian_bytes(self):
+        import lr2021_rom_dump as d
+        text = '\n'.join(['lriq> mr 0 16',
+                          '000000: 000000CC 000069A8 00000001 00000002 00000003 00000004 00000005 00000006\r',
+                          '000020: 00000007 00000008 00000009 0000000A 0000000B 0000000C 0000000D 0000000E',
+                          'mr done', ''])
+        rom = d.parse(text)
+        self.assertEqual(len(rom), 64)
+        self.assertEqual(rom[:8], bytes.fromhex('cc000000a8690000'))
+        c = d.check(rom)
+        self.assertEqual((c['reset_vector'], c['second_vector'], c['last_nonzero']), (0xCC, 0x69A8, 60))
+        with self.assertRaises(ValueError):
+            d.parse(text.replace('000020:', '000040:'))
+        with self.assertRaises(ValueError):
+            d.parse('000000: 00000000 !st=-3')
+
+
 if __name__ == '__main__':
     unittest.main()

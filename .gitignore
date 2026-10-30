@@ -19,3 +19,9 @@ __pycache__/
 rust/target/
 rust/Cargo.lock
 **/managed_components/
+/dump/
+/disasm/
+/datasheet/
+/captures/
+/third_party/lr2021-re/dump/
+/third_party/lr2021-re/disasm/
