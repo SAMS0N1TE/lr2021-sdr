@@ -260,6 +260,27 @@ Measured continuous limits, from the [receive range report](../research/rx-range
 | Gain for weak signals | Fixed step 12 or 13; AGC is equal there, about 20 dB worse on strong signals |
 | Image rejection | About 41 dB at 433.9 MHz |
 
+### Timing notes from lr2021-re
+
+[beala/lr2021-re](https://github.com/beala/lr2021-re/blob/main/docs/commands.md#behavior-of-documented-commands-measured-on-hardware)
+measured these on its own LR2021 with RadioLib 7.x. They are lr2021-re
+measurements, not reproduced on this repository's board yet:
+
+- A band switch (standby XOSC, SetRfFrequency, SetRxPath,
+  SetLoraModulationParams, CAD) takes about 1.2 ms, at 160 to 190 us per SPI
+  command.
+- CalibFE keeps up to 3 frequency calibrations, so calibrating both bands
+  once is enough for switching; recalibrating on every switch costs about
+  10 ms.
+- SetRxPath costs about 4.8 ms whenever the RX boost level changes. Keeping
+  the same boost on both paths avoids it. This fits the ROM 1.24 behaviour
+  measured here, where SetRxPath is refused during RX and a boost change
+  restarts the stream ([host SDR](host-sdr.md#receive)).
+- The CAD-RX timeout tick is 32.768 kHz, not the 32 MHz the datasheet text
+  implies.
+- RadioLib's `RADIOLIB_LR2021_CAD_EXIT_MODE_RX` is 0x02; the datasheet
+  (Table 6-18) and the chip use 0x01 for CAD_RX.
+
 ## Build
 
 Requires CMake 3.18+ and a C11 compiler. Windows builds use MinGW-w64.

@@ -21,4 +21,8 @@ Follow the measurements behind the features, or reproduce an experiment.
 | P25 frames and reconstructed audio | [P25 TX experiment](../research/tx-p25/README.md) |
 | Undocumented host opcodes, read-only probes, commands not to call | [Undocumented commands](undocumented-commands.md) |
 
+Related work: [beala/lr2021-re](https://github.com/beala/lr2021-re) maps the
+LR2021 ROM 1.24 command router, the AGC registers, the PRAM patch and a
+software receiver built on this repository's 0x0290 capture route.
+
 The transmit reports include independent receiver results and reproduction tools. The [remaining TX work](tx-playback.md#remaining-scope) tracks what comes next.
