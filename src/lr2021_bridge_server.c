@@ -39,6 +39,8 @@ int lr2021_bridge_server_init(lr2021_bridge_server *s, const lr2021_bridge_io *i
     atomic_init(&s->gain_request,0); atomic_init(&s->head,0); atomic_init(&s->tail,0);
     atomic_init(&s->live_boost,radio->rx.boost);
     atomic_init(&s->dropped,0); atomic_init(&s->tx_state,0);
+    atomic_init(&s->gain_seq,0); atomic_init(&s->gain_word,0);
+    atomic_init(&s->gain_time_lo,0); atomic_init(&s->gain_time_hi,0);
     return 0;
 }
 
@@ -125,6 +127,34 @@ static bool gain(void *ctx, uint8_t *step, uint8_t *boost)
     s->radio.rx.gain_step=*step; s->radio.rx.boost=*boost;
     return true;
 }
+static void store_gain(lr2021_bridge_server *s, unsigned word, uint64_t t)
+{
+    atomic_fetch_add(&s->gain_seq,1);
+    atomic_store(&s->gain_word,word);
+    atomic_store(&s->gain_time_lo,(unsigned)t);
+    atomic_store(&s->gain_time_hi,(unsigned)(t>>32));
+    atomic_fetch_add(&s->gain_seq,1);
+}
+static void chip_gain(void *ctx, const lr2021_iq_gain_state *g, uint64_t t)
+{
+    store_gain(ctx,1u|(unsigned)g->step<<1|(unsigned)g->manual<<5|
+        (unsigned)(g->gain_value&0x1FF)<<9|(unsigned)(g->rssi_raw&0x1FF)<<18,t);
+}
+static bool load_gain(lr2021_bridge_server *s, lr2021_bridge_gain *g)
+{
+    for(unsigned i=0;i<4;i++) {
+        unsigned a=atomic_load(&s->gain_seq);
+        unsigned w=atomic_load(&s->gain_word);
+        unsigned lo=atomic_load(&s->gain_time_lo), hi=atomic_load(&s->gain_time_hi);
+        if((a&1) || atomic_load(&s->gain_seq)!=a)continue;
+        if(!(w&1))return false;
+        g->status=0; g->step=(uint8_t)(w>>1&15); g->manual=(uint8_t)(w>>5&15);
+        g->gain_value=(uint16_t)(w>>9&0x1FF); g->rssi_raw=(uint16_t)(w>>18&0x1FF);
+        g->device_time=(uint64_t)hi<<32|lo;
+        return true;
+    }
+    return false;
+}
 typedef struct { lr2021_bridge_server *s; lr2021_iq_session *session; } stream_ctx;
 static bool session_sink(void *ctx, const uint8_t *data, size_t n, uint64_t first)
 {
@@ -147,13 +177,14 @@ static void rx_start(lr2021_bridge_server *s, uint16_t seq, const uint8_t *p, si
     s->start_time=0; s->format=format; s->cur=NULL; s->cur_pairs=0;
     atomic_store(&s->dropped,0); atomic_store(&s->stop,false); atomic_store(&s->gain_request,0);
     atomic_store(&s->live_boost,s->radio.rx.boost);
+    store_gain(s,0,0);
     atomic_store(&s->streaming,true);
     uint8_t ack[8]; P32(ack,s->generation); P32(ack+4,s->rate_hz);
     WORKER_REPLY(LR2021_BRIDGE_RX_START,seq,0,ack,8);
     uint8_t *stage=s->ext_buf?s->ext_buf:s->stream_buf;
     size_t stage_size=s->ext_buf?s->ext_size:sizeof(s->stream_buf);
     lr2021_iq_session session={ms,cap,gain,s,0,s->max_read,s->check_bytes,
-        (s->max_read||s->check_bytes)?stage:NULL,stage_size,s->level_every};
+        (s->max_read||s->check_bytes)?stage:NULL,stage_size,s->level_every,s->gain_every,chip_gain};
     stream_ctx c={s,&session};
     lr2021_iq_result r;
     int e=lr2021_iq_stream_session(s->radio.hal,&session,session_sink,&c,&r);
@@ -224,6 +255,18 @@ void lr2021_bridge_server_work(lr2021_bridge_server *s)
         break;
     }
     case LR2021_BRIDGE_RX_START: rx_start(s,seq,p,n); break;
+    case LR2021_BRIDGE_GET_GAIN: {
+        const lr2021_iq_hal *h=s->radio.hal;
+        lr2021_iq_gain_state g;
+        lr2021_bridge_gain m={0};
+        m.status=lr2021_iq_read_gain(h,&g);
+        m.step=g.step; m.manual=g.manual; m.gain_value=g.gain_value; m.rssi_raw=g.rssi_raw;
+        m.device_time=h->now_us(h->context);
+        uint8_t q[24];
+        send_frame(s,s->worker_frame,sizeof(s->worker_frame),(uint8_t)(s->req_type|LR2021_BRIDGE_RESPONSE),
+            seq,q,lr2021_bridge_pack_gain(q,&m));
+        break;
+    }
     case LR2021_BRIDGE_TX_COMMIT: tx_commit(s,seq); break;
     default: WORKER_REPLY(s->req_type,seq,LR2021_BRIDGE_EUNKNOWN,NULL,0); break;
     }
@@ -249,7 +292,8 @@ static void request(void *ctx, const lr2021_bridge_frame *f)
     case LR2021_BRIDGE_HELLO: {
         lr2021_bridge_hello h={0,LR2021_BRIDGE_VERSION,s->radio.caps,s->radio.rom_major,
             s->radio.rom_minor,LR2021_BRIDGE_MAX_PAYLOAD,1000000,(uint32_t)s->tx_capacity,{0},{0}};
-        h.caps|=LR2021_BRIDGE_CAP_CS12|LR2021_BRIDGE_CAP_TX_CHECKED|LR2021_BRIDGE_CAP_RAW_ROUTES;
+        h.caps|=LR2021_BRIDGE_CAP_CS12|LR2021_BRIDGE_CAP_TX_CHECKED|LR2021_BRIDGE_CAP_RAW_ROUTES|
+            LR2021_BRIDGE_CAP_GAIN_READBACK;
         if(!s->tx_buf)h.caps&=(uint16_t)~(LR2021_BRIDGE_CAP_TX|LR2021_BRIDGE_CAP_TIMED_TX|LR2021_BRIDGE_CAP_TX_CHECKED);
         if(s->radio.name)strncpy(h.name,s->radio.name,31);
         if(s->radio.id)strncpy(h.id,s->radio.id,31);
@@ -279,6 +323,16 @@ static void request(void *ctx, const lr2021_bridge_frame *f)
             lr2021_bridge_rx_ack a={0,0,s->rate_hz}; uint8_t q[16];
             lr2021_bridge_pack_rx_ack(q,&a);
             send_frame(s,s->reader_frame,sizeof(s->reader_frame),f->type|LR2021_BRIDGE_RESPONSE,f->sequence,q,10);
+        } else post(s,f);
+        break;
+    case LR2021_BRIDGE_GET_GAIN:
+        if(n){ READER_REPLY(f->type,f->sequence,LR2021_BRIDGE_ELENGTH,NULL,0); break; }
+        if(atomic_load(&s->streaming)) {
+            lr2021_bridge_gain g={0};
+            if(!load_gain(s,&g)){ READER_REPLY(f->type,f->sequence,LR2021_BRIDGE_EBUSY,NULL,0); break; }
+            uint8_t q[24];
+            send_frame(s,s->reader_frame,sizeof(s->reader_frame),f->type|LR2021_BRIDGE_RESPONSE,f->sequence,
+                q,lr2021_bridge_pack_gain(q,&g));
         } else post(s,f);
         break;
     case LR2021_BRIDGE_TX_BEGIN: {
@@ -335,6 +389,12 @@ int lr2021_bridge_server_buffer(lr2021_bridge_server *s, uint8_t *buf, size_t si
 {
     if(atomic_load(&s->streaming) || (buf && size<sizeof(s->stream_buf)))return -1;
     s->ext_buf=buf; s->ext_size=buf?size:0;
+    return 0;
+}
+int lr2021_bridge_server_gain_every(lr2021_bridge_server *s, unsigned gain_every)
+{
+    if(gain_every>4096 || atomic_load(&s->streaming))return -1;
+    s->gain_every=gain_every;
     return 0;
 }
 int lr2021_bridge_server_predict(lr2021_bridge_server *s, unsigned level_every)

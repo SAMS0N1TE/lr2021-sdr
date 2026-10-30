@@ -54,7 +54,7 @@ pub struct RxConfig {
 }
 /// Source 2: IQ16 at 4 x LoRa bandwidth. Sources 0, 1: IQ8; source 6: gain-tagged IQ6.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Route { Source2 = 0, Source0 = 1, Source1 = 2, Source6 = 3 }
+pub enum Route { Source2 = 0, Source0 = 1, Source1 = 2, Source6 = 3, Raw0B = 4 }
 impl Default for RxConfig {
     fn default() -> Self {
         RxConfig { frequency_hz: 154_785_000, bandwidth_hz: 31_250, gain_step: 13, boost: 0, path: Path::Auto,
@@ -64,7 +64,7 @@ impl Default for RxConfig {
 impl RxConfig {
     pub fn sample_rate(&self) -> Option<u32> {
         match self.route {
-            Route::Source2 => rate_for_bandwidth(self.bandwidth_hz),
+            Route::Source2 | Route::Raw0B => rate_for_bandwidth(self.bandwidth_hz),
             Route::Source1 => Some(input_rate(self.input_code)),
             _ => Some(self.rate_hz),
         }
@@ -131,6 +131,7 @@ impl<'a> TxBurst<'a> {
 
 pub use sys::lr2021_iq_result as StreamReport;
 pub use sys::lr2021_iq_tx_result as TxReport;
+pub use sys::lr2021_iq_gain_state as GainState;
 
 /// Simulated LR2021 with the library's device adapter, in virtual time.
 pub struct Simulator { s: *mut sys::lr2021_rs_simdev }
@@ -187,11 +188,16 @@ impl Simulator {
         let mut ctx = Ctx { sink, gain, panicked: false };
         let cp = &mut ctx as *mut Ctx<'_, '_> as *mut c_void;
         let mut session = sys::lr2021_iq_session { duration_ms, fifo_capacity, gain: Some(gain_tramp), gain_context: cp, start_us: 0,
-            max_read: 0, check_bytes: 0, buffer: core::ptr::null_mut(), buffer_size: 0, level_every: 0 };
+            max_read: 0, check_bytes: 0, buffer: core::ptr::null_mut(), buffer_size: 0, level_every: 0,
+            gain_read_every: 0, chip_gain: None };
         let mut r = StreamReport::default();
         let e = unsafe { sys::lr2021_iq_stream_session(self.hal(), &mut session, Some(sink_tramp), cp, &mut r) };
         if ctx.panicked { panic!("lr2021: stream callback panicked"); }
         check(e).map(|_| r)
+    }
+    pub fn read_gain(&mut self) -> Result<GainState> {
+        let mut g = GainState::default();
+        check(unsafe { sys::lr2021_iq_read_gain(self.hal(), &mut g) }).map(|_| g)
     }
     pub fn transmit(&mut self, burst: &TxBurst, board: Option<&Board>) -> Result<TxReport> {
         let b = board.map(|b| b.raw()).transpose()?;
@@ -224,6 +230,7 @@ mod host {
     pub use sys::host::lr2021_host_rx_meta as RxMeta;
     pub use sys::lr2021_bridge_rx_end as RxEnd;
     pub use sys::lr2021_bridge_tx_end as TxEnd;
+    pub use sys::lr2021_bridge_gain as ChipGain;
 
     #[derive(Clone, Debug)]
     pub struct Hello { pub version: u16, pub caps: u16, pub rom: (u8, u8), pub clock_hz: u32, pub tx_capacity: u32, pub name: String, pub id: String }
@@ -292,6 +299,10 @@ mod host {
             let mut t = 0u64;
             hcheck(unsafe { h::lr2021_host_time(self.h, &mut t) }).map(|_| t)
         }
+        pub fn gain(&self) -> Result<ChipGain> {
+            let mut g = ChipGain::default();
+            hcheck(unsafe { h::lr2021_host_get_gain(self.h, &mut g) }).map(|_| g)
+        }
     }
     impl Drop for Host { fn drop(&mut self) { unsafe { h::lr2021_host_close(self.h) } } }
 }
@@ -319,6 +330,15 @@ mod tests {
         assert_eq!(b.untested(), 1);
         b.checked = true;
         assert_eq!(b.check(), Err(Error(sys::LR2021_IQ_ARGUMENT)));
+    }
+    #[test]
+    fn simulator_gain_readback() {
+        let mut rx = RxConfig { bandwidth_hz: 62_500, gain_step: 7, ..Default::default() };
+        let mut sim = Simulator::new(Pattern::Counter, None, &rx).unwrap();
+        assert_eq!(sim.read_gain(), Err(Error(sys::LR2021_IQ_STATE)));
+        rx.gain_step = 0;
+        sim.configure(&rx).unwrap();
+        assert_eq!(sim.read_gain(), Err(Error(sys::LR2021_IQ_STATE)));
     }
     #[test]
     fn simulator_session_gain_and_tx() {
@@ -363,6 +383,8 @@ mod tests {
         let mut iq = vec![0i16; 8192];
         let mut got = 0;
         while got < 50_000 { got += h.read(&mut iq, 200_000).unwrap().0; }
+        let g = h.gain().unwrap();
+        assert_eq!((g.step, g.manual, g.gain_value), (13, 13, 138));
         let end = h.rx_stop().unwrap();
         assert_eq!(end.capture_error, 0);
         assert!(end.pairs as usize >= got);

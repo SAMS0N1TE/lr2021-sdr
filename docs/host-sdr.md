@@ -86,7 +86,7 @@ answers.
 | `host=192.168.4.1` | TCP | bridge firmware on Wi-Fi, or `lr2021_bridge_sim` |
 | `port=51021` | TCP | default 51021 |
 | `format=cs12` | serial, TCP | 12-bit packing of source-2 samples; default `cs16` |
-| `route=source0` | any | receive route: `source2` (default), `source0`, `source1`, `source6` |
+| `route=source0` | any | receive route: `source2` (default), `source0`, `source1`, `source6`, `raw0b` |
 | `input_code=17` | any | FSK RX filter code used with the raw routes; default 17 |
 | `spidev=/dev/spidev0.0` | local | the chip on this host's SPI bus |
 | `gpiochip=gpiochip0`, `reset=N`, `busy=N` | local | GPIO lines for NRESET (output) and BUSY (input) |
@@ -162,6 +162,54 @@ check per 4 KiB and no prediction, which gave the most consistent results at
 2 MB/s in 60-second runs. The local spidev backend and the simulator use 1020
 and 4096.
 
+### Chip gain readback
+
+`lr2021_iq_read_gain` reads the gain step the chip is using, on any route,
+with three ReadRegMem32 calls. The registers come from
+[beala/lr2021-re](https://github.com/beala/lr2021-re/blob/main/docs/agc-gain.md)
+and were checked on the LilyGO board in
+[the AGC readback research](../research/agc-readback/README.md). [HW] means
+verified there, [RE] taken from lr2021-re and not yet checked, [guess]
+unverified.
+
+| Field | Register | Meaning |
+| --- | --- | --- |
+| `step` | 0xF30154 bits 23:20 | gain step in use while receiving, 1 to 13; equals the forced step on all 13 steps, 13 in AGC mode with no signal [HW] |
+| `manual` | 0xF30154 bits 19:16 | the SetAgcGainManual setting, 0 for AGC [HW] |
+| `gain_value` | 0xF3012C bits 26:18 | in LoRa RX within -2 to +4 of lr2021-re's 16, 28, 38, 49, 57, 64, 73, 85, 96, 108, 120, 127, 138 for steps 1 to 13, and it varies between reads [HW]; about 153 at step 9 in the FSK setup of the raw routes [HW]; units possibly 0.5 dB [guess] |
+| `rssi_raw` | 0xF301A8 bits 26:18 | instantaneous RSSI, the value GetRssiInst returns, -raw/2 dBm [HW] |
+
+In standby the step field reads 10 and both 9-bit fields read 0x1FF [HW], so
+the call fills in the fields and returns `LR2021_IQ_STATE` unless the radio
+is receiving. It returns `LR2021_IQ_DATA` when the step is outside 1 to 13
+and `LR2021_IQ_STATE` on anything but ROM 1.24. It takes the HAL lock, so it
+waits while a receive session runs. To watch the gain during a session, set
+`lr2021_iq_session.gain_read_every` to N: the session then reads all three
+registers on every Nth service pass, calls `chip_gain` (with `gain_context`)
+with the values and the device time, and reports the lowest, highest and last
+step, the number of reads and the number of step changes in the result. A read
+with an out-of-range step is skipped; a bus error ends the session like any
+other. The default, 0, adds no bus traffic, so existing throughput figures are
+unchanged. Each sample costs three register reads, about six SPI frames.
+
+The simulator models the three registers, including the standby values. In
+manual mode the step is the manual setting. In AGC mode it picks the highest step that keeps the tone
+below 8192 counts, so the default tone stays at step 13 and a stronger
+`tone_amplitude` lowers it. Its RSSI field is a placeholder that falls as the
+tone grows; it is not a model of the chip's units.
+
+Over the bridge, devices that set cap 256 answer `GET_GAIN`
+([protocol](bridge-protocol.md#records)). The bridge server samples the
+registers every 64 service passes while it streams, so a host can poll the
+step during reception without stopping it. The host client calls it
+`lr2021_host_get_gain`, the Rust crates `Host::gain` and `Client::gain`, and
+the SoapySDR module exposes the RX sensors `chip_gain_step` and
+`chip_gain_value`. While the radio is idle the request returns STATE, and
+before the first sample of a stream EBUSY; the sensors throw in both cases.
+Over USB serial on the LilyGO board, GET_GAIN answered idle and during a
+30 s stream at 125000 samples/s with no lost samples [HW]; the Wi-Fi check
+is pending.
+
 ### Raw receive routes
 
 The `0x0290` route command selects one of the chip's internal sources. The
@@ -176,6 +224,16 @@ deviation, RX filter code `input_code`):
 | `source0` | 0 | 2 | IQ8: int8 I, Q |
 | `source1` | 1 | 2 | IQ8: int8 I, Q, at the converter input rate of the FSK filter code |
 | `source6` | 6 | 2 | IQ6G: signed 6-bit I and Q in bits 7..2 of each byte, gain step in the low bits |
+| `raw0b` | 0 | 2 | IQ8 in packet type 0x0B, at 4 x the LoRa bandwidth |
+
+`raw0b` follows [beala/lr2021-re](https://github.com/beala/lr2021-re/blob/main/docs/raw-iq.md):
+the LoRa setup is applied as for source 2, then the session switches the
+packet type to the hidden raw mode 0x0B (the datasheet's RFU value) and routes
+source 0 to the FIFO with byte 0 `FF` and no output rate. lr2021-re reports
+int8 I/Q at 4 x bandwidth (250000 pairs/s at BW 62.5 kHz), the chip AGC still
+working in this mode, and that with Semtech's PRAM patch loaded the FIFO route
+only produces data in 0x0B [RE]; this library still refuses a loaded patch.
+The simulator models it. Not yet run on the LilyGO board.
 
 The route command's byte 0, the input code, sets the converter rate: with
 source 1, an FLRC or Bluetooth LE modem setup with a different filter still

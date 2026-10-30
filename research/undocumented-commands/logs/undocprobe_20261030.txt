@@ -1,0 +1,20 @@
+undocprobe all
+undocprobe: 0x0103 aux 0x290 jli_base error=0 stat=0x0601 cmd=3 data=00000100
+undocprobe: 0x0213 get 0x0B error=0 stat=0x0601 cmd=3 data=04
+undocprobe: 0x0213 get 0x0C error=0 stat=0x0601 cmd=3 data=00
+undocprobe: 0x0213 get 0x0D error=0 stat=0x0401 cmd=2 data=00
+undocprobe: 0x0213 get 0x0E error=0 stat=0x0301 cmd=1 data=00
+undocprobe: 0x0213 get 0x0F error=0 stat=0x0301 cmd=1 data=00
+undocprobe: 0x0213 get 0x10 error=0 stat=0x0301 cmd=1 data=00
+undocprobe: 0x0213 get 0x11 error=0 stat=0x0501 cmd=2 data=00
+undocprobe: 0x0213 get 0x12 error=0 stat=0x0501 cmd=2 data=00
+undocprobe: 0x0213 get 0x13 error=0 stat=0x0301 cmd=1 data=00
+undocprobe: 0x0213 get 0x14 error=0 stat=0x0301 cmd=1 data=00
+undocprobe: 0x0213 get 0x15 error=0 stat=0x0501 cmd=2 data=00
+undocprobe: 0x023E in standby error=0 stat=0x0701 cmd=3 data=000000000000
+undocprobe: 0x023F in standby error=0 stat=0x0701 cmd=3 data=000000000000000000000000000000000079
+undocprobe: 0x023E in RX error=0 stat=0x0704 cmd=3 data=000000000000
+undocprobe: 0x023F in RX error=0 stat=0x0704 cmd=3 data=000000000000000000000000000000000079
+undocprobe: done restore=0
+lriq>  
+lriq>  

@@ -1,0 +1,33 @@
+{
+  "kind": "digital mixture of separately recorded RF captures; NOT a simultaneous RF collision",
+  "sources": [
+    {
+      "path": "./captures/iter/c00.bin",
+      "sha256": "79a3c05f16e8dc2129f846ab865e97eb254fc027c20100b94b490f66fa3f1c02",
+      "payload": "1200aac8a2275ac71e9edcec1b60fc279836bd72f118fbe05bc2a538b5874e32fd3a4ba344661aa779d6c239d5dd55a3f26be5540bd3e1b7a63da76556e4113d382e7c73465f388a389512de8e2460d0e3e1402bb18fc0fc7212952782f2dc70bc2b1e28720792000000000000000052414b33343031203157205265706561746572",
+      "crc_ok": true
+    },
+    {
+      "path": "./captures/iter/c01.bin",
+      "sha256": "431e2b58061b1231c56476b244b18e9b72faebe9a7fbc2bfe2783ed5ae44785c",
+      "payload": "1200aac8a2275ac71e9edcec1b60fc279836bd72f118fbe05bc2a538b5874e32fd3a53a34466b0b35f18f40e9d274a4903376b144a2e47fcccf581b297b4abf0befd7740a869ed5edff4b34daa909c6f72994ef1d7fd6dda7205921a465e18f35e2cebfee10892000000000000000052414b33343031203157205265706561746572",
+      "crc_ok": true
+    }
+  ],
+  "fs_hz": 83333.33333333333,
+  "delay_s": 0.042996,
+  "approximate_packet_overlap_s": 0.439788,
+  "weak_to_strong_whole_capture_rms_db": -6,
+  "additional_weak_cfo_hz": 2300,
+  "additional_weak_phase_rad": 0.7,
+  "added_noise_snr_db": 0.0,
+  "added_noise_seed": 20261028,
+  "added_noise_definition": "weaker normalized whole-capture power / added complex AWGN power; source noise remains",
+  "mixture_sha256": "5d917efe64eb8c8bc3381fb1ed41ffa110b7e6f17d879ab4ae0085503ea1dc7d",
+  "format": "little-endian complex float32",
+  "validation": {
+    "baseline_only_strong": true,
+    "recovered_exactly_both_original_payloads": true,
+    "demonstrated_additional_recovery": true
+  }
+}

@@ -73,6 +73,48 @@ Relocating that table, extending code into another bank, or replacing selected
 vendor routines each requires a verified memory plan. The fallback loader
 address is not evidence of an automatically available second patch slot.
 
+## What Semtech's patch hooks
+
+This summary of Semtech's PRAM blob in
+[Lora-net/usp](https://github.com/Lora-net/usp) v1.2.1 (LR20xx driver
+v2.0.2, patch level 2, type 3, version 0x13, 560 words) comes from
+[beala/lr2021-re](https://github.com/beala/lr2021-re/blob/main/docs/pram-patch.md).
+It is static analysis [RE] and agrees with the loader observations above.
+
+| JLI slots | What the hook does |
+| --- | --- |
+| 61 | Radio command dispatcher: overrides SetRfFrequency (0x0200), SetOqpskParams (0x029F), GetFlrcPacketStatus (0x024B) and GetZwavePacketStatus (0x029A); everything else falls through to ROM 0x24E0 |
+| 389, 53, 246 | Rerun the DC-DC configuration when the RX path flag changes, on a state change, or when the RF frequency moves by 10 MHz or more |
+| 414, 417 | Clear and set bit 13 of DC-DC switcher register 0xF20024 around ROM functions |
+| 267, 268, 274, 275, 224, 220 | RTToF ranging fixes |
+| 69, 71, 72 | Bluetooth LE workarounds |
+| 276, 450 | FLRC and Z-Wave packet status additions |
+| 435, 439, 390, 130 | OOK/RAW demodulator reconfiguration and small tweaks, purpose unclear |
+
+The DC-DC rules matter most here, because this repository runs the chip
+unpatched and receives far outside the datasheet bands:
+
+| Condition | Setting in the patch |
+| --- | --- |
+| RX on the HF path | rise time 15 |
+| ADC decimation 1 | DC-DC frequency 4.3 MHz, otherwise 2.8 MHz (the old host workaround) |
+| RF below 720 MHz | rise time 8 (new in this patch) |
+| RF at or above 720 MHz | rise time 13, DC-DC frequency halved (new in this patch) |
+
+They only apply while the chip runs on its DC-DC (SIMO) regulator. Receive
+here uses the LDO, so reception should not depend on them [guess]. The TX
+burst's SIMO flag ([bridge protocol](bridge-protocol.md#records)) does switch
+to DC-DC for the PA supply, and runs without these rules.
+
+GetLoraPacketStatus (0x022A) is not overridden, so its 10-byte answer is the
+same with or without the patch ([AGC readback research](../research/agc-readback/README.md#per-packet-gain-from-getlorapacketstatus)).
+
+A later experiment: measure the receive noise floor with and without the
+patch loaded, at 433, 915 and 1300 MHz, on the LDO and, if a SIMO receive
+mode is ever added, on DC-DC. Loading the patch also blocks this repository's
+capture paths, which refuse an active patch, so the comparison needs the
+packet receive path or GetRssiInst rather than I/Q streaming.
+
 ## What a capture extension could do
 
 A capture extension would need a bounded service that keeps SPI commands

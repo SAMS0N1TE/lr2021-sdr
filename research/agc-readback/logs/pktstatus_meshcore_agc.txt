@@ -1,0 +1,6 @@
+pktstatus 120 910525000 62500 7 0x12 0
+pktstatus: 910525000 Hz bw 62500 sf 7 sync 0x12 gain 0 preamble 16 for 120 s
+pktstatus: t_ms,irq,len,b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,gain_b9,step_now,rssi_dbm,snr_db,fei_raw
+pktstatus: 0 packets, error=0 restore=0
+lriq>  
+lriq>  

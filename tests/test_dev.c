@@ -70,7 +70,7 @@ int main(void)
 
     /* 250 ksample/s session: continuous counter, live gain change, restore keeps it. */
     lr2021_iq_result r; counter k={0}; k.stop_after=400;
-    lr2021_iq_session s={0,1024,gain,&k,0,0,0,NULL,0,0};
+    lr2021_iq_session s={0,1024,gain,&k,0,0,0,NULL,0,0,0,NULL};
     CHECK(!lr2021_iq_stream_session(&dev.hal,&s,count,&k,&r));
     CHECK(r.stopped_by_sink && r.nominal_rate_hz==250000 && r.gain_changes==1 && !k.gaps);
     CHECK(k.pairs==r.validated_bytes/4 && k.pairs>=399*256 && s.start_us && s.start_us==r.start_us);
@@ -81,7 +81,7 @@ int main(void)
      * caller's buffer; still continuous, with fewer polls per byte. */
     static uint8_t stage[4096+1020];
     memset(&k,0,sizeof(k));
-    s=(lr2021_iq_session){50,1024,NULL,NULL,0,1020,4096,stage,sizeof(stage),0};
+    s=(lr2021_iq_session){50,1024,NULL,NULL,0,1020,4096,stage,sizeof(stage),0,0,NULL};
     CHECK(!lr2021_iq_stream_session(&dev.hal,&s,count,&k,&r) && !k.gaps && k.pairs>10000);
     CHECK(k.blocks<=k.pairs*4/4096+1 && r.validated_bytes==k.pairs*4);
     /* Level prediction: a level read on every third pass only, still continuous. */
@@ -102,14 +102,14 @@ int main(void)
 
     /* Bounded session and an injected overflow. */
     rx.bandwidth_hz=31250; CHECK(!lr2021_iq_dev_configure(&dev,&rx));
-    memset(&k,0,sizeof(k)); s=(lr2021_iq_session){50,1024,NULL,NULL,0,0,0,NULL,0,0};
+    memset(&k,0,sizeof(k)); s=(lr2021_iq_session){50,1024,NULL,NULL,0,0,0,NULL,0,0,0,NULL};
     int e=lr2021_iq_stream_session(&dev.hal,&s,count,&k,&r);
     if(e)fprintf(stderr,"e=%d cap=%d rec=%d flags=%x bytes=%zu lvl=%u\n",e,r.capture_error,r.recovery_error,r.fifo_flags,r.bytes,r.max_fifo_level);
     CHECK(!e);
     CHECK(!r.stopped_by_sink && !k.gaps && r.nominal_rate_hz==125000);
     CHECK(k.pairs>5000 && k.pairs<7000);
     memset(&k,0,sizeof(k)); sim.overflow_after=sim.rx_pairs+20000;
-    s=(lr2021_iq_session){0,1024,NULL,NULL,0,0,0,NULL,0,0};
+    s=(lr2021_iq_session){0,1024,NULL,NULL,0,0,0,NULL,0,0,0,NULL};
     CHECK(lr2021_iq_stream_session(&dev.hal,&s,count,&k,&r)==LR2021_IQ_DATA);
     CHECK((r.fifo_flags&0x10) && !k.gaps && r.validated_bytes/4==k.pairs && dev.profile.configured);
     sim.overflow_after=0;
@@ -121,7 +121,7 @@ int main(void)
     lr2021_iq_rx raw={433920000,0,8,0,2,LR2021_IQ_ROUTE_SOURCE0,17,576000};
     CHECK(lr2021_iq_rx_rate(&raw)==576000 && lr2021_iq_rx_pair_bytes(&raw)==2);
     CHECK(!lr2021_iq_dev_configure(&dev,&raw) && sim.packet_type==2 && dev.profile.route==1);
-    memset(&k,0,sizeof(k)); s=(lr2021_iq_session){50,1024,NULL,NULL,0,0,0,NULL,0,0};
+    memset(&k,0,sizeof(k)); s=(lr2021_iq_session){50,1024,NULL,NULL,0,0,0,NULL,0,0,0,NULL};
     uint64_t raw_pairs=0;
     CHECK(!lr2021_iq_stream_session(&dev.hal,&s,iq8_count,&raw_pairs,&r));
     CHECK(r.nominal_rate_hz==576000 && raw_pairs==r.validated_bytes/2 && raw_pairs>25000 && raw_pairs<31000);
@@ -141,6 +141,13 @@ int main(void)
     raw_pairs=0;
     CHECK(!lr2021_iq_stream_session(&dev.hal,&s,iq8_count,&raw_pairs,&r) && r.nominal_rate_hz==125000);
     CHECK(raw_pairs>5000 && raw_pairs<7000 && sim.route_rate==125000);
+    lr2021_iq_rx raw0b={433920000,62500,0,0,2,LR2021_IQ_ROUTE_RAW0B,0,0};
+    CHECK(lr2021_iq_rx_rate(&raw0b)==250000 && lr2021_iq_rx_pair_bytes(&raw0b)==2 && !lr2021_iq_rx_check(&raw0b));
+    CHECK(!lr2021_iq_dev_configure(&dev,&raw0b) && !sim.packet_type && sim.lora_bw==3 && dev.profile.route==4);
+    raw_pairs=0; iq8_gaps=0;
+    CHECK(!lr2021_iq_stream_session(&dev.hal,&s,iq8_count,&raw_pairs,&r) && r.nominal_rate_hz==250000);
+    CHECK(raw_pairs>11000 && raw_pairs<14000 && !iq8_gaps && sim.route_code==0xFF && !sim.route_rate);
+    raw0b.bandwidth_hz=100000; CHECK(lr2021_iq_rx_check(&raw0b)==LR2021_IQ_ARGUMENT);
     raw.route=LR2021_IQ_ROUTE_SOURCE6; raw.rate_hz=50000;
     /* Legacy streams stay source-2 only. */
     raw.rate_hz=576000; raw.route=1; CHECK(!lr2021_iq_dev_configure(&dev,&raw));
@@ -212,7 +219,7 @@ int main(void)
     CHECK(lr2021_iq_transmit(&dev.hal,NULL,&t,&tr)==LR2021_IQ_ARGUMENT && !tr.recovery_error);
 
     /* RX after TX resumes the saved profile. */
-    memset(&k,0,sizeof(k)); s=(lr2021_iq_session){20,1024,NULL,NULL,0,0,0,NULL,0,0};
+    memset(&k,0,sizeof(k)); s=(lr2021_iq_session){20,1024,NULL,NULL,0,0,0,NULL,0,0,0,NULL};
     CHECK(!lr2021_iq_stream_session(&dev.hal,&s,count,&k,&r) && !k.gaps && k.pairs>2000);
     puts("device, session, live gain, TX burst and recovery tests passed");
     return 0;

@@ -79,6 +79,10 @@ int main(void)
     tb.pa=1; tb.flags=1;
     CHECK(lr2021_bridge_pack_tx_begin(pay,&tb)==28 && !lr2021_bridge_unpack_tx_begin(pay,28,&tb2));
     CHECK(tb2.power_half_db==-18 && tb2.start_time==tb.start_time && tb2.crc32==tb.crc32 && tb2.pa==1 && tb2.flags==1);
+    lr2021_bridge_gain gs={-4,11,0,127,301,0x0102030405060708ull}, gs2;
+    CHECK(lr2021_bridge_pack_gain(pay,&gs)==18 && !lr2021_bridge_unpack_gain(pay,18,&gs2));
+    CHECK(gs2.status==-4 && gs2.step==11 && !gs2.manual && gs2.gain_value==127 && gs2.rssi_raw==301);
+    CHECK(gs2.device_time==gs.device_time && lr2021_bridge_unpack_gain(pay,17,&gs2)==-1);
     lr2021_bridge_rx_data rd={1,125000,5,6,7,3,LR2021_BRIDGE_CS12,2}, rd2;
     CHECK(lr2021_bridge_pack_rx_data(pay,&rd)==32 && !lr2021_bridge_unpack_rx_data(pay,32+9,&rd2));
     CHECK(rd2.pairs==3 && rd2.shift==2 && rd2.format==1 && lr2021_bridge_unpack_rx_data(pay,32+12,&rd2)==-1);
@@ -112,9 +116,11 @@ int main(void)
     CHECK(lr2021_bridge_server_buffer(&srv,stagebig,100) && !lr2021_bridge_server_buffer(&srv,stagebig,sizeof(stagebig)));
     CHECK(!lr2021_bridge_server_tune(&srv,1020,16384) && lr2021_bridge_server_tune(&srv,1020,16388));
     CHECK(!lr2021_bridge_server_predict(&srv,3) && lr2021_bridge_server_predict(&srv,65));
+    CHECK(lr2021_bridge_server_gain_every(&srv,4097) && !lr2021_bridge_server_gain_every(&srv,8));
     uint8_t p[64]={1,0};
     CHECK(call(&h,LR2021_BRIDGE_HELLO,7,p,2)==0 && !lr2021_bridge_unpack_hello(h.last.payload,h.last.length,&hello2));
     CHECK(hello2.version==1 && hello2.rom_minor==24 && !strcmp(hello2.id,"sim0") && (hello2.caps&2));
+    CHECK(hello2.caps&LR2021_BRIDGE_CAP_GAIN_READBACK);
     CHECK(call(&h,0x33,8,NULL,0)==LR2021_BRIDGE_EUNKNOWN);
     CHECK(call(&h,LR2021_BRIDGE_SET_RX,9,p,3)==LR2021_BRIDGE_ELENGTH && h.wakes==1);
     lr2021_bridge_rx m={433920000,62500,12,7,2,0,0,0};
@@ -128,12 +134,22 @@ int main(void)
     CHECK(call(&h,LR2021_BRIDGE_SET_RX,12,p,len)==0);
     uint8_t g[2]={9,0};
     CHECK(call(&h,LR2021_BRIDGE_SET_GAIN,13,g,2)==0 && sim.step==9 && srv.radio.rx.gain_step==9);
+    CHECK(call(&h,LR2021_BRIDGE_GET_GAIN,50,NULL,0)==LR2021_IQ_STATE);
+    CHECK(!lr2021_bridge_unpack_gain(h.last.payload,h.last.length,&gs2));
+    CHECK(gs2.step==10 && gs2.manual==9 && gs2.gain_value==0x1FF && gs2.device_time>0);
+    CHECK(call(&h,LR2021_BRIDGE_GET_GAIN,51,g,1)==LR2021_BRIDGE_ELENGTH);
 
     /* 20 ms bounded stream: 2500 pairs, 8 queued blocks, continuous counter. */
     lr2021_bridge_put16(p,1024); lr2021_bridge_put32(p+2,20);
     CHECK(call(&h,LR2021_BRIDGE_RX_START,14,p,6)==0);
     CHECK(h.rx_end==1 && !h.gaps && h.pairs==h.end.pairs && h.pairs>2000 && h.end.reason==0);
     CHECK(h.end.generation==1 && !h.end.capture_error && !h.end.recovery_error && !h.end.dropped);
+    atomic_store(&srv.streaming,true);
+    CHECK(call(&h,LR2021_BRIDGE_GET_GAIN,52,NULL,0)==0 && !lr2021_bridge_unpack_gain(h.last.payload,h.last.length,&gs2));
+    CHECK(gs2.step==9 && gs2.manual==9 && gs2.gain_value==96 && gs2.device_time>=h.end.start_time);
+    atomic_store(&srv.gain_word,0);
+    CHECK(call(&h,LR2021_BRIDGE_GET_GAIN,53,NULL,0)==LR2021_BRIDGE_EBUSY && h.last.length==4);
+    atomic_store(&srv.streaming,false);
     /* Longer stream overruns the 32-slot queue in a single thread: the device
      * keeps streaming and counts the drops; the host receives fewer pairs. */
     memset(&h.end,0,sizeof(h.end)); h.pairs=0; h.next_pair=0; h.gaps=0;

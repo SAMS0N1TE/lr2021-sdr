@@ -94,6 +94,7 @@ lrh_server *lrh_server_start(lrh_fd fd, const lr2021_bridge_radio *radio, size_t
     lrh_mutex_init(&s->send_mu); lrh_mutex_init(&s->mu); lrh_cond_init(&s->cv);
     lr2021_bridge_io io={s,send_cb,lock_cb,unlock_cb,wake_cb};
     if(lr2021_bridge_server_init(&s->srv,&io,radio,s->tx_buf,tx_capacity)){ free(s->tx_buf); free(s); return NULL; }
+    lr2021_bridge_server_gain_every(&s->srv,64);
     lrh_thread_start(&s->worker,worker,s);
     lrh_thread_start(&s->sender,sender,s);
     lrh_thread_start(&s->reader,reader,s);

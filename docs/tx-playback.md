@@ -187,3 +187,9 @@ voice encoding, P25 HDU interoperability, and simultaneous RX/TX testing.
 Characterization work covers TX bandwidth, linearity, spectral emissions,
 other frequencies/powers and other boards. The earlier research records
 distortion at abrupt phase reversals and very small amplitudes.
+
+Future work, outside this repository's current plans: recovering collided
+LoRa packets by successive interference cancellation, which
+[beala/lr2021-re](https://github.com/beala/lr2021-re) demonstrates on
+captured I/Q. It deserves its own plan once there is an organic collision
+capture to test against.

@@ -49,6 +49,7 @@ Every response payload starts with an `i32 status`.
 | `08` | TX_COMMIT | empty | none; the burst result follows as TX_END | worker |
 | `09` | GET_TIME | empty | `u64 device_time_us` | reader |
 | `0A` | BYE | empty | none; the device then leaves bridge mode | reader |
+| `0B` | GET_GAIN | empty | gain record (14 bytes) | worker when idle; reader while streaming, from the stream's latest sample (EBUSY before the first one) |
 
 The device handles one worker request at a time. A worker request that arrives
 while another runs, including any worker request during a receive stream, is
@@ -87,7 +88,7 @@ HELLO response, 84 bytes:
 | ---: | --- |
 | 0 | `i32 status` |
 | 4 | `u16 protocol_version` (1) |
-| 6 | `u16 caps`: 1 RX, 2 TX, 4 timed TX, 8 live gain, 16 source 2 above 125 ksample/s, 32 CS12 format, 64 checked-TX flag, 128 raw routes |
+| 6 | `u16 caps`: 1 RX, 2 TX, 4 timed TX, 8 live gain, 16 source 2 above 125 ksample/s, 32 CS12 format, 64 checked-TX flag, 128 raw routes, 256 gain readback |
 | 8 | `u8 rom_major, u8 rom_minor` (1, 24) |
 | 10 | `u16 max_payload` (2048) |
 | 12 | `u32 clock_hz`, unit of device time (1000000: microseconds) |
@@ -96,15 +97,17 @@ HELLO response, 84 bytes:
 | 52 | `char id[32]`, NUL padded board identifier |
 
 RX record, 17 bytes: `u32 frequency_hz` (100000000..2740000000),
-`u32 bandwidth_hz` (LoRa bandwidth 31250, 62500, 125000 or 250000 for source 2),
+`u32 bandwidth_hz` (LoRa bandwidth 31250, 62500, 125000 or 250000 for routes 0 and 4),
 `u8 gain_step` (0 chip AGC, 1..13), `u8 boost` (0..7, acts at steps 12 and 13),
 `u8 path` (0 LF, 1 HF, 2 automatic: LF below 1.5 GHz), `u8 route` (0 source 2,
-1 source 0, 2 source 1, 3 source 6), `u8 input_code` (FSK RX filter code for
+1 source 0, 2 source 1, 3 source 6, 4 source 0 in packet type 0x0B),
+`u8 input_code` (FSK RX filter code for
 routes 1..3), `u32 rate_hz` (output rate for routes 1..3, 1000..4000000). The
 first 11 bytes alone select source 2. The source-2 rate is 4 times the
 bandwidth, 125000 to 1000000 complex pairs/s
 ([receive range report](../research/rx-range-and-gain/README.md)); routes 1..3
-run at `rate_hz` ([raw routes](host-sdr.md#raw-receive-routes)).
+run at `rate_hz` ([raw routes](host-sdr.md#raw-receive-routes)). Route 4 streams
+IQ8 at 4 times the bandwidth, like source 2.
 `radio_errors` is GetErrors after configuration; IMG_CAL (`0x0080`) is reported
 without failing, as it stays flagged near 100 MHz although reception works.
 
@@ -115,6 +118,27 @@ TX record, 28 bytes: `u32 bytes`, `u32 crc32` of the uploaded bytes,
 checked, see [Transmit](#transmit); bit 1: run the burst with SetRegMode
 SIMO_NORMAL, the DC-DC converter for the PA supply, instead of the LDO the
 receive setup uses; the reset after the burst returns to LDO).
+
+Gain record, 18 bytes: `i32 status`, `u8 step`, `u8 manual`,
+`u16 gain_value`, `u16 rssi_raw`, `u64 device_time`. The fields are the
+chip registers that `lr2021_iq_read_gain` reads
+([chip gain readback](host-sdr.md#chip-gain-readback)): the gain step in use
+(1 to 13), the SetAgcGainManual setting (0 for AGC), the gain value of the
+step and the instantaneous RSSI field, all unscaled. `device_time` is when
+they were read. When idle, the worker reads the chip on request. The chip
+only reports the step while it receives, so with the radio in standby the
+status is -2 (STATE) and only `manual` is meaningful (the step field reads 10
+there). A status of -4 (DATA) means the step read back outside 1 to 13. With
+either error the fields still carry what was read. While a stream runs, the device samples the registers inside
+the stream session every 64 service passes and answers from the latest
+sample without touching the radio; before the first sample of a stream it
+answers EBUSY. During a TX burst the worker is busy and GET_GAIN gets EBUSY.
+Replies share the device's output queue with RX_DATA, so on a link slower
+than the stream a reply arrives after the backlog ahead of it.
+The register map is from
+[beala/lr2021-re](https://github.com/beala/lr2021-re/blob/main/docs/agc-gain.md)
+[RE]; [the AGC readback research](../research/agc-readback/README.md) tracks
+its verification on this repository's board.
 
 ## Device messages
 

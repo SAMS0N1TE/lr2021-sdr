@@ -69,7 +69,12 @@ typedef struct {
     /* Session API only: now_us() when sample 0 was retained, gain changes applied. */
     uint64_t start_us;
     unsigned gain_changes;
+    unsigned chip_gain_reads, chip_gain_changes;
+    uint8_t chip_gain_min, chip_gain_max, chip_gain_last;
 } lr2021_iq_result;
+
+typedef struct { uint8_t step, manual; uint16_t gain_value, rssi_raw; } lr2021_iq_gain_state;
+int lr2021_iq_read_gain(const lr2021_iq_hal *, lr2021_iq_gain_state *);
 
 /* Two separate buffers of >=256 words. Host-order words contain I low/Q high.
  * Output is provisional until return 0, including reset and SRAM verification. */
@@ -135,6 +140,8 @@ typedef struct {
      * estimate shows as FIFO underflow and ends the session; no data passes
      * unchecked. 0 or 1 reads the level on every pass. */
     unsigned level_every;
+    unsigned gain_read_every;
+    void (*chip_gain)(void *context, const lr2021_iq_gain_state *, uint64_t time_us);
 } lr2021_iq_session;
 int lr2021_iq_stream_session(const lr2021_iq_hal *, lr2021_iq_session *,
                             lr2021_iq_sink, void *, lr2021_iq_result *);

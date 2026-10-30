@@ -76,6 +76,9 @@ static int exercise(lr2021_host *h, unsigned seconds_ms, bool counter)
     CHECK(!lr2021_host_set_rx(h,&rx,&ack) && ack.rate_hz==250000);
     rx.frequency_hz=3000000000u; CHECK(lr2021_host_set_rx(h,&rx,&ack)==LR2021_IQ_ARGUMENT);
     rx.frequency_hz=433920000;
+    lr2021_bridge_gain g;
+    CHECK(hi->caps&LR2021_BRIDGE_CAP_GAIN_READBACK);
+    CHECK(lr2021_host_get_gain(h,&g)==LR2021_IQ_STATE && g.step==10 && g.manual==13 && g.device_time);
     CHECK(!lr2021_host_rx_start(h,0) && lr2021_host_rx_active(h));
     CHECK(lr2021_host_set_rx(h,&rx,&ack)==LR2021_BRIDGE_EBUSY);
     uint64_t pairs=0; unsigned gaps=0, disc=0;
@@ -84,6 +87,7 @@ static int exercise(lr2021_host *h, unsigned seconds_ms, bool counter)
     CHECK(!lr2021_host_set_gain(h,12,0));
     CHECK(lr2021_host_set_gain(h,12,7)==LR2021_BRIDGE_EBUSY); /* boost needs a restart */
     CHECK(!stream(h,seconds_ms/2,&pairs,&gaps,&disc,counter));
+    CHECK(!lr2021_host_get_gain(h,&g) && g.step==12 && g.manual==12 && g.gain_value==127);
     double rate=(double)pairs*1e6/(double)(lrh_now_us()-t0);
     lr2021_bridge_rx_end end;
     CHECK(!lr2021_host_rx_stop(h,&end) && !lr2021_host_rx_active(h));
@@ -94,6 +98,8 @@ static int exercise(lr2021_host *h, unsigned seconds_ms, bool counter)
     CHECK(!disc || end.dropped);
     CHECK(rate>100000 && rate<260000);
     uint64_t t=0; CHECK(!lr2021_host_time(h,&t) && t>0);
+    int ge=lr2021_host_get_gain(h,&g);
+    CHECK((!ge || ge==LR2021_IQ_STATE) && g.manual==12 && g.device_time<=t+1000000);
     static int8_t iq[2*9600];
     for(unsigned i=0;i<9600;i++){ iq[2*i]=(int8_t)(i%60-30); iq[2*i+1]=(int8_t)(30-i%60); }
     lr2021_bridge_tx_begin p={0,0,19200,433920000,-18,1,0,0,LR2021_IQ_TX_CHECKED};

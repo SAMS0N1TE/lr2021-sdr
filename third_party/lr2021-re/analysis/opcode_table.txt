@@ -1,0 +1,225 @@
+# group 0x0100: table 0x13bec, 55 entries, invalid-opcode stub 0xd56c
+0x0100 0x05cec DOC      GetStatus                    GET_STATUS
+0x0101 0x05e74 DOC      GetVersion                   GET_VERSION
+0x0102 0x12058 UNDOC                                 
+0x0103 0x0d388 UNDOC                                 
+0x0104 0x12138 DOC      WriteRegMem32                WRITE_REG_MEM_32
+0x0105 0x12188 DOC      WriteRegMemMask32            WRITE_REG_MEM_MASK_32
+0x0106 0x0d4b4 DOC      ReadRegMem32                 READ_REG_MEM_32
+0x0107 0x0d56c STUB                                  
+0x0108 0x0d56c STUB                                  
+0x0109 0x0d56c STUB                                  
+0x010a 0x0d56c STUB                                  
+0x010b 0x0d56c STUB                                  
+0x010c 0x0d56c STUB                                  
+0x010d 0x0d56c STUB                                  
+0x010e 0x0d56c STUB                                  
+0x010f 0x0d56c STUB                                  
+0x0110 0x0565c DOC      GetErrors                    GET_ERRORS
+0x0111 0x03f60 DOC      ClearErrors                  CLEAR_ERRORS
+0x0112 0x0e7a8 DOC      SetDioFunction               SET_DIO_FUNCTION
+0x0113 0x0e7e8 DOC      SetDioRfSwitchConfig         SET_DIO_RF_SWITCH_CONFIG
+0x0114 0x04000 DOC      ClearFifoIrqFlags            CLEAR_FIFO_IRQ_FLAGS
+0x0115 0x0e7c8 DOC      SetDioIrqConfig              SET_DIO_IRQ_CONFIG
+0x0116 0x04018 DOC      ClearIrq                     CLEAR_IRQ
+0x0117 0x0546c DOC      GetAndClearIrqStatus         GET_AND_CLEAR_IRQ_STATUS
+0x0118 0x04420 DOC      ConfigLfClock                CONFIG_LF_CLOCK
+0x0119 0x04060 DOC      ConfigClkOutputs             CONFIG_CLK_OUTPUTS
+0x011a 0x04084 DOC      ConfigFifoIrq                CONFIG_FIFO_IRQ
+0x011b 0x05678 DOC      GetFifoIrqFlags              GET_FIFO_IRQ_FLAGS
+0x011c 0x05c88 DOC      GetRxFifoLevel               GET_RX_FIFO_LEVEL
+0x011d 0x05dd4 DOC      GetTxFifoLevel               GET_TX_FIFO_LEVEL
+0x011e 0x04034 DOC      ClearRxFifo                  CLEAR_RX_FIFO
+0x011f 0x04054 DOC      ClearTxFifo                  CLEAR_TX_FIFO
+0x0120 0x10090 DOC      SetTcxoMode                  SET_TCXO_MODE
+0x0121 0x0faa4 DOC      SetRegMode                   SET_REG_MODE
+0x0122 0x0370c DOC      Calibrate                    CALIBRATE
+0x0123 0x02c9c DOC      CalibFE                      CALIB_FRONT_END
+0x0124 0x05df4 DOC      GetVbat                      GET_V_BAT
+0x0125 0x05cf4 DOC      GetTemp                      GET_TEMP
+0x0126 0x05a68 DOC      GetRandomNumber              GET_RANDOM_NUMBER
+0x0127 0x0fe74 DOC      SetSleep                     SET_SLEEP
+0x0128 0x0ff18 DOC      SetStandby                   SET_STANDBY
+0x0129 0x0eb40 DOC      SetFs                        SET_FS
+0x012a 0x0d910 DOC      SetAdditionalRegToRetain     SET_ADDITIONAL_REG_TO_RETAIN
+0x012b 0x11564 UNDOC                                 
+0x012c 0x0f800 UNDOC                                 
+0x012d 0x10ac4 UNDOC                                 ACTIVATE_PRAM
+0x012e 0x05444 DOC      GetAndClearFifoIrqFlags      GET_AND_CLEAR_FIFO_IRQ_FLAGS
+0x012f 0x0e958 UNDOC                                 
+0x0130 0x0e9c0 DOC      SetLbdCfg                    SET_EOL_CONFIG
+0x0131 0x1079c DOC      SetXoscCpTrim                SET_XOSC_CP_TRIM
+0x0132 0x100e4 DOC      SetTempCompCfg               
+0x0133 0x0f480 DOC      SetNtcParams                 
+0x0134 0x02d2c UNDOC                                 
+0x0135 0x02d04 UNDOC                                 
+0x0136 0x03284 UNDOC                                 
+# group 0x0200: table 0x13cd0, 168 entries, invalid-opcode stub 0xd568
+0x0200 0x0fc00 DOC      SetRfFrequency               SET_RF_FREQUENCY
+0x0201 0x0fe14 DOC      SetRxPath                    SET_RX_PATH
+0x0202 0x0f6bc DOC      SetPaConfig                  SET_PA_CONFIG
+0x0203 0x10390 DOC      SetTxParams                  SET_TX_PARAMS
+0x0204 0x0d568 STUB                                  
+0x0205 0x0fc30 DOC      SetRssiCalibration           SET_RSSI_CALIBRATION
+0x0206 0x0fe64 DOC      SetRxTxFallbackMode          SET_RX_TX_FALLBACK_MODE
+0x0207 0x0f7e4 DOC      SetPacketType                SET_PACKET_TYPE
+0x0208 0x058d8 DOC      GetPacketType                GET_PACKET_TYPE
+0x0209 0x1149c DOC      StopTimeoutOnPreamble        STOP_TIMEOUT_ON_PREAMBLE
+0x020a 0x0d548 DOC      ResetRxStats                 RESET_RX_STATS
+0x020b 0x05c6c DOC      GetRssiInst                  GET_RSSI_INST
+0x020c 0x0fcfc DOC      SetRx                        SET_RX
+0x020d 0x101c8 DOC      SetTx                        SET_TX
+0x020e 0x103ac DOC      SetTxTestMode                SET_TX_TEST_MODE
+0x020f 0x0d888 DOC      SelPa                        SEL_PA
+0x0210 0x0fd38 DOC      SetRxDutyCycle               SET_RX_DUTY_CYCLE
+0x0211 0x0e4f4 DOC      SetAutoRxTx                  SET_AUTO_RX_TX
+0x0212 0x05ca8 DOC      GetRxPktLength               GET_RX_PKT_LENGTH
+0x0213 0x0c860 UNDOC                                 
+0x0214 0x0f86c UNDOC                                 
+0x0215 0x0e780 DOC      SetDefaultRxTxTimeout        SET_DEFAULT_RX_TX_TIMEOUT
+0x0216 0x10128 DOC      SetTimestampSource           SET_TIMESTAMP_SOURCE
+0x0217 0x05d94 DOC      GetTimestampValue            GET_TIMESTAMP_VALUE
+0x0218 0x0e75c DOC      SetCca                       SET_CCA
+0x0219 0x055ec DOC      GetCcaResult                 GET_CCA_RESULT
+0x021a 0x0e4a8 DOC      SetAgcGainManual             SET_AGC_GAIN_MANUAL
+0x021b 0x0e6c4 DOC      SetCadParams                 SET_CAD_PARAMS
+0x021c 0x0e6a0 DOC      SetCad                       SET_CAD
+0x021d 0x0f43c DOC      SetLoraTxSync                SET_LORA_TX_SYNC
+0x021e 0x0f2a8 DOC      SetLoraSideDetCad            SET_LORA_SIDE_DET_CAD
+0x021f 0x0f144 UNDOC                                 
+0x0220 0x0f238 DOC      SetLoraModulationParams      SET_LORA_MODULATION_PARAMS
+0x0221 0x0f274 DOC      SetLoraPacketParams          SET_LORA_PACKET_PARAMS
+0x0222 0x0f418 DOC      SetLoRaSynchTimeout          SET_LORA_SYNCH_TIMEOUT
+0x0223 0x0f3d4 DOC      SetLoraSyncword              SET_LORA_SYNCWORD
+0x0224 0x0f2e8 DOC      SetLoraSideDetConfig         SET_LORA_SIDE_DET_CONFIG
+0x0225 0x0f33c DOC      SetLoraSideDetSyncword       SET_LORA_SIDE_DET_SYNCWORD
+0x0226 0x04464 UNDOC                                 
+0x0227 0x0f188 DOC      SetLoraCadParams             SET_LORA_CAD_PARAMS
+0x0228 0x0f178 DOC      SetLoraCAD                   SET_LORA_CAD
+0x0229 0x05854 DOC      GetLoraRxStats               GET_LORA_RX_STATS
+0x022a 0x057e8 DOC      GetLoraPacketStatus          GET_LORA_PACKET_STATUS
+0x022b 0x0f0f8 DOC      SetLoraAddress               SET_LORA_ADDRESS
+0x022c 0x00168 DOC      SetLoraHopping               SET_LORA_HOPPING
+0x022d 0x0f3fc UNDOC                                 
+0x022e 0x0f38c UNDOC                                 
+0x022f 0x0e404 UNDOC                                 
+0x0230 0x0e1f4 UNDOC                                 
+0x0231 0x0e27c UNDOC                                 
+0x0232 0x0e358 UNDOC                                 
+0x0233 0x0e170 UNDOC                                 
+0x0234 0x0dacc UNDOC                                 
+0x0235 0x0da08 UNDOC                                 
+0x0236 0x0e43c UNDOC                                 
+0x0237 0x0e03c UNDOC                                 
+0x0238 0x0e2b4 UNDOC                                 
+0x0239 0x0d950 UNDOC                                 
+0x023a 0x0d9c0 UNDOC                                 
+0x023b 0x0e00c UNDOC                                 
+0x023c 0x0df24 UNDOC                                 
+0x023d 0x0e0d8 UNDOC                                 
+0x023e 0x05430 UNDOC                                 
+0x023f 0x0539c UNDOC                                 
+0x0240 0x0ebc0 DOC      SetFskModulationParams       SET_GFSK_MODULATION_PARAMS
+0x0241 0x0ede8 DOC      SetFskPacketParams           SET_GFSK_PACKET_PARAMS
+0x0242 0x0eef0 DOC      SetFskWhiteningParams        SET_GFSK_WHITENING_PARAMS
+0x0243 0x0eb9c DOC      SetFskCrcParams              SET_GFSK_CRC_PARAMS
+0x0244 0x0ee4c DOC      SetFskSyncword               SET_GFSK_SYNCWORD
+0x0245 0x0eb80 DOC      SetFskAddress                SET_GFSK_ADDRESS
+0x0246 0x057d4 DOC      GetFskRxStats                GET_GFSK_RX_STATS
+0x0247 0x0577c DOC      GetFskPacketStatus           GET_GFSK_PACKET_STATUS
+0x0248 0x0ea28 DOC      SetFlrcModulationParams      SET_FLRC_MODULATION_PARAMS
+0x0249 0x0ea48 DOC      SetFlrcPacketParams          SET_FLRC_PACKET_PARAMS
+0x024a 0x05768 DOC      GetFlrcRxStats               GET_FLRC_RX_STATS
+0x024b 0x0571c DOC      GetFlrcPacketStatus          GET_FLRC_PACKET_STATUS
+0x024c 0x00164 DOC      SetFlrcSyncword              SET_FLRC_SYNCWORD
+0x024d 0x0d568 STUB                                  
+0x024e 0x0d568 STUB                                  
+0x024f 0x0d568 STUB                                  
+0x0250 0x0e5bc DOC      SetBpskModulationParams      SET_BPSK_MODULATION_PARAMS
+0x0251 0x0e5f4 DOC      SetBpskPacketParams          SET_BPSK_PACKET_PARAMS
+0x0252 0x0d568 STUB                                  
+0x0253 0x0d568 STUB                                  
+0x0254 0x0d568 STUB                                  
+0x0255 0x0d568 STUB                                  
+0x0256 0x09afc DOC      LrFhssBuildFrame             LR_FHSS_BUILD_FRAME
+0x0257 0x0f45c DOC      LrFhssSetSyncword            LR_FHSS_SET_SYNCWORD
+0x0258 0x0d3fc DOC      ReadLrFhssHoppingTable       
+0x0259 0x1207c DOC      WriteLrFhssHoppingTable      
+0x025a 0x0d568 STUB                                  
+0x025b 0x0d568 STUB                                  
+0x025c 0x0d568 STUB                                  
+0x025d 0x0d568 STUB                                  
+0x025e 0x0d568 STUB                                  
+0x025f 0x0d568 STUB                                  
+0x0260 0x0e568 DOC      SetBleModulationParams       SET_BLE_MODULATION_PARAMS
+0x0261 0x0e524 DOC      SetBleChannelParams          SET_BLE_CHANNEL_PARAMS
+0x0262 0x0e58c DOC      SetBleTx                     SET_BLE_TX
+0x0263 0x0e520 UNDOC                                 
+0x0264 0x05598 DOC      GetBleRxStats                GET_BLE_RX_STATS
+0x0265 0x05554 DOC      GetBlePacketStatus           GET_BLE_PACKET_STATUS
+0x0266 0x0e5a4 DOC      SetBleTxPduLen               SET_BLE_PDU_LEN
+0x0267 0x0d568 STUB                                  
+0x0268 0x0d568 STUB                                  
+0x0269 0x0d568 STUB                                  
+0x026a 0x10720 DOC      SetWmbusParams               SET_WMBUS_PARAMS
+0x026b 0x0d568 STUB                                  
+0x026c 0x05f7c DOC      GetWmbusRxStats              GET_WMBUS_RX_STATS
+0x026d 0x05ef8 DOC      GetWmbusPacketStatus         GET_WMBUS_PACKET_STATUS
+0x026e 0x00170 DOC      SetWmbusFilteringAddress     SET_WMBUS_FILTERING_ADDRESS
+0x026f 0x0d568 STUB                                  
+0x0270 0x104d4 DOC      SetWisunMode                 SET_WISUN_MODE
+0x0271 0x1063c DOC      SetWisunPacketParams         SET_WISUN_PACKET_PARAMS
+0x0272 0x05ee4 DOC      GetWisunRxStats              GET_WISUN_RX_STATS
+0x0273 0x05e88 DOC      GetWisunPacketStatus         GET_WISUN_PACKET_STATUS
+0x0274 0x104f0 DOC      SetWisunPacketLen            SET_WISUN_PACKET_LEN
+0x0275 0x0d568 STUB                                  
+0x0276 0x0d568 STUB                                  
+0x0277 0x0d568 STUB                                  
+0x0278 0x0f948 DOC      SetRangingAddr               SET_RANGING_ADDR
+0x0279 0x0f978 DOC      SetRangingReqAddr            SET_RANGING_REQ_ADDR
+0x027a 0x05a8c DOC      GetRangingResult             GET_RANGING_RESULT
+0x027b 0x0f98c DOC      SetRangingTxRxDelay          SET_RANGING_TX_RX_DELAY
+0x027c 0x0f95c DOC      SetRangingParams             SET_RANGING_PARAMS
+0x027d 0x05af8 DOC      GetRangingStats              GET_RANGING_STATS
+0x027e 0x0d568 STUB                                  
+0x027f 0x0d568 STUB                                  
+0x0280 0x0d568 STUB                                  
+0x0281 0x0f4f4 DOC      SetOokModulationParams       SET_OOK_MODULATION_PARAMS
+0x0282 0x0f520 DOC      SetOokPacketParams           SET_OOK_PACKET_PARAMS
+0x0283 0x0f4a8 DOC      SetOokCrcParams              SET_OOK_CRC_PARAMS
+0x0284 0x0f560 DOC      SetOokSyncword               SET_OOK_SYNCWORD
+0x0285 0x0f4a4 DOC      SetOokAddress                SET_OOK_ADDRESS
+0x0286 0x058b8 DOC      GetOokRxStats                GET_OOK_RX_STATS
+0x0287 0x05868 DOC      GetOokPacketStatus           GET_OOK_PACKET_STATUS
+0x0288 0x0016c DOC      SetOokDetector               SET_OOK_DETECTOR
+0x0289 0x0f5a4 DOC      SetOokwhiteningParams        SET_OOK_WHITENING_PARAMS
+0x028a 0x0d568 STUB                                  
+0x028b 0x0d568 STUB                                  
+0x028c 0x0d568 STUB                                  
+0x028d 0x0d568 STUB                                  
+0x028e 0x0d568 STUB                                  
+0x028f 0x0d568 STUB                                  
+0x0290 0x0f9a0 UNDOC                                 
+0x0291 0x05b44 UNDOC                                 
+0x0292 0x05b60 UNDOC                                 
+0x0293 0x0fa78 UNDOC                                 
+0x0294 0x0fa18 UNDOC                                 
+0x0295 0x0d568 STUB                                  
+0x0296 0x0d568 STUB                                  
+0x0297 0x1089c DOC      SetZwaveParams               SET_ZWAVE_PARAMS
+0x0298 0x10884 DOC      SetZwaveHomeIdFiltering      SET_ZWAVE_HOME_ID_FILTERING
+0x0299 0x0603c DOC      GetZwaveRxStats              GET_ZWAVE_RX_STATS
+0x029a 0x05ff0 DOC      GetZwavePacketStatus         GET_ZWAVE_PACKET_STATUS
+0x029b 0x10858 DOC      SetZwaveBeamFiltering        SET_ZWAVE_BEAM_FILTERING
+0x029c 0x108f4 DOC      SetZwaveScanConfig           SET_ZWAVE_SCAN_CONFIG
+0x029d 0x108dc DOC      SetZwaveScan                 SET_ZWAVE_SCAN
+0x029e 0x0d568 STUB                                  
+0x029f 0x1081c DOC      SetOqpskParams               SET_OQPSK_PARAMS
+0x02a0 0x05fdc DOC      GetOqpskRxStats              GET_OQPSK_RX_STATS
+0x02a1 0x05f90 DOC      GetOqpskPacketStatus         GET_OQPSK_PACKET_STATUS
+0x02a2 0x10804 DOC      SetOqpskPacketLen            SET_OQPSK_PACKET_LEN
+0x02a3 0x107cc DOC      SetOqpskAddress              SET_OQPSK_ADDRESS
+0x02a4 0x0d568 STUB                                  
+0x02a5 0x0d568 STUB                                  
+0x02a6 0x0d568 STUB                                  
+0x02a7 0x0d568 STUB                                  

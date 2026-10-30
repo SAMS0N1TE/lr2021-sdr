@@ -26,11 +26,11 @@ const long long NS=1000000000LL;
 bool truthy(const std::string &v) { return v=="1" || v=="true" || v=="yes" || v=="on"; }
 // FSK filter codes offered for source 1 (the 17..39 family holds the measured 28 and 33).
 const uint8_t SOURCE1_CODES[]={17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39};
-const char *const ROUTES[]={"source2","source0","source1","source6"};
+const char *const ROUTES[]={"source2","source0","source1","source6","raw0b"};
 int route_index(const std::string &v)
 {
-    for(int i=0;i<4;i++)if(v==ROUTES[i])return i;
-    throw std::invalid_argument("lr2021: route is source2, source0, source1 or source6");
+    for(int i=0;i<5;i++)if(v==ROUTES[i])return i;
+    throw std::invalid_argument("lr2021: route is source2, source0, source1, source6 or raw0b");
 }
 std::string text(const SoapySDR::Range &r)
 { return std::to_string(r.minimum())+".."+std::to_string(r.maximum()); }
@@ -127,13 +127,14 @@ public:
             v.erase(std::unique(v.begin(),v.end()),v.end());
             return v;
         }
-        if(rx.route)return {50000,125000,250000,500000,576000,1000000};
+        if(rx.route && rx.route!=LR2021_IQ_ROUTE_RAW0B)return {50000,125000,250000,500000,576000,1000000};
         return {125000,250000,500000,1000000};
     }
     SoapySDR::RangeList getSampleRateRange(const int dir, const size_t ch) const override
     {
         if(dir==SOAPY_SDR_TX && !checked)return {SoapySDR::Range(1,1000000)};
-        if(dir==SOAPY_SDR_RX && rx.route && rx.route!=LR2021_IQ_ROUTE_SOURCE1)return {SoapySDR::Range(1000,4000000)};
+        if(dir==SOAPY_SDR_RX && rx.route && rx.route!=LR2021_IQ_ROUTE_SOURCE1 && rx.route!=LR2021_IQ_ROUTE_RAW0B)
+            return {SoapySDR::Range(1000,4000000)};
         SoapySDR::RangeList l;
         for(double r : listSampleRates(dir,ch))l.push_back(SoapySDR::Range(r,r));
         return l;
@@ -154,7 +155,7 @@ public:
             for(uint8_t c : SOURCE1_CODES)
                 if(std::llabs((long long)lr2021_iq_input_rate(c)-r)<std::llabs((long long)lr2021_iq_input_rate((uint8_t)best)-r))best=c;
             next.input_code=(uint8_t)best;
-        } else if(rx.route) {
+        } else if(rx.route && rx.route!=LR2021_IQ_ROUTE_RAW0B) {
             if(r<1000 || r>4000000)throw std::invalid_argument("lr2021: raw-route rate must be 1000..4000000");
             next.rate_hz=r;
         } else {
@@ -233,6 +234,33 @@ public:
         time_offset=t-(long long)us*1000;
     }
 
+    std::vector<std::string> listSensors(const int dir, const size_t) const override
+    {
+        if(dir!=SOAPY_SDR_RX || !(lr2021_host_hello(host)->caps&LR2021_BRIDGE_CAP_GAIN_READBACK))return {};
+        return {"chip_gain_step","chip_gain_value"};
+    }
+    SoapySDR::ArgInfo getSensorInfo(const int, const size_t, const std::string &key) const override
+    {
+        SoapySDR::ArgInfo i;
+        i.key=key; i.type=SoapySDR::ArgInfo::INT;
+        if(key=="chip_gain_step") {
+            i.name="Chip gain step"; i.range=SoapySDR::Range(1,13);
+            i.description="Gain step the LR2021 is using, 1 to 13, read from the chip";
+        } else if(key=="chip_gain_value") {
+            i.name="Chip gain value"; i.range=SoapySDR::Range(0,511);
+            i.description="Raw gain value of the current step, unscaled";
+        }
+        return i;
+    }
+    std::string readSensor(const int dir, const size_t, const std::string &key) const override
+    {
+        if(dir!=SOAPY_SDR_RX || (key!="chip_gain_step" && key!="chip_gain_value"))
+            throw std::invalid_argument("lr2021: unknown sensor "+key);
+        lr2021_bridge_gain g;
+        if(lr2021_host_get_gain(host,&g))throw std::runtime_error("lr2021: gain readback failed");
+        return std::to_string(key=="chip_gain_step"?(unsigned)g.step:(unsigned)g.gain_value);
+    }
+
     // Settings
     SoapySDR::ArgInfoList getSettingInfo() const override
     {
@@ -242,8 +270,8 @@ public:
         u.description="Refuse TX bursts outside the measured contract instead of reporting them";
         SoapySDR::ArgInfo r;
         r.key="route"; r.value=ROUTES[rx.route]; r.name="Receive route";
-        r.type=SoapySDR::ArgInfo::STRING; r.options={"source2","source0","source1","source6"};
-        r.description="source2: LoRa IQ16 at 4 x bandwidth; source0/1: IQ8, source6: gain-tagged IQ6, at the set rate";
+        r.type=SoapySDR::ArgInfo::STRING; r.options={"source2","source0","source1","source6","raw0b"};
+        r.description="source2: LoRa IQ16 at 4 x bandwidth; source0/1: IQ8, source6: gain-tagged IQ6, at the set rate; raw0b: IQ8 in packet type 0x0B at 4 x bandwidth";
         SoapySDR::ArgInfo c;
         c.key="input_code"; c.value=std::to_string(rx.input_code); c.name="Raw-route input code";
         c.type=SoapySDR::ArgInfo::INT;

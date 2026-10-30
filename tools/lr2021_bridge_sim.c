@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MIT */
 /* Bridge protocol server on TCP backed by the LR2021 simulator, for host tests,
  * SoapySDR and Rust client development without hardware.
- *   lr2021_bridge_sim [--port 51021] [--pattern counter|tone] [--tone HZ] [--once]
+ *   lr2021_bridge_sim [--port 51021] [--pattern counter|tone] [--tone HZ] [--amplitude N] [--once]
  * Port 0 picks a free port. Prints "lr2021_bridge_sim: port N" when ready. */
 #define _DEFAULT_SOURCE
 #include "../src/host/host_internal.h"
@@ -19,13 +19,14 @@ static int configure(void *c, const lr2021_iq_rx *rx, uint16_t *errors)
 int main(int argc, char **argv)
 {
     unsigned port=LR2021_BRIDGE_TCP_PORT; int pattern=LR2021_SIM_TONE, once=0;
-    uint32_t tone=154810000u;
+    uint32_t tone=154810000u; int amplitude=4000;
     for(int i=1;i<argc;i++) {
         if(!strcmp(argv[i],"--port") && i+1<argc)port=(unsigned)strtoul(argv[++i],NULL,0);
         else if(!strcmp(argv[i],"--tone") && i+1<argc)tone=(uint32_t)strtoul(argv[++i],NULL,0);
         else if(!strcmp(argv[i],"--pattern") && i+1<argc)pattern=strcmp(argv[++i],"counter")?LR2021_SIM_TONE:LR2021_SIM_COUNTER;
+        else if(!strcmp(argv[i],"--amplitude") && i+1<argc)amplitude=atoi(argv[++i]);
         else if(!strcmp(argv[i],"--once"))once=1;
-        else { fprintf(stderr,"usage: %s [--port N] [--pattern counter|tone] [--tone HZ] [--once]\n",argv[0]); return 2; }
+        else { fprintf(stderr,"usage: %s [--port N] [--pattern counter|tone] [--tone HZ] [--amplitude N] [--once]\n",argv[0]); return 2; }
     }
 #ifdef SIGPIPE
     signal(SIGPIPE,SIG_IGN);
@@ -40,7 +41,7 @@ int main(int argc, char **argv)
         static lr2021_sim sim; static lr2021_iq_dev dev;
         lr2021_sim_init(&sim);
         sim.clock=clock_us; sim.sleep=sleep_cb; sim.pattern=pattern; sim.tone_hz=tone;
-        sim.stall_tolerant=true;
+        sim.stall_tolerant=true; sim.tone_amplitude=(int16_t)(amplitude<0?0:amplitude>32767?32767:amplitude);
         lr2021_iq_bus bus=lr2021_sim_bus(&sim);
         const lr2021_iq_rx rx={154785000,31250,13,0,LR2021_IQ_PATH_AUTO,0,0,0};
         if(lr2021_iq_dev_open(&dev,&bus,NULL,&rx)){ lrh_close(fd); continue; }

@@ -1,0 +1,160 @@
+{
+  "fs_hz": 83333.33333333333,
+  "baseline_packets": [
+    {
+      "duration_ms": 479.056,
+      "snr_db": 8.828016783403413,
+      "cfo_hz": -16214.246526942588,
+      "sync": [
+        8,
+        16
+      ],
+      "preamble_syms": 32,
+      "_i": 34,
+      "len": 130,
+      "has_crc": true,
+      "cr": 1,
+      "header_ok": true,
+      "payload": "1200aac8a2275ac71e9edcec1b60fc279836bd72f118fbe05bc2a538b5874e32fd3a4ba344661aa779d6c239d5dd55a3f26be5540bd3e1b7a63da76556e4113d382e7c73465f388a389512de8e2460d0e3e1402bb18fc0fc7212952782f2dc70bc2b1e28720792000000000000000052414b33343031203157205265706561746572",
+      "crc_ok": true,
+      "packet_start_s": 0.028432,
+      "packet_end_s": 0.508176,
+      "meshcore": {
+        "header": 18,
+        "route": "DIRECT",
+        "type": "ADVERT",
+        "version": 1,
+        "path_hash_size": 1,
+        "path_count": 0,
+        "path": [],
+        "payload_hex": "aac8a2275ac71e9edcec1b60fc279836bd72f118fbe05bc2a538b5874e32fd3a4ba344661aa779d6c239d5dd55a3f26be5540bd3e1b7a63da76556e4113d382e7c73465f388a389512de8e2460d0e3e1402bb18fc0fc7212952782f2dc70bc2b1e28720792000000000000000052414b33343031203157205265706561746572",
+        "body": {
+          "public_key": "aac8a2275ac71e9edcec1b60fc279836bd72f118fbe05bc2a538b5874e32fd3a",
+          "timestamp": 1715774283,
+          "timestamp_utc": "2024-05-15T11:58:03+00:00",
+          "signature": "1aa779d6c239d5dd55a3f26be5540bd3e1b7a63da76556e4113d382e7c73465f388a389512de8e2460d0e3e1402bb18fc0fc7212952782f2dc70bc2b1e287207",
+          "signature_verified": null,
+          "app_data": "92000000000000000052414b33343031203157205265706561746572",
+          "flags": 146,
+          "role": "REPEATER",
+          "latitude": 0.0,
+          "longitude": 0.0,
+          "name": "RAK3401 1W Repeater"
+        }
+      },
+      "sic_iteration": 0
+    }
+  ],
+  "packets": [
+    {
+      "duration_ms": 479.056,
+      "snr_db": 8.828016783403413,
+      "cfo_hz": -16214.246526942588,
+      "sync": [
+        8,
+        16
+      ],
+      "preamble_syms": 32,
+      "_i": 34,
+      "len": 130,
+      "has_crc": true,
+      "cr": 1,
+      "header_ok": true,
+      "payload": "1200aac8a2275ac71e9edcec1b60fc279836bd72f118fbe05bc2a538b5874e32fd3a4ba344661aa779d6c239d5dd55a3f26be5540bd3e1b7a63da76556e4113d382e7c73465f388a389512de8e2460d0e3e1402bb18fc0fc7212952782f2dc70bc2b1e28720792000000000000000052414b33343031203157205265706561746572",
+      "crc_ok": true,
+      "packet_start_s": 0.028432,
+      "packet_end_s": 0.508176,
+      "meshcore": {
+        "header": 18,
+        "route": "DIRECT",
+        "type": "ADVERT",
+        "version": 1,
+        "path_hash_size": 1,
+        "path_count": 0,
+        "path": [],
+        "payload_hex": "aac8a2275ac71e9edcec1b60fc279836bd72f118fbe05bc2a538b5874e32fd3a4ba344661aa779d6c239d5dd55a3f26be5540bd3e1b7a63da76556e4113d382e7c73465f388a389512de8e2460d0e3e1402bb18fc0fc7212952782f2dc70bc2b1e28720792000000000000000052414b33343031203157205265706561746572",
+        "body": {
+          "public_key": "aac8a2275ac71e9edcec1b60fc279836bd72f118fbe05bc2a538b5874e32fd3a",
+          "timestamp": 1715774283,
+          "timestamp_utc": "2024-05-15T11:58:03+00:00",
+          "signature": "1aa779d6c239d5dd55a3f26be5540bd3e1b7a63da76556e4113d382e7c73465f388a389512de8e2460d0e3e1402bb18fc0fc7212952782f2dc70bc2b1e287207",
+          "signature_verified": null,
+          "app_data": "92000000000000000052414b33343031203157205265706561746572",
+          "flags": 146,
+          "role": "REPEATER",
+          "latitude": 0.0,
+          "longitude": 0.0,
+          "name": "RAK3401 1W Repeater"
+        }
+      },
+      "sic_iteration": 0
+    },
+    {
+      "duration_ms": 479.344,
+      "snr_db": 2.199776912907746,
+      "cfo_hz": 2693.4498455375433,
+      "sync": [
+        8,
+        16
+      ],
+      "preamble_syms": 32,
+      "_i": 34,
+      "len": 130,
+      "has_crc": true,
+      "cr": 1,
+      "header_ok": true,
+      "payload": "1200aac8a2275ac71e9edcec1b60fc279836bd72f118fbe05bc2a538b5874e32fd3a53a34466b0b35f18f40e9d274a4903376b144a2e47fcccf581b297b4abf0befd7740a869ed5edff4b34daa909c6f72994ef1d7fd6dda7205921a465e18f35e2cebfee10892000000000000000052414b33343031203157205265706561746572",
+      "crc_ok": true,
+      "packet_start_s": 0.070992,
+      "packet_end_s": 0.55072,
+      "meshcore": {
+        "header": 18,
+        "route": "DIRECT",
+        "type": "ADVERT",
+        "version": 1,
+        "path_hash_size": 1,
+        "path_count": 0,
+        "path": [],
+        "payload_hex": "aac8a2275ac71e9edcec1b60fc279836bd72f118fbe05bc2a538b5874e32fd3a53a34466b0b35f18f40e9d274a4903376b144a2e47fcccf581b297b4abf0befd7740a869ed5edff4b34daa909c6f72994ef1d7fd6dda7205921a465e18f35e2cebfee10892000000000000000052414b33343031203157205265706561746572",
+        "body": {
+          "public_key": "aac8a2275ac71e9edcec1b60fc279836bd72f118fbe05bc2a538b5874e32fd3a",
+          "timestamp": 1715774291,
+          "timestamp_utc": "2024-05-15T11:58:11+00:00",
+          "signature": "b0b35f18f40e9d274a4903376b144a2e47fcccf581b297b4abf0befd7740a869ed5edff4b34daa909c6f72994ef1d7fd6dda7205921a465e18f35e2cebfee108",
+          "signature_verified": null,
+          "app_data": "92000000000000000052414b33343031203157205265706561746572",
+          "flags": 146,
+          "role": "REPEATER",
+          "latitude": 0.0,
+          "longitude": 0.0,
+          "name": "RAK3401 1W Repeater"
+        }
+      },
+      "sic_iteration": 1
+    }
+  ],
+  "cancellations": [
+    {
+      "iteration": 0,
+      "payload": "1200aac8a2275ac71e9edcec1b60fc279836bd72f118fbe05bc2a538b5874e32fd3a4ba344661aa779d6c239d5dd55a3f26be5540bd3e1b7a63da76556e4113d382e7c73465f388a389512de8e2460d0e3e1402bb18fc0fc7212952782f2dc70bc2b1e28720792000000000000000052414b33343031203157205265706561746572",
+      "fir_taps": 17,
+      "segments": 235,
+      "timing_correction_chips": 33.950556657103576,
+      "physical_cfo_hz": 363.17371578376697,
+      "occupied_power_reduction_db": 5.447819631258625,
+      "median_explained_power": 0.6992960131091008,
+      "accepted": true
+    },
+    {
+      "iteration": 1,
+      "payload": "1200aac8a2275ac71e9edcec1b60fc279836bd72f118fbe05bc2a538b5874e32fd3a53a34466b0b35f18f40e9d274a4903376b144a2e47fcccf581b297b4abf0befd7740a869ed5edff4b34daa909c6f72994ef1d7fd6dda7205921a465e18f35e2cebfee10892000000000000000052414b33343031203157205265706561746572",
+      "fir_taps": 17,
+      "segments": 235,
+      "timing_correction_chips": -0.0596066352710803,
+      "physical_cfo_hz": 2664.3450431590863,
+      "occupied_power_reduction_db": 3.627500332937012,
+      "median_explained_power": 0.575489592980188,
+      "accepted": true
+    }
+  ]
+}

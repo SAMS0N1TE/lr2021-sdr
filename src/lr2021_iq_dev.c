@@ -15,7 +15,7 @@ unsigned lr2021_iq_input_rate(uint8_t code)
 unsigned lr2021_iq_rx_rate(const lr2021_iq_rx *c)
 {
     if(c->route==LR2021_IQ_ROUTE_SOURCE1)return lr2021_iq_input_rate(c->input_code);
-    return c->route ? c->rate_hz : lr2021_iq_rate(c->bandwidth_hz);
+    return c->route && c->route!=LR2021_IQ_ROUTE_RAW0B ? c->rate_hz : lr2021_iq_rate(c->bandwidth_hz);
 }
 unsigned lr2021_iq_rx_pair_bytes(const lr2021_iq_rx *c) { return c->route ? 2u : 4u; }
 unsigned lr2021_iq_path(uint32_t hz, unsigned path)
@@ -23,9 +23,10 @@ unsigned lr2021_iq_path(uint32_t hz, unsigned path)
 int lr2021_iq_rx_check(const lr2021_iq_rx *c)
 {
     return c && c->frequency_hz>=LR2021_IQ_MIN_HZ && c->frequency_hz<=LR2021_IQ_MAX_HZ &&
-        c->route<=LR2021_IQ_ROUTE_SOURCE6 &&
+        c->route<=LR2021_IQ_ROUTE_RAW0B &&
         (c->route==LR2021_IQ_ROUTE_SOURCE1 ||
-         (c->route ? c->rate_hz>=1000 && c->rate_hz<=4000000u : lr2021_iq_rate(c->bandwidth_hz)!=0)) &&
+         (c->route && c->route!=LR2021_IQ_ROUTE_RAW0B ? c->rate_hz>=1000 && c->rate_hz<=4000000u
+                                                      : lr2021_iq_rate(c->bandwidth_hz)!=0)) &&
         c->gain_step<=13 && c->boost<=7 && c->path<=LR2021_IQ_PATH_AUTO ? 0 : LR2021_IQ_ARGUMENT;
 }
 const char *lr2021_iq_strerror(int e)
@@ -101,15 +102,16 @@ int lr2021_iq_configure(const lr2021_iq_hal *h, const lr2021_iq_rx *c, uint16_t 
     const uint8_t pkt[4]={0,8,255,2}, sync=0x12;
     e=h->standby(h->context);
     if(!e)e=put(h,0x0111,NULL,0);
-    if(!e)e=put(h,0x0207,c->route?&fsk_type:&type,1);
+    const bool fsk_route=c->route && c->route!=LR2021_IQ_ROUTE_RAW0B;
+    if(!e)e=put(h,0x0207,fsk_route?&fsk_type:&type,1);
     if(!e)e=put(h,0x0123,cal,6);
     if(!e)e=put(h,0x0200,freq,4);
     if(!e)e=put(h,0x0201,rxpath,2);
     if(!e)e=put(h,0x021A,&step,1);
-    if(!e && c->route)e=put(h,0x0240,fsk,9);
-    if(!e && !c->route)e=put(h,0x0220,mod,2);
-    if(!e && !c->route)e=put(h,0x0221,pkt,4);
-    if(!e && !c->route)e=put(h,0x0223,&sync,1);
+    if(!e && fsk_route)e=put(h,0x0240,fsk,9);
+    if(!e && !fsk_route)e=put(h,0x0220,mod,2);
+    if(!e && !fsk_route)e=put(h,0x0221,pkt,4);
+    if(!e && !fsk_route)e=put(h,0x0223,&sync,1);
     uint8_t err[2]={0};
     if(!e)e=h->read(h->context,0x0110,err,2);
     unsigned v=((unsigned)err[0]<<8)|err[1];

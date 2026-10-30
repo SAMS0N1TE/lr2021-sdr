@@ -458,6 +458,19 @@ int lr2021_host_time(lr2021_host *h, uint64_t *us)
     return e;
 }
 
+int lr2021_host_get_gain(lr2021_host *h, lr2021_bridge_gain *g)
+{
+    uint8_t r[16], full[18]; size_t n=0;
+    if(!g)return LR2021_HOST_EARG;
+    memset(g,0,sizeof(*g));
+    if(!(h->hello.caps&LR2021_BRIDGE_CAP_GAIN_READBACK))return LR2021_BRIDGE_EUNSUPPORTED;
+    int e=request(h,LR2021_BRIDGE_GET_GAIN,NULL,0,r,sizeof(r),&n,h->timeout_ms);
+    if(n!=14)return e?e:LR2021_HOST_EPROTO;
+    lr2021_bridge_put32(full,(uint32_t)e); memcpy(full+4,r,14);
+    lr2021_bridge_unpack_gain(full,18,g);
+    return e;
+}
+
 #ifndef _WIN32
 static bool usb_ids(const char *tty, unsigned *vid, unsigned *pid)
 {

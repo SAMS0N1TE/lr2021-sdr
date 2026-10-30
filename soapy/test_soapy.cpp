@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <stdexcept>
 #include <vector>
 #define CHECK(x) do { if(!(x)) { std::fprintf(stderr,"line %d: %s\n",__LINE__,#x); return 1; } } while(0)
 
@@ -45,6 +46,13 @@ int main()
     CHECK(d->getGainMode(SOAPY_SDR_RX,0));
     d->setGainMode(SOAPY_SDR_RX,0,false);
     CHECK(!d->getGainMode(SOAPY_SDR_RX,0) && d->getGain(SOAPY_SDR_RX,0,"STEP")==13);
+    std::vector<std::string> sensors=d->listSensors(SOAPY_SDR_RX,0);
+    CHECK(sensors.size()==2 && sensors[0]=="chip_gain_step" && sensors[1]=="chip_gain_value");
+    bool idle_threw=false;
+    try { d->readSensor(SOAPY_SDR_RX,0,"chip_gain_step"); } catch(const std::exception &) { idle_threw=true; }
+    CHECK(idle_threw);
+    CHECK(d->getSensorInfo(SOAPY_SDR_RX,0,"chip_gain_step").range.maximum()==13);
+    CHECK(d->listSensors(SOAPY_SDR_TX,0).empty());
     CHECK(d->hasHardwareTime(""));
     d->setHardwareTime(5000000000LL,"");
     long long t=d->getHardwareTime("");
@@ -77,6 +85,8 @@ int main()
     std::fprintf(stderr,"RX %llu pairs, %u overflows, worst timestamp step error %.0f ns\n",
         (unsigned long long)pairs,overflows,worst_dt);
     CHECK(!gaps && pairs>100000 && first_t>=5000000000LL && worst_dt<1.0);
+    CHECK(d->readSensor(SOAPY_SDR_RX,0,"chip_gain_step")=="13");
+    CHECK(d->readSensor(SOAPY_SDR_RX,0,"chip_gain_value")=="138");
     // Retune while streaming: the stream restarts and reports one overflow.
     d->setFrequency(SOAPY_SDR_RX,0,915e6);
     bool saw_overflow=false; int got=0;

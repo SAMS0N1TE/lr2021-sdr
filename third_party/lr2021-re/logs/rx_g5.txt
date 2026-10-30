@@ -1,0 +1,10 @@
+07:17:18 rc st=0
+07:17:21 RXSTAT len=46 st=0 rssi=-87.5 snr=-6.00 raw=11 2E E8 57 5C 07 FF FC E2 05 gain=5
+07:17:31 RXSTAT len=36 st=0 rssi=-87.5 snr=-6.50 raw=11 24 E6 57 5D 07 FF FC F1 05 gain=5
+07:17:42 RXSTAT len=46 st=0 rssi=-86.5 snr=-6.25 raw=11 2E E7 56 5C 07 FF FC F5 05 gain=5
+07:17:46 RXSTAT len=50 st=0 rssi=-86.5 snr=-6.50 raw=11 32 E6 56 5C 07 FF FD 01 05 gain=5
+07:17:47 RXSTAT len=68 st=0 rssi=-87.5 snr=-6.75 raw=11 44 E5 57 5C 07 FF FD 08 05 gain=5
+07:17:48 RXSTAT len=50 st=0 rssi=-87.5 snr=-6.50 raw=11 32 E6 57 5C 07 FF FD 08 05 gain=5
+07:18:56 RXSTAT len=117 st=0 rssi=-87.5 snr=-6.00 raw=11 75 E8 57 5C 07 FF FC F5 05 gain=5
+07:19:26 RXSTAT len=89 st=0 rssi=-86.5 snr=-6.25 raw=11 59 E7 56 5C 07 FF FC E6 05 gain=5
+07:19:32 RXSTAT len=69 st=0 rssi=-86.5 snr=-6.25 raw=11 45 E7 56 5C 07 FF FC F1 05 gain=5
