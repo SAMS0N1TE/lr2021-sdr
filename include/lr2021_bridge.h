@@ -50,6 +50,7 @@ enum {
     LR2021_BRIDGE_TX_COMMIT=0x08,/* empty; the burst result follows as TX_END */
     LR2021_BRIDGE_GET_TIME=0x09, /* empty */
     LR2021_BRIDGE_BYE=0x0A,      /* empty; device leaves bridge mode after replying */
+    LR2021_BRIDGE_GET_GAIN=0x0B,
     LR2021_BRIDGE_RESPONSE=0x80,
     /* Device-originated messages. */
     LR2021_BRIDGE_RX_DATA=0xC0,  /* lr2021_bridge_rx_data header + IQ16 LE pairs */
@@ -72,7 +73,8 @@ enum {
 enum {
     LR2021_BRIDGE_CAP_RX=1u, LR2021_BRIDGE_CAP_TX=2u, LR2021_BRIDGE_CAP_TIMED_TX=4u,
     LR2021_BRIDGE_CAP_LIVE_GAIN=8u, LR2021_BRIDGE_CAP_RATE_250K=16u,
-    LR2021_BRIDGE_CAP_CS12=32u, LR2021_BRIDGE_CAP_TX_CHECKED=64u, LR2021_BRIDGE_CAP_RAW_ROUTES=128u
+    LR2021_BRIDGE_CAP_CS12=32u, LR2021_BRIDGE_CAP_TX_CHECKED=64u, LR2021_BRIDGE_CAP_RAW_ROUTES=128u,
+    LR2021_BRIDGE_CAP_GAIN_READBACK=256u
 };
 /* RX_DATA sample formats. Both carry the radio's source-2 int16 pairs.
  * CS16: 4 bytes per pair, I then Q, int16 little endian.
@@ -146,6 +148,12 @@ typedef struct {
     uint64_t start_time, elapsed_us, max_service_gap_us;
     uint32_t untested;          /* LR2021_IQ_TX_UNTESTED_* bits */
 } lr2021_bridge_tx_end;         /* 53 bytes */
+typedef struct {
+    int32_t status;
+    uint8_t step, manual;
+    uint16_t gain_value, rssi_raw;
+    uint64_t device_time;
+} lr2021_bridge_gain;
 
 typedef struct {
     uint8_t type;
@@ -185,6 +193,8 @@ size_t lr2021_bridge_pack_rx_end(uint8_t *, const lr2021_bridge_rx_end *);
 int lr2021_bridge_unpack_rx_end(const uint8_t *, size_t, lr2021_bridge_rx_end *);
 size_t lr2021_bridge_pack_tx_end(uint8_t *, const lr2021_bridge_tx_end *);
 int lr2021_bridge_unpack_tx_end(const uint8_t *, size_t, lr2021_bridge_tx_end *);
+size_t lr2021_bridge_pack_gain(uint8_t *, const lr2021_bridge_gain *);
+int lr2021_bridge_unpack_gain(const uint8_t *, size_t, lr2021_bridge_gain *);
 
 /* Sample packing for RX_DATA. pack returns the byte count and the shift used;
  * unpack writes 2*pairs int16 values and returns 0, or -1 on a bad format,

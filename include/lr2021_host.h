@@ -75,6 +75,7 @@ bool lr2021_host_rx_active(lr2021_host *);
 int lr2021_host_tx(lr2021_host *, const int8_t *iq, size_t pairs, const lr2021_bridge_tx_begin *p,
                    lr2021_bridge_tx_end *end);
 int lr2021_host_time(lr2021_host *, uint64_t *device_us);
+int lr2021_host_get_gain(lr2021_host *, lr2021_bridge_gain *);
 const char *lr2021_host_strerror(int);
 /* Probe-free listing of likely bridge serial ports (USB VID:PID 1A86:55D3
  * CH343, 303A:1001 ESP USB Serial/JTAG, 303A:4001 TinyUSB). Writes up to

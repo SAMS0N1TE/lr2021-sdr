@@ -126,6 +126,18 @@ fn records_match_both_ways() {
         let t = TxEnd::parse(&tbuf).unwrap();
         assert_eq!((t.error, t.min_level, t.samples, t.start_time, t.untested), (te.error, te.min_level, te.samples, te.start_time, te.untested));
 
+        let gb = rng.bytes(18);
+        let mut cg = sys::lr2021_bridge_gain::default();
+        assert_eq!(unsafe { sys::lr2021_bridge_unpack_gain(gb.as_ptr(), 18, &mut cg) }, 0);
+        let mut gback = [0u8; 18];
+        assert_eq!(unsafe { sys::lr2021_bridge_pack_gain(gback.as_mut_ptr(), &cg) }, 18);
+        assert_eq!(gback.to_vec(), gb);
+        let rg = Gain::parse(&gb).unwrap();
+        assert_eq!(rg.to_bytes(), gb);
+        assert_eq!((rg.status, rg.step, rg.manual, rg.gain_value, rg.rssi_raw, rg.device_time),
+            (cg.status, cg.step, cg.manual, cg.gain_value, cg.rssi_raw, cg.device_time));
+        assert!(Gain::parse(&gb[..17]).is_none());
+
         let pairs = 1 + (rng.next() % 480) as u16;
         let format = (rng.next() % 2) as u8;
         let d = RxData { generation: rng.next() as u32, rate_hz: rng.next() as u32, first_pair: rng.next(), start_time: rng.next(),
@@ -180,7 +192,11 @@ fn rust_client_against_c_server_and_simulator() {
     let c = Client::connect_tcp(addr).unwrap();
     let h = c.hello().unwrap();
     assert_eq!((h.version, h.rom_major, h.rom_minor, h.id.as_str()), (1, 1, 24, "rust-test"));
+    assert_ne!(h.caps & caps::GAIN_READBACK, 0);
     assert_eq!(c.set_rx(&RxConfig { frequency_hz: 433_920_000, bandwidth_hz: 62_500, gain_step: 13, boost: 0, path: 2, ..Default::default() }).unwrap().1, 250_000);
+    let g = c.gain().unwrap();
+    assert_eq!((g.status, g.step, g.manual, g.gain_value), (0, 13, 13, 138));
+    assert!(matches!(c.request(kind::GET_GAIN, &[1]), Err(ClientError::Status(status::ELENGTH))));
     assert!(matches!(c.set_rx(&RxConfig { frequency_hz: 50_000_000, bandwidth_hz: 62_500, ..Default::default() }), Err(ClientError::Status(-1))));
     for format in [CS16, CS12] {
         let (generation, rate) = c.rx_start(0, format).unwrap();
@@ -205,6 +221,8 @@ fn rust_client_against_c_server_and_simulator() {
                 gained = true;
             }
         }
+        let g = c.gain().unwrap();
+        assert_eq!((g.step, g.manual, g.gain_value), (12, 12, 127));
         let end = c.rx_stop().unwrap();
         assert_eq!(unflagged, 0);
         assert!(flagged == 0 || end.dropped > 0);
@@ -227,6 +245,7 @@ fn rust_client_against_c_server_and_simulator() {
     let end = c.rx_stop().unwrap();
     assert!(pairs > 50_000 && end.capture_error == 0 && largest == 960, "{pairs} {largest}");
     c.set_rx(&RxConfig { frequency_hz: 433_920_000, bandwidth_hz: 31_250, gain_step: 13, path: 2, ..Default::default() }).unwrap();
+    assert_eq!(c.gain().unwrap().step, 13);
     let iq: Vec<i8> = (0..4000).map(|i| (i % 60 - 30) as i8).collect();
     let t = c.transmit(&iq, TxBegin { rate_hz: 19_200, frequency_hz: 433_920_000, power_half_db: -18, repeats: 2, ..Default::default() }).unwrap();
     assert_eq!((t.samples, t.untested), (4000, 0));

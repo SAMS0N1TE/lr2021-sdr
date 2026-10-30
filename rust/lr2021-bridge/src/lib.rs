@@ -27,6 +27,7 @@ pub mod kind {
     pub const TX_COMMIT: u8 = 0x08;
     pub const GET_TIME: u8 = 0x09;
     pub const BYE: u8 = 0x0A;
+    pub const GET_GAIN: u8 = 0x0B;
     pub const RESPONSE: u8 = 0x80;
     pub const RX_DATA: u8 = 0xC0;
     pub const RX_END: u8 = 0xC1;
@@ -40,6 +41,17 @@ pub mod status {
     pub const EUNSUPPORTED: i32 = -20;
     pub const ECRC: i32 = -21;
     pub const ERANGE: i32 = -22;
+}
+pub mod caps {
+    pub const RX: u16 = 1;
+    pub const TX: u16 = 2;
+    pub const TIMED_TX: u16 = 4;
+    pub const LIVE_GAIN: u16 = 8;
+    pub const RATE_250K: u16 = 16;
+    pub const CS12: u16 = 32;
+    pub const TX_CHECKED: u16 = 64;
+    pub const RAW_ROUTES: u16 = 128;
+    pub const GAIN_READBACK: u16 = 256;
 }
 pub const CS16: u8 = 0;
 pub const CS12: u8 = 1;
@@ -216,6 +228,20 @@ impl RxEnd {
         Some(RxEnd { generation: r.u32(), capture_error: r.i32(), recovery_error: r.i32(), reason: r.u8(),
             fifo_flags: r.u8(), max_fifo_level: r.u16(), dropped: r.u32(), gain_changes: r.u32(), pairs: r.u64(),
             start_time: r.u64(), elapsed_us: r.u64(), max_service_gap_us: r.u64() })
+    }
+}
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Gain { pub status: i32, pub step: u8, pub manual: u8, pub gain_value: u16, pub rssi_raw: u16, pub device_time: u64 }
+impl Gain {
+    pub fn parse(b: &[u8]) -> Option<Self> {
+        sized!(b, 18);
+        let mut r = R(b, 0);
+        Some(Gain { status: r.i32(), step: r.u8(), manual: r.u8(), gain_value: r.u16(), rssi_raw: r.u16(), device_time: r.u64() })
+    }
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut v = Vec::with_capacity(18);
+        v.extend(self.status.to_le_bytes()); v.extend([self.step, self.manual]);
+        v.extend(self.gain_value.to_le_bytes()); v.extend(self.rssi_raw.to_le_bytes()); v.extend(self.device_time.to_le_bytes()); v
     }
 }
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

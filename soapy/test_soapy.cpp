@@ -45,6 +45,12 @@ int main()
     CHECK(d->getGainMode(SOAPY_SDR_RX,0));
     d->setGainMode(SOAPY_SDR_RX,0,false);
     CHECK(!d->getGainMode(SOAPY_SDR_RX,0) && d->getGain(SOAPY_SDR_RX,0,"STEP")==13);
+    std::vector<std::string> sensors=d->listSensors(SOAPY_SDR_RX,0);
+    CHECK(sensors.size()==2 && sensors[0]=="chip_gain_step" && sensors[1]=="chip_gain_value");
+    CHECK(d->readSensor(SOAPY_SDR_RX,0,"chip_gain_step")=="13");
+    CHECK(d->readSensor(SOAPY_SDR_RX,0,"chip_gain_value")=="138");
+    CHECK(d->getSensorInfo(SOAPY_SDR_RX,0,"chip_gain_step").range.maximum()==13);
+    CHECK(d->listSensors(SOAPY_SDR_TX,0).empty());
     CHECK(d->hasHardwareTime(""));
     d->setHardwareTime(5000000000LL,"");
     long long t=d->getHardwareTime("");

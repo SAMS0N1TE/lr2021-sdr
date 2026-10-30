@@ -230,6 +230,7 @@ mod host {
     pub use sys::host::lr2021_host_rx_meta as RxMeta;
     pub use sys::lr2021_bridge_rx_end as RxEnd;
     pub use sys::lr2021_bridge_tx_end as TxEnd;
+    pub use sys::lr2021_bridge_gain as ChipGain;
 
     #[derive(Clone, Debug)]
     pub struct Hello { pub version: u16, pub caps: u16, pub rom: (u8, u8), pub clock_hz: u32, pub tx_capacity: u32, pub name: String, pub id: String }
@@ -297,6 +298,10 @@ mod host {
         pub fn time_us(&self) -> Result<u64> {
             let mut t = 0u64;
             hcheck(unsafe { h::lr2021_host_time(self.h, &mut t) }).map(|_| t)
+        }
+        pub fn gain(&self) -> Result<ChipGain> {
+            let mut g = ChipGain::default();
+            hcheck(unsafe { h::lr2021_host_get_gain(self.h, &mut g) }).map(|_| g)
         }
     }
     impl Drop for Host { fn drop(&mut self) { unsafe { h::lr2021_host_close(self.h) } } }
@@ -379,6 +384,8 @@ mod tests {
         let mut iq = vec![0i16; 8192];
         let mut got = 0;
         while got < 50_000 { got += h.read(&mut iq, 200_000).unwrap().0; }
+        let g = h.gain().unwrap();
+        assert_eq!((g.step, g.manual, g.gain_value), (13, 13, 138));
         let end = h.rx_stop().unwrap();
         assert_eq!(end.capture_error, 0);
         assert!(end.pairs as usize >= got);

@@ -179,6 +179,12 @@ pub struct lr2021_bridge_tx_end {
     pub untested: u32,
 }
 #[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct lr2021_bridge_gain {
+    pub status: i32, pub step: u8, pub manual: u8, pub gain_value: u16, pub rssi_raw: u16, pub device_time: u64,
+}
+pub const LR2021_BRIDGE_CAP_GAIN_READBACK: u16 = 256;
+#[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct lr2021_bridge_frame { pub type_: u8, pub sequence: u16, pub length: u16, pub payload: *const u8 }
 pub type lr2021_bridge_frame_cb = Option<unsafe extern "C" fn(*mut c_void, *const lr2021_bridge_frame)>;
@@ -239,6 +245,8 @@ extern "C" {
     pub fn lr2021_bridge_unpack_rx_end(p: *const u8, n: usize, m: *mut lr2021_bridge_rx_end) -> c_int;
     pub fn lr2021_bridge_pack_tx_end(p: *mut u8, m: *const lr2021_bridge_tx_end) -> usize;
     pub fn lr2021_bridge_unpack_tx_end(p: *const u8, n: usize, m: *mut lr2021_bridge_tx_end) -> c_int;
+    pub fn lr2021_bridge_pack_gain(p: *mut u8, m: *const lr2021_bridge_gain) -> usize;
+    pub fn lr2021_bridge_unpack_gain(p: *const u8, n: usize, m: *mut lr2021_bridge_gain) -> c_int;
     pub fn lr2021_bridge_sample_bytes(format: c_uint, pairs: usize) -> usize;
     pub fn lr2021_bridge_pack_samples(out: *mut u8, format: c_uint, cs16: *const u8, pairs: usize, shift: *mut u8) -> usize;
     pub fn lr2021_bridge_unpack_samples(out: *mut i16, format: c_uint, shift: c_uint, d: *const u8, bytes: usize, pairs: usize) -> c_int;
@@ -277,6 +285,7 @@ pub mod host {
         pub fn lr2021_host_rx_active(h: *mut lr2021_host) -> bool;
         pub fn lr2021_host_tx(h: *mut lr2021_host, iq: *const i8, pairs: usize, p: *const lr2021_bridge_tx_begin, end: *mut lr2021_bridge_tx_end) -> c_int;
         pub fn lr2021_host_time(h: *mut lr2021_host, us: *mut u64) -> c_int;
+        pub fn lr2021_host_get_gain(h: *mut lr2021_host, g: *mut lr2021_bridge_gain) -> c_int;
         pub fn lr2021_host_strerror(e: c_int) -> *const c_char;
     }
 }
@@ -292,7 +301,7 @@ mod tests {
             size_of::<lr2021_iq_board>(), size_of::<lr2021_bridge_hello>(), size_of::<lr2021_bridge_rx>(),
             size_of::<lr2021_bridge_rx_ack>(), size_of::<lr2021_bridge_tx_begin>(), size_of::<lr2021_bridge_rx_data>(),
             size_of::<lr2021_bridge_rx_end>(), size_of::<lr2021_bridge_tx_end>(), size_of::<lr2021_bridge_frame>(),
-            size_of::<lr2021_iq_hal>(), size_of::<lr2021_iq_gain_state>()];
+            size_of::<lr2021_iq_hal>(), size_of::<lr2021_iq_gain_state>(), size_of::<lr2021_bridge_gain>()];
         for (i, &n) in rust.iter().enumerate() {
             assert_eq!(n, unsafe { lr2021_rs_sizeof(i as c_int) }, "struct {i}");
         }

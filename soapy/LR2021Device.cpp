@@ -233,6 +233,33 @@ public:
         time_offset=t-(long long)us*1000;
     }
 
+    std::vector<std::string> listSensors(const int dir, const size_t) const override
+    {
+        if(dir!=SOAPY_SDR_RX || !(lr2021_host_hello(host)->caps&LR2021_BRIDGE_CAP_GAIN_READBACK))return {};
+        return {"chip_gain_step","chip_gain_value"};
+    }
+    SoapySDR::ArgInfo getSensorInfo(const int, const size_t, const std::string &key) const override
+    {
+        SoapySDR::ArgInfo i;
+        i.key=key; i.type=SoapySDR::ArgInfo::INT;
+        if(key=="chip_gain_step") {
+            i.name="Chip gain step"; i.range=SoapySDR::Range(1,13);
+            i.description="Gain step the LR2021 is using, 1 to 13, read from the chip";
+        } else if(key=="chip_gain_value") {
+            i.name="Chip gain value"; i.range=SoapySDR::Range(0,511);
+            i.description="Raw gain value of the current step, unscaled";
+        }
+        return i;
+    }
+    std::string readSensor(const int dir, const size_t, const std::string &key) const override
+    {
+        if(dir!=SOAPY_SDR_RX || (key!="chip_gain_step" && key!="chip_gain_value"))
+            throw std::invalid_argument("lr2021: unknown sensor "+key);
+        lr2021_bridge_gain g;
+        if(lr2021_host_get_gain(host,&g))throw std::runtime_error("lr2021: gain readback failed");
+        return std::to_string(key=="chip_gain_step"?(unsigned)g.step:(unsigned)g.gain_value);
+    }
+
     // Settings
     SoapySDR::ArgInfoList getSettingInfo() const override
     {

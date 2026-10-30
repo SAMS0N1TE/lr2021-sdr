@@ -113,6 +113,17 @@ int lr2021_bridge_unpack_rx_ack(const uint8_t *p, size_t n, lr2021_bridge_rx_ack
     if(n!=10)return -1;
     m->status=(int32_t)G32(p); m->radio_errors=G16(p+4); m->rate_hz=G32(p+6); return 0;
 }
+size_t lr2021_bridge_pack_gain(uint8_t *p, const lr2021_bridge_gain *m)
+{
+    P32(p,(uint32_t)m->status); p[4]=m->step; p[5]=m->manual;
+    P16(p+6,m->gain_value); P16(p+8,m->rssi_raw); P64(p+10,m->device_time); return 18;
+}
+int lr2021_bridge_unpack_gain(const uint8_t *p, size_t n, lr2021_bridge_gain *m)
+{
+    if(n!=18)return -1;
+    m->status=(int32_t)G32(p); m->step=p[4]; m->manual=p[5];
+    m->gain_value=G16(p+6); m->rssi_raw=G16(p+8); m->device_time=G64(p+10); return 0;
+}
 size_t lr2021_bridge_pack_tx_begin(uint8_t *p, const lr2021_bridge_tx_begin *m)
 {
     P32(p,m->bytes); P32(p+4,m->crc32); P32(p+8,m->rate_hz); P32(p+12,m->frequency_hz);

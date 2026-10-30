@@ -195,6 +195,15 @@ below 8192 counts, so the default tone stays at step 13 and a stronger
 `tone_amplitude` lowers it. Its RSSI field is a placeholder that falls as the
 tone grows; it is not a model of the chip's units.
 
+Over the bridge, devices that set cap 256 answer `GET_GAIN`
+([protocol](bridge-protocol.md#records)). The bridge server samples the
+registers every 64 service passes while it streams, so a host can poll the
+step during reception without stopping it. The host client calls it
+`lr2021_host_get_gain`, the Rust crates `Host::gain` and `Client::gain`, and
+the SoapySDR module exposes the RX sensors `chip_gain_step` and
+`chip_gain_value`. Before the first sample of a stream the request returns
+EBUSY and the sensors throw.
+
 ### Raw receive routes
 
 The `0x0290` route command selects one of the chip's internal sources. The

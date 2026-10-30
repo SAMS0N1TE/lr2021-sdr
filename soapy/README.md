@@ -24,6 +24,7 @@ Device arguments, rates, gain, timestamps and the TX contract are described in
 | Gain | STEP 1..13, BOOST 0..7, AGC | PA, dBm |
 | Antennas | AUTO, LF, HF | AUTO, LF, HF |
 | Time | `HAS_TIME` on every read | `HAS_TIME` schedules a burst |
+| Sensors | `chip_gain_step`, `chip_gain_value` (bridge cap 256) | |
 
 `tx_checked=true` restricts TX to the measured contract. `test_soapy.cpp`
 exercises the module against the in-process simulator and runs as the

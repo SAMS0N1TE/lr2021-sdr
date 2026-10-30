@@ -73,6 +73,8 @@ typedef struct {
     unsigned max_read, check_bytes, level_every; /* session tuning, 0 = library default */
     uint8_t stream_buf[4096+1024];  /* staging for check_bytes up to 4096 */
     uint8_t *ext_buf; size_t ext_size; /* larger staging, from lr2021_bridge_server_buffer */
+    unsigned gain_every;
+    atomic_uint gain_seq, gain_word, gain_time_lo, gain_time_hi;
 } lr2021_bridge_server;
 /* tx_buf may be NULL to disable TX (TX_BEGIN then answers EUNSUPPORTED). */
 int lr2021_bridge_server_init(lr2021_bridge_server *, const lr2021_bridge_io *,
@@ -96,4 +98,5 @@ int lr2021_bridge_server_predict(lr2021_bridge_server *, unsigned level_every);
  * max_read. The server keeps its 5 KiB internal buffer for the rest, so a
  * device that does not need longer intervals spends no extra RAM. */
 int lr2021_bridge_server_buffer(lr2021_bridge_server *, uint8_t *, size_t);
+int lr2021_bridge_server_gain_every(lr2021_bridge_server *, unsigned gain_every);
 #endif

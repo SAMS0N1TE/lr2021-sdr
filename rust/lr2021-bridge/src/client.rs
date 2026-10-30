@@ -236,5 +236,10 @@ impl Client {
         let r = self.request(kind::GET_TIME, &[])?;
         r.get(..8).map(|b| u64::from_le_bytes(b.try_into().unwrap())).ok_or(ClientError::Protocol("time length"))
     }
+    pub fn gain(&self) -> Result<Gain> {
+        let mut p = 0i32.to_le_bytes().to_vec();
+        p.extend(self.request(kind::GET_GAIN, &[])?);
+        Gain::parse(&p).ok_or(ClientError::Protocol("gain length"))
+    }
     pub fn bye(&self) -> Result<()> { self.request(kind::BYE, &[]).map(|_| ()) }
 }
