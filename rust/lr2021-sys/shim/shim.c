@@ -62,6 +62,7 @@ size_t lr2021_rs_sizeof(int which)
     case 13: return sizeof(lr2021_bridge_tx_end);
     case 14: return sizeof(lr2021_bridge_frame);
     case 15: return sizeof(lr2021_iq_hal);
+    case 16: return sizeof(lr2021_iq_gain_state);
     default: return 0;
     }
 }

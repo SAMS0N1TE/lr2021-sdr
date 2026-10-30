@@ -131,6 +131,7 @@ impl<'a> TxBurst<'a> {
 
 pub use sys::lr2021_iq_result as StreamReport;
 pub use sys::lr2021_iq_tx_result as TxReport;
+pub use sys::lr2021_iq_gain_state as GainState;
 
 /// Simulated LR2021 with the library's device adapter, in virtual time.
 pub struct Simulator { s: *mut sys::lr2021_rs_simdev }
@@ -187,11 +188,16 @@ impl Simulator {
         let mut ctx = Ctx { sink, gain, panicked: false };
         let cp = &mut ctx as *mut Ctx<'_, '_> as *mut c_void;
         let mut session = sys::lr2021_iq_session { duration_ms, fifo_capacity, gain: Some(gain_tramp), gain_context: cp, start_us: 0,
-            max_read: 0, check_bytes: 0, buffer: core::ptr::null_mut(), buffer_size: 0, level_every: 0 };
+            max_read: 0, check_bytes: 0, buffer: core::ptr::null_mut(), buffer_size: 0, level_every: 0,
+            gain_read_every: 0, chip_gain: None };
         let mut r = StreamReport::default();
         let e = unsafe { sys::lr2021_iq_stream_session(self.hal(), &mut session, Some(sink_tramp), cp, &mut r) };
         if ctx.panicked { panic!("lr2021: stream callback panicked"); }
         check(e).map(|_| r)
+    }
+    pub fn read_gain(&mut self) -> Result<GainState> {
+        let mut g = GainState::default();
+        check(unsafe { sys::lr2021_iq_read_gain(self.hal(), &mut g) }).map(|_| g)
     }
     pub fn transmit(&mut self, burst: &TxBurst, board: Option<&Board>) -> Result<TxReport> {
         let b = board.map(|b| b.raw()).transpose()?;
@@ -319,6 +325,16 @@ mod tests {
         assert_eq!(b.untested(), 1);
         b.checked = true;
         assert_eq!(b.check(), Err(Error(sys::LR2021_IQ_ARGUMENT)));
+    }
+    #[test]
+    fn simulator_gain_readback() {
+        let mut rx = RxConfig { bandwidth_hz: 62_500, gain_step: 7, ..Default::default() };
+        let mut sim = Simulator::new(Pattern::Counter, None, &rx).unwrap();
+        assert_eq!(sim.read_gain().unwrap(), GainState { step: 7, manual: 7, gain_value: 73, rssi_raw: 240 });
+        rx.gain_step = 0;
+        sim.configure(&rx).unwrap();
+        let g = sim.read_gain().unwrap();
+        assert_eq!((g.step, g.manual, g.gain_value), (13, 0, 139));
     }
     #[test]
     fn simulator_session_gain_and_tx() {

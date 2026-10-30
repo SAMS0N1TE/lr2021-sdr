@@ -153,7 +153,7 @@ static void rx_start(lr2021_bridge_server *s, uint16_t seq, const uint8_t *p, si
     uint8_t *stage=s->ext_buf?s->ext_buf:s->stream_buf;
     size_t stage_size=s->ext_buf?s->ext_size:sizeof(s->stream_buf);
     lr2021_iq_session session={ms,cap,gain,s,0,s->max_read,s->check_bytes,
-        (s->max_read||s->check_bytes)?stage:NULL,stage_size,s->level_every};
+        (s->max_read||s->check_bytes)?stage:NULL,stage_size,s->level_every,0,NULL};
     stream_ctx c={s,&session};
     lr2021_iq_result r;
     int e=lr2021_iq_stream_session(s->radio.hal,&session,session_sink,&c,&r);

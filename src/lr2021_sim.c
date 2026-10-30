@@ -40,12 +40,38 @@ static int16_t noise(lr2021_sim *s)
     uint32_t x=s->noise; x^=x<<13; x^=x>>17; x^=x<<5; s->noise=x;
     return (int16_t)((int)(x&31)-16);
 }
+static double input_amplitude(const lr2021_sim *s)
+{
+    if(s->pattern!=LR2021_SIM_TONE || s->mode!=RX || !rate(s))return 0;
+    double offset=(double)s->tone_hz-(double)s->freq;
+    bool heard=s->freq>=100000000u && s->freq<=2740000000u && fabs(offset)<rate(s)/2.0;
+    return heard?s->tone_amplitude:0;
+}
+static unsigned agc_step(const lr2021_sim *s)
+{
+    if(s->step)return s->step;
+    double a=input_amplitude(s);
+    unsigned g=13;
+    while(g>1 && a*pow(10.0,((double)g-13)/20.0)>8192.0)g--;
+    return g;
+}
+static uint32_t agc_value(const lr2021_sim *s)
+{
+    static const uint16_t v[13]={16,28,38,49,57,64,73,85,96,108,120,127,138};
+    return !s->step && input_amplitude(s)==0 ? 139u : v[agc_step(s)-1];
+}
+static uint32_t rssi_field(const lr2021_sim *s)
+{
+    double a=input_amplitude(s), dbm=-120.0+(a>16.0?20.0*log10(a/16.0):0.0);
+    long v=lround(-2.0*dbm);
+    return (uint32_t)(v<0?0:v>511?511:v);
+}
 static void produce(lr2021_sim *s, uint64_t pair)
 {
     int16_t i,q;
     if(s->pattern==LR2021_SIM_COUNTER) { i=(int16_t)(uint16_t)pair; q=(int16_t)(uint16_t)(pair>>16); }
     else {
-        double gain=pow(10.0,((s->step?s->step:13)-13+(s->step>=12?s->boost*0.2:0))/20.0);
+        double gain=pow(10.0,((double)agc_step(s)-13+(s->step>=12?s->boost*0.2:0))/20.0);
         double offset=(double)s->tone_hz-(double)s->freq, a=s->tone_amplitude*gain;
         bool heard=s->freq>=100000000u && s->freq<=2740000000u && fabs(offset)<rate(s)/2.0;
         if(!heard)a=0;
@@ -61,7 +87,7 @@ static void produce(lr2021_sim *s, uint64_t pair)
     if(size==2) {
         if(s->pattern==LR2021_SIM_COUNTER) { p[0]=(uint8_t)pair; p[1]=(uint8_t)(pair>>8); }
         else if(s->route==0x0E) { /* IQ6 in the high bits, gain step in the low bits */
-            unsigned g=s->step?s->step:13;
+            unsigned g=agc_step(s);
             p[0]=(uint8_t)(((i>>10)*4)|(g&3)); p[1]=(uint8_t)(((q>>10)*4)|((g>>2)&3));
         } else { p[0]=(uint8_t)(i>>8); p[1]=(uint8_t)(q>>8); }
     } else {
@@ -144,6 +170,9 @@ static uint8_t execute(lr2021_sim *s, uint16_t op, const uint8_t *a, size_t n)
         uint32_t addr=((uint32_t)a[0]<<16)|((uint32_t)a[1]<<8)|a[2], v=0;
         if(addr==0xF30028)v=s->rx_base; else if(addr==0xF30030)v=s->rx_size;
         else if(addr==0xF3002C)v=s->tx_base; else if(addr==0xF30034)v=s->tx_size;
+        else if(addr==0xF30154)v=((uint32_t)agc_step(s)<<20)|((uint32_t)s->step<<16);
+        else if(addr==0xF3012C)v=agc_value(s)<<18;
+        else if(addr==0xF301A8)v=rssi_field(s)<<18;
         r[0]=(uint8_t)(v>>24); r[1]=(uint8_t)(v>>16); r[2]=(uint8_t)(v>>8); r[3]=(uint8_t)v;
         respond(s,r,4); return OK;
     }

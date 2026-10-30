@@ -17,6 +17,38 @@ static int preflight(const lr2021_iq_hal *h, lr2021_iq_profile *p)
     e=h->read32(h->context,0x800FF8,&magic);
     return e ? e : magic==0x600DB002 ? LR2021_IQ_STATE : 0;
 }
+static int read_gain(const lr2021_iq_hal *h, lr2021_iq_gain_state *g)
+{
+    uint32_t agc=0,value=0,rssi=0;
+    int e=h->read32(h->context,0xF30154,&agc);
+    if(!e)e=h->read32(h->context,0xF3012C,&value);
+    if(!e)e=h->read32(h->context,0xF301A8,&rssi);
+    if(e)return e;
+    g->step=(uint8_t)(agc>>20&15); g->manual=(uint8_t)(agc>>16&15);
+    g->gain_value=(uint16_t)(value>>18&0x1FF); g->rssi_raw=(uint16_t)(rssi>>18&0x1FF);
+    return g->step<1 || g->step>13 ? LR2021_IQ_DATA : 0;
+}
+int lr2021_iq_read_gain(const lr2021_iq_hal *h, lr2021_iq_gain_state *g)
+{
+    if(g)memset(g,0,sizeof(*g));
+    if(!h || !h->lock || !h->unlock || !h->snapshot || !h->read32 || !g)return LR2021_IQ_ARGUMENT;
+    h->lock(h->context);
+    lr2021_iq_profile p={0};
+    int e=h->snapshot(h->context,&p);
+    if(!e && (!p.lr2021 || p.fw_major!=1 || p.fw_minor!=24))e=LR2021_IQ_STATE;
+    if(!e)e=read_gain(h,g);
+    h->unlock(h->context);
+    return e;
+}
+static void note_gain(lr2021_iq_result *r, lr2021_iq_session *s, const lr2021_iq_gain_state *g,
+                      uint64_t time_us)
+{
+    if(!r->chip_gain_reads || g->step<r->chip_gain_min)r->chip_gain_min=g->step;
+    if(g->step>r->chip_gain_max)r->chip_gain_max=g->step;
+    if(r->chip_gain_reads && g->step!=r->chip_gain_last)r->chip_gain_changes++;
+    r->chip_gain_last=g->step; r->chip_gain_reads++;
+    if(s->chip_gain)s->chip_gain(s->gain_context,g,time_us);
+}
 static int outcome(lr2021_iq_result *r)
 {
     return r->capture_error ? r->capture_error :
@@ -147,6 +179,7 @@ static int stream(const lr2021_iq_hal *h, unsigned duration,
     /* Level prediction state: the last FIFO level read, when, and bytes read since. */
     const uint64_t rate_bytes=(uint64_t)(raw?p.route_rate_hz:4*p.bandwidth_hz)*pair_bytes;
     uint64_t sample_us=0; size_t sample_level=0, drained=0; unsigned pass=0;
+    unsigned gain_pass=0;
     r->start_us=start;
     if(session)session->start_us=start;
     while(!e && !r->stopped_by_sink && (!duration || h->now_us(c)-start<(uint64_t)duration*1000)) {
@@ -165,6 +198,12 @@ static int stream(const lr2021_iq_hal *h, unsigned duration,
             if(!e && boost!=p.rx_boost)e=h->write(c,0x0201,path,2);
             if(e)break;
             p.gain_step=step; p.rx_boost=boost; r->gain_changes++;
+        }
+        if(session && session->gain_read_every && !(gain_pass++%session->gain_read_every)) {
+            lr2021_iq_gain_state g;
+            int ge=read_gain(h,&g);
+            if(!ge)note_gain(r,session,&g,h->now_us(c));
+            else if(ge!=LR2021_IQ_DATA){e=ge;break;}
         }
         size_t remaining;
         if(level_every>1 && pass%level_every) {

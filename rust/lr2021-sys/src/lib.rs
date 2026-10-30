@@ -79,7 +79,12 @@ pub struct lr2021_iq_result {
     pub max_service_gap_us: u64,
     pub start_us: u64,
     pub gain_changes: c_uint,
+    pub chip_gain_reads: c_uint, pub chip_gain_changes: c_uint,
+    pub chip_gain_min: u8, pub chip_gain_max: u8, pub chip_gain_last: u8,
 }
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct lr2021_iq_gain_state { pub step: u8, pub manual: u8, pub gain_value: u16, pub rssi_raw: u16 }
 #[repr(C)]
 pub struct lr2021_iq_session {
     pub duration_ms: c_uint, pub fifo_capacity: c_uint,
@@ -89,6 +94,8 @@ pub struct lr2021_iq_session {
     pub max_read: c_uint, pub check_bytes: c_uint,
     pub buffer: *mut u8, pub buffer_size: usize,
     pub level_every: c_uint,
+    pub gain_read_every: c_uint,
+    pub chip_gain: Option<unsafe extern "C" fn(*mut c_void, *const lr2021_iq_gain_state, u64)>,
 }
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -193,6 +200,7 @@ extern "C" {
     pub fn lr2021_iq_dev_configure(d: *mut lr2021_iq_dev, rx: *const lr2021_iq_rx) -> c_int;
     pub fn lr2021_iq_stream_session(h: *const lr2021_iq_hal, s: *mut lr2021_iq_session,
         sink: lr2021_iq_sink, ctx: *mut c_void, r: *mut lr2021_iq_result) -> c_int;
+    pub fn lr2021_iq_read_gain(h: *const lr2021_iq_hal, g: *mut lr2021_iq_gain_state) -> c_int;
     pub fn lr2021_iq_tx_rate_ok(rate: u32) -> bool;
     pub fn lr2021_iq_tx_untested(t: *const lr2021_iq_tx) -> u32;
     pub fn lr2021_iq_tx_check(t: *const lr2021_iq_tx) -> c_int;
@@ -284,7 +292,7 @@ mod tests {
             size_of::<lr2021_iq_board>(), size_of::<lr2021_bridge_hello>(), size_of::<lr2021_bridge_rx>(),
             size_of::<lr2021_bridge_rx_ack>(), size_of::<lr2021_bridge_tx_begin>(), size_of::<lr2021_bridge_rx_data>(),
             size_of::<lr2021_bridge_rx_end>(), size_of::<lr2021_bridge_tx_end>(), size_of::<lr2021_bridge_frame>(),
-            size_of::<lr2021_iq_hal>()];
+            size_of::<lr2021_iq_hal>(), size_of::<lr2021_iq_gain_state>()];
         for (i, &n) in rust.iter().enumerate() {
             assert_eq!(n, unsafe { lr2021_rs_sizeof(i as c_int) }, "struct {i}");
         }

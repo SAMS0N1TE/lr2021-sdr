@@ -162,6 +162,39 @@ check per 4 KiB and no prediction, which gave the most consistent results at
 2 MB/s in 60-second runs. The local spidev backend and the simulator use 1020
 and 4096.
 
+### Chip gain readback
+
+`lr2021_iq_read_gain` reads the gain step the chip is using, on any route,
+with three ReadRegMem32 calls. The registers come from
+[beala/lr2021-re](https://github.com/beala/lr2021-re/blob/main/docs/agc-gain.md)
+and have not yet run on this repository's board, so every field below is
+tagged [RE] (taken from lr2021-re, not yet checked here) until
+[the AGC readback research](../research/agc-readback/README.md) confirms it.
+
+| Field | Register | Meaning |
+| --- | --- | --- |
+| `step` | 0xF30154 bits 23:20 | gain step in use, 1 to 13; 13 in AGC mode with no signal [RE] |
+| `manual` | 0xF30154 bits 19:16 | the SetAgcGainManual setting, 0 for AGC [RE] |
+| `gain_value` | 0xF3012C bits 26:18 | 16, 28, 38, 49, 57, 64, 73, 85, 96, 108, 120, 127, 138 for steps 1 to 13, 139 idle in AGC mode; possibly 0.5 dB units [guess] |
+| `rssi_raw` | 0xF301A8 bits 26:18 | instantaneous RSSI, the field GetRssiInst returns [RE] |
+
+The call returns `LR2021_IQ_DATA` when the step is outside 1 to 13 and
+`LR2021_IQ_STATE` on anything but ROM 1.24. It takes the HAL lock, so it
+waits while a receive session runs. To watch the gain during a session, set
+`lr2021_iq_session.gain_read_every` to N: the session then reads all three
+registers on every Nth service pass, calls `chip_gain` (with `gain_context`)
+with the values and the device time, and reports the lowest, highest and last
+step, the number of reads and the number of step changes in the result. A read
+with an out-of-range step is skipped; a bus error ends the session like any
+other. The default, 0, adds no bus traffic, so existing throughput figures are
+unchanged. Each sample costs three register reads, about six SPI frames.
+
+The simulator models the three registers. In manual mode the step is the
+manual setting. In AGC mode it picks the highest step that keeps the tone
+below 8192 counts, so the default tone stays at step 13 and a stronger
+`tone_amplitude` lowers it. Its RSSI field is a placeholder that falls as the
+tone grows; it is not a model of the chip's units.
+
 ### Raw receive routes
 
 The `0x0290` route command selects one of the chip's internal sources. The
