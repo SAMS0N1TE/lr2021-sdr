@@ -134,8 +134,9 @@ int main(void)
     CHECK(call(&h,LR2021_BRIDGE_SET_RX,12,p,len)==0);
     uint8_t g[2]={9,0};
     CHECK(call(&h,LR2021_BRIDGE_SET_GAIN,13,g,2)==0 && sim.step==9 && srv.radio.rx.gain_step==9);
-    CHECK(call(&h,LR2021_BRIDGE_GET_GAIN,50,NULL,0)==0 && !lr2021_bridge_unpack_gain(h.last.payload,h.last.length,&gs2));
-    CHECK(gs2.step==9 && gs2.manual==9 && gs2.gain_value==96 && gs2.device_time>0);
+    CHECK(call(&h,LR2021_BRIDGE_GET_GAIN,50,NULL,0)==LR2021_IQ_STATE);
+    CHECK(!lr2021_bridge_unpack_gain(h.last.payload,h.last.length,&gs2));
+    CHECK(gs2.step==10 && gs2.manual==9 && gs2.gain_value==0x1FF && gs2.device_time>0);
     CHECK(call(&h,LR2021_BRIDGE_GET_GAIN,51,g,1)==LR2021_BRIDGE_ELENGTH);
 
     /* 20 ms bounded stream: 2500 pairs, 8 queued blocks, continuous counter. */

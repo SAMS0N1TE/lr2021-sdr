@@ -157,27 +157,27 @@ def iq6(a):
     _, rate = b.set_rx(a.freq, 0, a.step, a.boost, a.path, 3, a.code, a.rate)
     out = csv.writer(a.out)
     out.writerow(['t_s', 'iq6_pairs', 'iq6_mode', 'iq6_min', 'iq6_max', 'chip_step', 'chip_manual', 'agree'])
-    b.rx_start(0, CS16)
+    b.rx_start(int(a.seconds * 1000), CS16)
     t0 = time.monotonic()
     next_log = t0
     seen = []
-    while time.monotonic() - t0 < a.seconds:
-        got = b.read(0.2)
+    while True:
+        got = b.read(0.5)
         if got is None:
-            if b.ends:
+            if b.ends or time.monotonic() - t0 > a.seconds + 120:
                 break
             continue
         s = iq6_steps(*got)
         if s is not None:
             seen.append(s)
         now = time.monotonic()
-        if now >= next_log and seen:
-            next_log += a.interval_ms / 1000.0
+        if now >= next_log and seen and not b.ends:
+            next_log = now + a.interval_ms / 1000.0
             v = np.concatenate(seen)
             seen = []
             mode = int(np.bincount(v, minlength=16).argmax())
             try:
-                g = b.get_gain()
+                g = b.get_gain(timeout=30)
             except BridgeError as e:
                 if e.status != EBUSY:
                     raise
@@ -185,7 +185,9 @@ def iq6(a):
             out.writerow([f'{now - t0:.3f}', len(v), mode, int(v.min()), int(v.max()), g['step'], g['manual'],
                           int(mode == g['step'])])
             a.out.flush()
-    b.rx_stop()
+    end = b.wait_end(30)
+    print(f"# pairs {end['pairs']} in {end['elapsed_us']} us ({end['pairs'] * 1e6 / max(end['elapsed_us'], 1):.0f}/s), "
+          f"header rate {rate}, dropped {end['dropped']}, capture_error {end['capture_error']}", file=sys.stderr)
     b.close()
 
 

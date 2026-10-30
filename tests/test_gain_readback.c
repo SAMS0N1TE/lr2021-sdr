@@ -56,6 +56,11 @@ int main(void)
     real_read32=dev.hal.read32; dev.hal.read32=read32;
 
     lr2021_iq_gain_state g;
+    rx.gain_step=4;
+    CHECK(!lr2021_iq_dev_configure(&dev,&rx));
+    CHECK(lr2021_iq_read_gain(&dev.hal,&g)==LR2021_IQ_STATE);
+    CHECK(g.step==10 && g.manual==4 && g.gain_value==0x1FF && g.rssi_raw==0x1FF);
+    CHECK(!dev.hal.receive(dev.hal.context));
     for(uint8_t step=1;step<=13;step++) {
         rx.gain_step=step;
         CHECK(!lr2021_iq_dev_configure(&dev,&rx));
@@ -63,11 +68,12 @@ int main(void)
         CHECK(g.step==step && g.manual==step && g.gain_value==table[step-1]);
     }
 
-    rx.gain_step=0;
+    rx.gain_step=0; sim.pattern=LR2021_SIM_COUNTER;
     CHECK(!lr2021_iq_dev_configure(&dev,&rx));
     CHECK(!lr2021_iq_read_gain(&dev.hal,&g));
     CHECK(g.step==13 && !g.manual && g.gain_value==139);
     const uint16_t quiet_rssi=g.rssi_raw;
+    sim.pattern=LR2021_SIM_TONE;
 
     lr2021_iq_result r; gain_log log;
     CHECK(!tone_session(&dev,&log,&r));

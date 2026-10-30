@@ -40,6 +40,7 @@ static int undoc_probe_command(int argc, char **argv)
     }
     const lr2021_iq_hal *h=radio_hal();
     h->lock(h->context);
+    const bool was=radio_dev()->profile.receiving;
     lr2021_iq_profile p={0};
     int e=h->snapshot(h->context,&p);
     if(!e && (!p.lr2021 || p.fw_major!=1 || p.fw_minor!=24))e=LR2021_IQ_STATE;
@@ -76,8 +77,13 @@ static int undoc_probe_command(int argc, char **argv)
         }
     }
     int s=h->standby(h->context);
-    int c=lr2021_iq_dev_configure(radio_dev(),&radio_dev()->rx);
     h->unlock(h->context);
+    int c=lr2021_iq_dev_configure(radio_dev(),&radio_dev()->rx);
+    if(!c && was) {
+        h->lock(h->context);
+        c=h->receive(h->context);
+        h->unlock(h->context);
+    }
     printf("undocprobe: done restore=%d\n",s?s:c);
     return s||c;
 }

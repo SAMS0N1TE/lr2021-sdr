@@ -194,8 +194,7 @@ fn rust_client_against_c_server_and_simulator() {
     assert_eq!((h.version, h.rom_major, h.rom_minor, h.id.as_str()), (1, 1, 24, "rust-test"));
     assert_ne!(h.caps & caps::GAIN_READBACK, 0);
     assert_eq!(c.set_rx(&RxConfig { frequency_hz: 433_920_000, bandwidth_hz: 62_500, gain_step: 13, boost: 0, path: 2, ..Default::default() }).unwrap().1, 250_000);
-    let g = c.gain().unwrap();
-    assert_eq!((g.status, g.step, g.manual, g.gain_value), (0, 13, 13, 138));
+    assert!(matches!(c.gain(), Err(ClientError::Status(-2))));
     assert!(matches!(c.request(kind::GET_GAIN, &[1]), Err(ClientError::Status(status::ELENGTH))));
     assert!(matches!(c.set_rx(&RxConfig { frequency_hz: 50_000_000, bandwidth_hz: 62_500, ..Default::default() }), Err(ClientError::Status(-1))));
     for format in [CS16, CS12] {
@@ -245,7 +244,7 @@ fn rust_client_against_c_server_and_simulator() {
     let end = c.rx_stop().unwrap();
     assert!(pairs > 50_000 && end.capture_error == 0 && largest == 960, "{pairs} {largest}");
     c.set_rx(&RxConfig { frequency_hz: 433_920_000, bandwidth_hz: 31_250, gain_step: 13, path: 2, ..Default::default() }).unwrap();
-    assert_eq!(c.gain().unwrap().step, 13);
+    assert!(matches!(c.gain(), Err(ClientError::Status(-2))));
     let iq: Vec<i8> = (0..4000).map(|i| (i % 60 - 30) as i8).collect();
     let t = c.transmit(&iq, TxBegin { rate_hz: 19_200, frequency_hz: 433_920_000, power_half_db: -18, repeats: 2, ..Default::default() }).unwrap();
     assert_eq!((t.samples, t.untested), (4000, 0));

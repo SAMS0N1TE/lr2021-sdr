@@ -38,8 +38,8 @@ def main(exe):
         assert [int(x['step_set']) for x in r] == [1, 7, 13], r
         for x in r:
             s = int(x['step_set'])
-            assert (int(x['idle_step']), int(x['idle_manual']), int(x['idle_value'])) == (s, s, TABLE[s - 1]), x
-            assert x['stream_step'] == '' or int(x['stream_step']) == s, x
+            assert (int(x['idle_status']), int(x['idle_manual'])) == (-2, s), x
+            assert (int(x['stream_step']), int(x['stream_manual']), int(x['stream_value'])) == (s, s, TABLE[s - 1]), x
         tones = [float(x['tone_dbfs']) for x in r]
         assert tones[0] < tones[1] < tones[2], tones
         assert analyze_agc.sweep(out) == 0

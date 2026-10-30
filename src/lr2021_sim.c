@@ -170,9 +170,9 @@ static uint8_t execute(lr2021_sim *s, uint16_t op, const uint8_t *a, size_t n)
         uint32_t addr=((uint32_t)a[0]<<16)|((uint32_t)a[1]<<8)|a[2], v=0;
         if(addr==0xF30028)v=s->rx_base; else if(addr==0xF30030)v=s->rx_size;
         else if(addr==0xF3002C)v=s->tx_base; else if(addr==0xF30034)v=s->tx_size;
-        else if(addr==0xF30154)v=((uint32_t)agc_step(s)<<20)|((uint32_t)s->step<<16);
-        else if(addr==0xF3012C)v=agc_value(s)<<18;
-        else if(addr==0xF301A8)v=rssi_field(s)<<18;
+        else if(addr==0xF30154)v=((uint32_t)(s->mode==RX?agc_step(s):10u)<<20)|((uint32_t)s->step<<16);
+        else if(addr==0xF3012C)v=(s->mode==RX?agc_value(s):0x1FFu)<<18;
+        else if(addr==0xF301A8)v=(s->mode==RX?rssi_field(s):0x1FFu)<<18;
         r[0]=(uint8_t)(v>>24); r[1]=(uint8_t)(v>>16); r[2]=(uint8_t)(v>>8); r[3]=(uint8_t)v;
         respond(s,r,4); return OK;
     }

@@ -2,10 +2,16 @@ static int agc_probe_bw_code(uint32_t bw)
 {
     return bw==31250?2:bw==62500?3:bw==125000?4:bw==250000?5:-1;
 }
-static int agc_probe_restore(const lr2021_iq_hal *h)
+static int agc_probe_restore(const lr2021_iq_hal *h, bool was_receiving)
 {
     int e=h->standby(h->context);
+    h->unlock(h->context);
     int c=lr2021_iq_dev_configure(radio_dev(),&radio_dev()->rx);
+    if(!c && was_receiving) {
+        h->lock(h->context);
+        c=h->receive(h->context);
+        h->unlock(h->context);
+    }
     return e?e:c;
 }
 static int agc_rssi_command(int argc, char **argv)
@@ -18,6 +24,7 @@ static int agc_rssi_command(int argc, char **argv)
     }
     const lr2021_iq_hal *h=radio_hal();
     h->lock(h->context);
+    const bool was=radio_dev()->profile.receiving;
     int e=h->receive(h->context);
     uint64_t t0=h->now_us(h->context);
     puts("agcrssi: t_ms,inst_b0,inst_b1,inst_raw,inst_dbm,field_raw,step,manual,gain_value,match");
@@ -36,8 +43,7 @@ static int agc_rssi_command(int argc, char **argv)
                inst==field);
         if(interval)h->sleep_us(h->context,interval*1000u);
     }
-    int r=agc_probe_restore(h);
-    h->unlock(h->context);
+    int r=agc_probe_restore(h,was);
     printf("agcrssi: done error=%d restore=%d\n",e,r);
     return e||r;
 }
@@ -65,6 +71,7 @@ static int pkt_status_command(int argc, char **argv)
     const uint8_t pkt[4]={(uint8_t)(preamble>>8),(uint8_t)preamble,255,2};
     const uint8_t all[4]={0xFF,0xFF,0xFF,0xFF}, forever[3]={0xFF,0xFF,0xFF};
     h->lock(c);
+    const bool was=radio_dev()->profile.receiving;
     int e=h->standby(c);
     if(!e)e=h->write(c,0x0207,&type,1);
     if(!e)e=h->write(c,0x0200,f,4);
@@ -106,8 +113,7 @@ static int pkt_status_command(int argc, char **argv)
                s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],s[9],s[9],(unsigned long)((agc>>20)&15),
                -(double)rssi/2,(double)(int8_t)s[2]/4,(unsigned long)fei);
     }
-    int r=agc_probe_restore(h);
-    h->unlock(c);
+    int r=agc_probe_restore(h,was);
     printf("pktstatus: %u packets, error=%d restore=%d\n",packets,e,r);
     return e||r;
 }

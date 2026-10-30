@@ -335,11 +335,10 @@ mod tests {
     fn simulator_gain_readback() {
         let mut rx = RxConfig { bandwidth_hz: 62_500, gain_step: 7, ..Default::default() };
         let mut sim = Simulator::new(Pattern::Counter, None, &rx).unwrap();
-        assert_eq!(sim.read_gain().unwrap(), GainState { step: 7, manual: 7, gain_value: 73, rssi_raw: 240 });
+        assert_eq!(sim.read_gain(), Err(Error(sys::LR2021_IQ_STATE)));
         rx.gain_step = 0;
         sim.configure(&rx).unwrap();
-        let g = sim.read_gain().unwrap();
-        assert_eq!((g.step, g.manual, g.gain_value), (13, 0, 139));
+        assert_eq!(sim.read_gain(), Err(Error(sys::LR2021_IQ_STATE)));
     }
     #[test]
     fn simulator_session_gain_and_tx() {

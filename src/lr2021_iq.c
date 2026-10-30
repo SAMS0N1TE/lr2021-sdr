@@ -37,6 +37,7 @@ int lr2021_iq_read_gain(const lr2021_iq_hal *h, lr2021_iq_gain_state *g)
     int e=h->snapshot(h->context,&p);
     if(!e && (!p.lr2021 || p.fw_major!=1 || p.fw_minor!=24))e=LR2021_IQ_STATE;
     if(!e)e=read_gain(h,g);
+    if(!e && !p.receiving)e=LR2021_IQ_STATE;
     h->unlock(h->context);
     return e;
 }

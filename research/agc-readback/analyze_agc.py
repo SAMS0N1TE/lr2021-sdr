@@ -19,23 +19,27 @@ def num(v):
 
 def sweep(path, clip_dbfs=-1.0, min_snr_db=20.0):
     r = rows(path)
-    print('step  idle(step,manual,value)  stream(step,manual,value)  expect  pass  tone_dbfs')
+    print('step  idle(status,manual)  stream(step,manual,value)  table  value-table  steps ok')
     failures = 0
     for x in r:
         s = int(x['step_set'])
         expect = TABLE[s - 1]
-        idle = (int(x['idle_step']), int(x['idle_manual']), int(x['idle_value']))
+        idle = (int(x['idle_status']), int(x['idle_manual']))
         stream = tuple(int(x[k]) if x[k] != '' else None for k in ('stream_step', 'stream_manual', 'stream_value'))
-        ok = idle == (s, s, expect) and stream in ((s, s, expect), (None, None, None))
+        ok = idle[1] == s and stream[:2] == (s, s)
         failures += not ok
-        print(f"{s:4}  {str(idle):23}  {str(stream):25}  {expect:6}  {'yes' if ok else 'NO':4}  {x['tone_dbfs']}")
-    print(f'experiment 1: {len(r) - failures} of {len(r)} steps match the lr2021-re table')
+        diff = '' if stream[2] is None else f'{stream[2] - expect:+d}'
+        print(f"{s:4}  {str(idle):22}  {str(stream):25}  {expect:5}  {diff:11}  {'yes' if ok else 'NO'}")
+    print(f'experiment 1: step and manual fields match in {len(r) - failures} of {len(r)} steps')
     pts = []
     for x in r:
         tone, peak, floor = num(x['tone_dbfs']), num(x['peak_dbfs']), num(x['floor_dbfs'])
         if None in (tone, peak, floor) or peak > clip_dbfs or tone - floor < min_snr_db:
             continue
-        pts.append((int(x['idle_value']), tone, int(x['step_set'])))
+        pts.append((int(x['stream_value']), tone, int(x['step_set']), float(x['tone_hz'])))
+    if pts and max(p[3] for p in pts) - min(p[3] for p in pts) > 2000:
+        print('experiment 3: the strongest tone moves between steps, so no single carrier is present')
+        return failures
     if len(pts) < 3:
         print('experiment 3: fewer than 3 usable steps (need a carrier well above the floor and below clipping)')
         return failures
@@ -49,7 +53,7 @@ def sweep(path, clip_dbfs=-1.0, min_snr_db=20.0):
           f'(0.5 expected if the unit is 0.5 dB), worst residual {resid:.2f} dB')
     print('step  gain_value  tone_dbfs  dB_from_previous')
     prev = None
-    for value, tone, step in sorted(pts, key=lambda p: p[2]):
+    for value, tone, step, _ in sorted(pts, key=lambda p: p[2]):
         d = '' if prev is None else f'{tone - prev:.2f}'
         print(f'{step:4}  {value:10}  {tone:9.2f}  {d}')
         prev = tone
