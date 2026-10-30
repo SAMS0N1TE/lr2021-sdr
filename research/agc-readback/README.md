@@ -115,12 +115,11 @@ python agc_readback.py tcp:192.168.4.1 --freq 433900000 --boost 7 --out logs/hos
 python analyze_agc.py log logs/agc_strong.csv
 ```
 
-`--host-agc` applies the rule LakeShark documents in the receive range report
+`--host-agc` applies the host gain rule described in the
+[receive range report](../rx-range-and-gain/README.md#gain-and-boost)
 (start at step 13, drop one step when samples come within 2 dB of full scale,
 climb back after 300 ms below -15 dBFS) through live `SET_GAIN`, and logs the
-step it chose next to the chip readback. It reimplements the documented rule;
-it is not LakeShark's code. Running LakeShark itself with a readback log is
-the alternative.
+step it chose next to the chip readback.
 
 What to look for: the steps the chip AGC settles on at each level, against
 the step host gain control settles on. That explains the measured 9 to 18 dB
@@ -203,9 +202,7 @@ exactly and the rest differ by at most 4, as expected for two reads taken
 microseconds apart. Mean and spread are identical (249.7, standard
 deviation 26.3; the first read after SetRx is 511 in both). Decoded as
 `b0 << 1 | b1 >> 7`, the half-dB bit is always 0, because byte 1 never has
-bit 7 set here. LakeShark's `lr20xx_rssi_dbm` uses that decoding, so its
-instantaneous RSSI loses the half-dB bit; that is for LakeShark to fix. An
-earlier run in the FSK setup
+bit 7 set here. An earlier run in the FSK setup
 ([`logs/agcrssi_fsk_step9.txt`](logs/agcrssi_fsk_step9.txt)) shows the same
 range; it ends early because the first probe build hung in its restore
 step, which is fixed.
@@ -257,8 +254,7 @@ restored the radio cleanly both times.
 Read 10 bytes from GetLoraPacketStatus instead of 6. Byte 9 then gives the
 gain step the chip used for that packet, at no extra cost: it shows whether a
 node is being desensitized by a strong neighbour. Bytes 6 to 8 are the
-frequency offset. LakeShark already reads 9 bytes for the offset. lr2021-re
-has a MeshCore branch that reports byte 9 as `last_gain`. This stays [RE]
+frequency offset. lr2021-re has a MeshCore branch that reports byte 9 as `last_gain`. This stays [RE]
 here until `pktstatus` confirms it on this board.
 
 ## Tools
