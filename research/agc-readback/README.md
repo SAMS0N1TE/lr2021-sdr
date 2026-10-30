@@ -261,7 +261,7 @@ here until `pktstatus` confirms it on this board.
 
 | File | Purpose |
 | --- | --- |
-| [`bridge.py`](bridge.py) | Minimal Python bridge client: frames, HELLO, SET_RX, SET_GAIN, RX_START/STOP, GET_GAIN, raw RX_DATA |
+| [`tools/lr2021_bridge.py`](../../tools/lr2021_bridge.py) | Minimal Python bridge client: frames, HELLO, SET_RX, SET_GAIN, RX_START/STOP, GET_GAIN, raw RX_DATA |
 | [`agc_readback.py`](agc_readback.py) | Experiments 1 to 4: `sweep`, `log`, `iq6` |
 | [`analyze_agc.py`](analyze_agc.py) | Pass/fail table, dB per gain unit, step distribution, source 6 agreement |
 | [`packet_status_probe/lr2021_agc_probe.inc`](packet_status_probe/lr2021_agc_probe.inc) | Firmware console commands `agcrssi` (experiment 5) and `pktstatus` |

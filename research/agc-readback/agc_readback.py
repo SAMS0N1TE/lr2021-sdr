@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: MIT
 import argparse, csv, math, os, sys, time
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'tools'))
 import numpy as np
-from bridge import Bridge, BridgeError, CAP_GAIN_READBACK, CS12, CS16, EBUSY, iq6_steps, to_iq
+from lr2021_bridge import Bridge, BridgeError, CAP_GAIN_READBACK, CS12, CS16, EBUSY, iq6_steps, to_iq
 
 TABLE = [16, 28, 38, 49, 57, 64, 73, 85, 96, 108, 120, 127, 138]
 
