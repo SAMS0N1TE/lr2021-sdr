@@ -54,7 +54,7 @@ pub struct RxConfig {
 }
 /// Source 2: IQ16 at 4 x LoRa bandwidth. Sources 0, 1: IQ8; source 6: gain-tagged IQ6.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Route { Source2 = 0, Source0 = 1, Source1 = 2, Source6 = 3 }
+pub enum Route { Source2 = 0, Source0 = 1, Source1 = 2, Source6 = 3, Raw0B = 4 }
 impl Default for RxConfig {
     fn default() -> Self {
         RxConfig { frequency_hz: 154_785_000, bandwidth_hz: 31_250, gain_step: 13, boost: 0, path: Path::Auto,
@@ -64,7 +64,7 @@ impl Default for RxConfig {
 impl RxConfig {
     pub fn sample_rate(&self) -> Option<u32> {
         match self.route {
-            Route::Source2 => rate_for_bandwidth(self.bandwidth_hz),
+            Route::Source2 | Route::Raw0B => rate_for_bandwidth(self.bandwidth_hz),
             Route::Source1 => Some(input_rate(self.input_code)),
             _ => Some(self.rate_hz),
         }

@@ -28,11 +28,13 @@ static unsigned rx_capacity(const lr2021_sim *s)
 static unsigned tx_capacity(const lr2021_sim *s)
 { return (s->tx_base&0x7FFFFF)==0x4000 && s->tx_size==0x3FC ? 1024u : 256u; }
 static bool raw_route(const lr2021_sim *s)
-{ return s->packet_type==2 && (s->route==0x08 || s->route==0x09 || s->route==0x0E); }
+{ return (s->packet_type==2 && (s->route==0x08 || s->route==0x09 || s->route==0x0E)) ||
+         (s->packet_type==0x0B && s->route==0x08); }
 static unsigned rate(const lr2021_sim *s)
 {
     static const unsigned r[]={0,0,125000,250000,500000,1000000};
-    unsigned v=raw_route(s) ? s->route_rate : s->packet_type==0 && s->route==0x0A && s->lora_bw<6 ? r[s->lora_bw] : 0;
+    unsigned v=s->packet_type==0x0B ? (s->route==0x08 && s->lora_bw<6 ? r[s->lora_bw] : 0) :
+        raw_route(s) ? s->route_rate : s->packet_type==0 && s->route==0x0A && s->lora_bw<6 ? r[s->lora_bw] : 0;
     return s->rate_percent ? (unsigned)((uint64_t)v*s->rate_percent/100u) : v;
 }
 static int16_t noise(lr2021_sim *s)
@@ -190,7 +192,8 @@ static uint8_t execute(lr2021_sim *s, uint16_t op, const uint8_t *a, size_t n)
     case 0x0203: return n==2 && (int8_t)a[0]>=-19 && (int8_t)a[0]<=44 ? OK : PERR;
     case 0x0207: if(n!=1 || !idle)return FAIL; s->packet_type=a[0]; return OK;
     case 0x020C:
-        if(n!=3 || (s->packet_type!=0 && s->packet_type!=2) || (s->errors&LR2021_IQ_ERR_PLL_LOCK))return FAIL;
+        if(n!=3 || (s->packet_type!=0 && s->packet_type!=2 && s->packet_type!=0x0B) ||
+           (s->errors&LR2021_IQ_ERR_PLL_LOCK))return FAIL;
         s->mode=RX; s->rx_t0=lr2021_sim_now_us(s); s->rx_origin=s->rx_pairs; s->rx_starts++; return OK;
     case 0x020D:
         if(n!=3 || s->packet_type!=0x0A || !s->tx_n || s->tx_selector)return FAIL;

@@ -36,7 +36,7 @@ typedef struct {
  * lr2021_iq_input_rate(input_code). Byte 0 of the route command, the input
  * code, sets these rates; the modem's own filter setting does not. */
 enum { LR2021_IQ_ROUTE_SOURCE2=0, LR2021_IQ_ROUTE_SOURCE0=1, LR2021_IQ_ROUTE_SOURCE1=2,
-       LR2021_IQ_ROUTE_SOURCE6=3 };
+       LR2021_IQ_ROUTE_SOURCE6=3, LR2021_IQ_ROUTE_RAW0B=4 };
 typedef struct {
     uint32_t frequency_hz, bandwidth_hz;
     uint8_t gain_step, boost, path;      /* step 0 AGC or 1..13, boost 0..7 */

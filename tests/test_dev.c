@@ -141,6 +141,13 @@ int main(void)
     raw_pairs=0;
     CHECK(!lr2021_iq_stream_session(&dev.hal,&s,iq8_count,&raw_pairs,&r) && r.nominal_rate_hz==125000);
     CHECK(raw_pairs>5000 && raw_pairs<7000 && sim.route_rate==125000);
+    lr2021_iq_rx raw0b={433920000,62500,0,0,2,LR2021_IQ_ROUTE_RAW0B,0,0};
+    CHECK(lr2021_iq_rx_rate(&raw0b)==250000 && lr2021_iq_rx_pair_bytes(&raw0b)==2 && !lr2021_iq_rx_check(&raw0b));
+    CHECK(!lr2021_iq_dev_configure(&dev,&raw0b) && !sim.packet_type && sim.lora_bw==3 && dev.profile.route==4);
+    raw_pairs=0; iq8_gaps=0;
+    CHECK(!lr2021_iq_stream_session(&dev.hal,&s,iq8_count,&raw_pairs,&r) && r.nominal_rate_hz==250000);
+    CHECK(raw_pairs>11000 && raw_pairs<14000 && !iq8_gaps && sim.route_code==0xFF && !sim.route_rate);
+    raw0b.bandwidth_hz=100000; CHECK(lr2021_iq_rx_check(&raw0b)==LR2021_IQ_ARGUMENT);
     raw.route=LR2021_IQ_ROUTE_SOURCE6; raw.rate_hz=50000;
     /* Legacy streams stay source-2 only. */
     raw.rate_hz=576000; raw.route=1; CHECK(!lr2021_iq_dev_configure(&dev,&raw));

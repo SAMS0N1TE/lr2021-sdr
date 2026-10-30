@@ -149,7 +149,7 @@ static int stream(const lr2021_iq_hal *h, unsigned duration,
     if(!e && !session && (p.bandwidth_hz!=31250 || p.route))e=LR2021_IQ_STATE;
     if(!e && session && !p.route && p.bandwidth_hz!=31250 && p.bandwidth_hz!=62500 &&
        p.bandwidth_hz!=125000 && p.bandwidth_hz!=250000)e=LR2021_IQ_STATE;
-    if(!e && session && (p.route>3 || (p.route && !p.route_rate_hz)))e=LR2021_IQ_STATE;
+    if(!e && session && (p.route>4 || (p.route && !p.route_rate_hz)))e=LR2021_IQ_STATE;
     const bool raw=session && p.route;
     const unsigned pair_bytes=raw?2u:4u;
     bool touched=!e, fast=false;
@@ -157,14 +157,17 @@ static int stream(const lr2021_iq_hal *h, unsigned duration,
     if(!e)e=h->standby(c);
     /* 0x0290 route: byte 0 input code, bytes 1..4 output rate, byte 5 0x08|source
      * for FIFO output, last byte FIFO enable. Source 2 uses its native rate. */
-    static const uint8_t sources[4]={2,0,1,6};
+    static const uint8_t sources[5]={2,0,1,6,0};
     uint8_t args[]={0xFF,0,0,0,0,0x0A,0,0,0,0,1};
-    if(raw) {
+    const bool raw0b=raw && p.route==4;
+    if(raw0b)args[5]=0x08;
+    else if(raw) {
         uint32_t q=p.route_rate_hz;
         args[0]=p.input_code; args[1]=(uint8_t)(q>>24); args[2]=(uint8_t)(q>>16);
         args[3]=(uint8_t)(q>>8); args[4]=(uint8_t)q; args[5]=(uint8_t)(0x08|sources[p.route]);
     }
-    const uint8_t clear[]={0x3F,0x3F};
+    const uint8_t clear[]={0x3F,0x3F}, raw_type=0x0B;
+    if(!e && raw0b)e=h->write(c,0x0207,&raw_type,1);
     if(!e)e=h->write(c,0x0290,args,sizeof(args));
     if(!e && capacity==1024)e=h->write32(c,0xF30028,0x804400);
     if(!e && capacity==1024)e=h->write32(c,0xF30030,0x3E8);

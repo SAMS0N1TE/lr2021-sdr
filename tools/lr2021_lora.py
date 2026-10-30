@@ -11,7 +11,7 @@ sys.path.insert(0, str(RE_TOOLS))
 import numpy as np
 from lr2021_bridge import Bridge, BridgeError, CAP_GAIN_READBACK, CS12, CS16, EBUSY, IQ8, IQ6G
 
-ROUTES = {'source2': 0, 'source0': 1, 'source1': 2, 'source6': 3}
+ROUTES = {'source2': 0, 'source0': 1, 'source1': 2, 'source6': 3, 'raw0b': 4}
 
 
 class Stop:
@@ -55,7 +55,9 @@ def configure(a):
     b = Bridge.open(a.device, a.baud)
     route = ROUTES[a.route]
     bw = int(a.bandwidth * 1000)
-    if route:
+    if route == 4:
+        errors, rate = b.set_rx(a.freq, bw, a.gain, a.boost, a.path, route, 0, 0)
+    elif route:
         errors, rate = b.set_rx(a.freq, 0, a.gain, a.boost, a.path, route, a.code, a.rate)
     else:
         errors, rate = b.set_rx(a.freq, bw, a.gain, a.boost, a.path)

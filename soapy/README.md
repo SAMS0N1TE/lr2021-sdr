@@ -19,7 +19,7 @@ Device arguments, rates, gain, timestamps and the TX contract are described in
 | | RX | TX |
 | --- | --- | --- |
 | Frequency | 100..2740 MHz | 100..2740 MHz |
-| Rates | source 2: 125000, 250000, 500000, 1000000; `route=source0/1/6`: 1000..4000000 | 1..1000000 (measured: 4800 ... 125000) |
+| Rates | source 2: 125000, 250000, 500000, 1000000; `route=source0/1/6`: 1000..4000000; `route=raw0b`: as source 2 | 1..1000000 (measured: 4800 ... 125000) |
 | Formats | CS16 (native), CF32 | CS8 (native, full scale 56), CS16, CF32 |
 | Gain | STEP 1..13, BOOST 0..7, AGC | PA, dBm |
 | Antennas | AUTO, LF, HF | AUTO, LF, HF |

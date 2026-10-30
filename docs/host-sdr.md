@@ -86,7 +86,7 @@ answers.
 | `host=192.168.4.1` | TCP | bridge firmware on Wi-Fi, or `lr2021_bridge_sim` |
 | `port=51021` | TCP | default 51021 |
 | `format=cs12` | serial, TCP | 12-bit packing of source-2 samples; default `cs16` |
-| `route=source0` | any | receive route: `source2` (default), `source0`, `source1`, `source6` |
+| `route=source0` | any | receive route: `source2` (default), `source0`, `source1`, `source6`, `raw0b` |
 | `input_code=17` | any | FSK RX filter code used with the raw routes; default 17 |
 | `spidev=/dev/spidev0.0` | local | the chip on this host's SPI bus |
 | `gpiochip=gpiochip0`, `reset=N`, `busy=N` | local | GPIO lines for NRESET (output) and BUSY (input) |
@@ -224,6 +224,16 @@ deviation, RX filter code `input_code`):
 | `source0` | 0 | 2 | IQ8: int8 I, Q |
 | `source1` | 1 | 2 | IQ8: int8 I, Q, at the converter input rate of the FSK filter code |
 | `source6` | 6 | 2 | IQ6G: signed 6-bit I and Q in bits 7..2 of each byte, gain step in the low bits |
+| `raw0b` | 0 | 2 | IQ8 in packet type 0x0B, at 4 x the LoRa bandwidth |
+
+`raw0b` follows [beala/lr2021-re](https://github.com/beala/lr2021-re/blob/main/docs/raw-iq.md):
+the LoRa setup is applied as for source 2, then the session switches the
+packet type to the hidden raw mode 0x0B (the datasheet's RFU value) and routes
+source 0 to the FIFO with byte 0 `FF` and no output rate. lr2021-re reports
+int8 I/Q at 4 x bandwidth (250000 pairs/s at BW 62.5 kHz), the chip AGC still
+working in this mode, and that with Semtech's PRAM patch loaded the FIFO route
+only produces data in 0x0B [RE]; this library still refuses a loaded patch.
+The simulator models it. Not yet run on the LilyGO board.
 
 The route command's byte 0, the input code, sets the converter rate: with
 source 1, an FLRC or Bluetooth LE modem setup with a different filter still

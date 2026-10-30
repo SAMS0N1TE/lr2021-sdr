@@ -97,15 +97,17 @@ HELLO response, 84 bytes:
 | 52 | `char id[32]`, NUL padded board identifier |
 
 RX record, 17 bytes: `u32 frequency_hz` (100000000..2740000000),
-`u32 bandwidth_hz` (LoRa bandwidth 31250, 62500, 125000 or 250000 for source 2),
+`u32 bandwidth_hz` (LoRa bandwidth 31250, 62500, 125000 or 250000 for routes 0 and 4),
 `u8 gain_step` (0 chip AGC, 1..13), `u8 boost` (0..7, acts at steps 12 and 13),
 `u8 path` (0 LF, 1 HF, 2 automatic: LF below 1.5 GHz), `u8 route` (0 source 2,
-1 source 0, 2 source 1, 3 source 6), `u8 input_code` (FSK RX filter code for
+1 source 0, 2 source 1, 3 source 6, 4 source 0 in packet type 0x0B),
+`u8 input_code` (FSK RX filter code for
 routes 1..3), `u32 rate_hz` (output rate for routes 1..3, 1000..4000000). The
 first 11 bytes alone select source 2. The source-2 rate is 4 times the
 bandwidth, 125000 to 1000000 complex pairs/s
 ([receive range report](../research/rx-range-and-gain/README.md)); routes 1..3
-run at `rate_hz` ([raw routes](host-sdr.md#raw-receive-routes)).
+run at `rate_hz` ([raw routes](host-sdr.md#raw-receive-routes)). Route 4 streams
+IQ8 at 4 times the bandwidth, like source 2.
 `radio_errors` is GetErrors after configuration; IMG_CAL (`0x0080`) is reported
 without failing, as it stays flagged near 100 MHz although reception works.
 
