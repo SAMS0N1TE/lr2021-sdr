@@ -72,9 +72,19 @@ firmware never loads Semtech's own patch, so all of PRAM is free.
 
 `pram sweep` and `wfrun` load the program themselves when it is missing, and
 reset the radio afterwards like the other probes. The ESP32-P4 only reads
-256 bytes per frame back: lr2021-re measured 317 frames/s with one segment
-and 464 frames/s overlapped on its nRF52 board. At the console's 115200 baud
-a frame takes 23 ms on the wire, so use `baud`:
+256 bytes per frame back. On the LilyGO T-Display-P4 LR2021 at 915 MHz:
+
+| Check | Result |
+| --- | --- |
+| `pram load` | 781 words written, read back with 0 mismatches, `hello` answers |
+| `wfrun 1 0 1 2000000 62500`, 15 s | 5228 frames, 349 frames/s, 0 gaps; 1.74 ms on the chip per frame (lr2021-re: 1.72 ms), 0.28 ms SPI readback, 0.83 ms UART write |
+| `pram sweep` 902 to 928 MHz, 25 kHz steps | 1041 points in 3.2 s, floor about -117 dBm |
+
+![Waterfall computed on the LR2021, 915 MHz](images/onchip-waterfall-915.png)
+
+*Every row is an FFT the radio computed itself: the ±50 kHz channel filter and the fixed internal spurs.*
+
+At the console's 115200 baud a frame takes 23 ms on the wire, so use `baud`:
 
 ```bash
 python tools/lr2021_waterfall.py COM14 waterfall --seconds 10 --overlap --bw 62500 --plot wf.png

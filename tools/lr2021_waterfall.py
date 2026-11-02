@@ -20,6 +20,9 @@ FRAME = 12 + 256
 def waterfall(s, nseg, seconds, overlap, baud, bw):
     cmd = f'wfrun {nseg} 0 {int(overlap)} {baud}' + (f' {bw}' if bw else '')
     s.reset_input_buffer()
+    # One port reconfiguration mid-stream (the baud): a second one (timeout) right after it
+    # left the CH343 receiving nothing for ~9 s on Windows.
+    s.timeout = 0.05
     s.write((cmd + '\r\n').encode())
     buf, end = b'', time.time() + 5
     while time.time() < end and not (b'WFBIN' in buf and b'\n' in buf[buf.find(b'WFBIN'):]):
@@ -33,20 +36,17 @@ def waterfall(s, nseg, seconds, overlap, baud, bw):
     rate = int(head[2]) if len(head) > 2 else 250000
     freq = int(head[3]) if len(head) > 3 else 0
     if baud:
-        s.baudrate = baud
-        time.sleep(0.05)
-        s.reset_input_buffer()
+        s.baudrate = baud   # the board waits 100 ms before its first frame; frame sync drops the rest
         buf = b''
     else:
         buf = buf[buf.index(b'\n', i) + 1:]
     rows, times, chip, lost, last = [], [], [], 0, None
     stop_at, stopping, end, quiet = time.time() + seconds, False, None, time.time()
-    s.timeout = 0.05
     while True:
         if not stopping and time.time() >= stop_at:
             s.write(b'x')
             stopping, end = True, time.time() + 5
-        d = s.read(65536)
+        d = s.read(4096)   # large reads stall the CH343 driver on Windows for seconds
         if d:
             quiet = time.time()
         buf += d

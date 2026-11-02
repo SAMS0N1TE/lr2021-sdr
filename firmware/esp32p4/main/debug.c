@@ -593,8 +593,14 @@ static int pram_sweep(int argc, char **argv)
     lock();
     int e = pram_ready();
     if(!e) e = h->receive(h->context); /* RSSI follows SetRfFrequency in continuous receive */
-    uint64_t t0 = h->now_us(h->context);
     busy_limit_us = 5000000;
+    if(!e) { /* the first point after entering receive reads garbage (-255.5 dBm): settle on one */
+        const uint8_t p[15] = {1, (uint8_t)(start >> 24), (uint8_t)(start >> 16), (uint8_t)(start >> 8), (uint8_t)start,
+            0, 0, 0, 0, 0, 1, (uint8_t)(dwell >> 8), (uint8_t)dwell, 0, 1};
+        uint8_t r[2];
+        e = raw_cmd(0x012D, p, sizeof(p), r, 2, NULL);
+    }
+    uint64_t t0 = h->now_us(h->context);
     puts("pram sweep: freq_hz,rssi_dbm");
     while(!e && done < total) {
         uint32_t n = total - done > 400 ? 400 : total - done, f = start + done * step;

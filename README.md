@@ -214,6 +214,20 @@ Separate +25 kHz and −15 kHz RF-offset tones verify frequency direction in the
 
 ## Credits and license
 
+### lr2021-re by Alex Beal
+
+A large part of what this repository knows about the LR2021's insides comes from [Alex Beal](https://beala.substack.com) and his [lr2021-re](https://github.com/beala/lr2021-re) project (MIT). He read out and mapped the chip's ROM, found the 32 MHz ARCv2 CPU inside it and worked out how to run new code from its Patch RAM, and wrote it all up in detail. From his work this repository carries:
+
+- the on-chip programs behind `pram` and `wfrun`: a spectrum sweep and a capture + 256-point FFT that run on the radio itself ([debug console](docs/debug-console.md#programs-on-the-radios-own-cpu))
+- the ROM, memory map and register notes ([ROM and memory](docs/rom-and-memory.md))
+- the software LoRa receiver, MeshCore parser and collided-packet recovery tools ([LoRa software receiver](docs/lora-software-receiver.md))
+- the debug console commands, ported from his MeshCore console
+- the source 0 raw route (`raw0b`) in packet type 0x0B
+
+His posts are worth reading in full: [Your node doesn't need a microcontroller](https://beala.substack.com/p/your-node-doesnt-need-a-microcontroller) (a LoRa repeater, scanner and Meshtastic client running on the LR2021 alone), [I designed my own LoRa board](https://beala.substack.com/p/i-designed-my-own-lora-board-with) and [the LR2021 datasheet](https://beala.substack.com/p/the-datasheet-for-the-new-semtech). The copied files keep his copyright and license in [`third_party/lr2021-re`](third_party/lr2021-re/README.md).
+
+### Also
+
 Inspired by [ESP-SDR](https://github.com/ESPARGOS/esp-sdr) and the ESPARGOS team's work exposing raw radio access. No ESP-SDR code is included.
 
 Original LR2021 capture and hardware integration developed for [LakeShark](https://github.com/SAMS0N1TE/LakeShark).
