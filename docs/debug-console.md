@@ -52,6 +52,39 @@ stream 0 4 2000 16         source 0, trigger at 4x, 2 s, 16 KiB before the trigg
 `stream` holds the radio for its whole duration, so the console answers
 nothing until it ends; fetch the ring afterwards with `streamdump`.
 
+## Programs on the radio's own CPU
+
+The LR2021 has an undocumented 32 MHz ARCv2 CPU that runs code from its 4 KB
+Patch RAM. lr2021-re's `pram.bin` (source and notes in
+[`third_party/lr2021-re/firmware/pram`](../third_party/lr2021-re/firmware/pram),
+write-up in
+[pram-custom-commands.md](https://github.com/beala/lr2021-re/blob/main/docs/pram-custom-commands.md))
+is built into the firmware and adds ActivatePram sub-commands: a spectrum
+sweep and a capture + 256-point FFT + dB that run entirely on the chip. This
+firmware never loads Semtech's own patch, so all of PRAM is free.
+
+| Command | What it does |
+| --- | --- |
+| `pram load` | Upload the program to 0x801000, ActivatePram, read it back at 0x101000 and check `hello` |
+| `pram hello` | `pram hello st=0` when the program is loaded (a radio reset clears it) |
+| `pram sweep <start Hz> <stop Hz> <step Hz> [dwell] [avg]` | The chip retunes in continuous receive and sums instant RSSI per point; prints `freq_hz,rssi_dbm` lines, then `pram sweep done` |
+| `wfrun <nseg> [frames] [overlap] [baud] [bw]` | Stream the spectrum the chip computes. `nseg` 1..10 segments averaged; `overlap` 1 (with `nseg` 1) starts the next capture while the chip computes; `baud` switches the UART for the frames; `bw` 31250 or 62500 (I/Q at 4x). `x` stops it |
+
+`pram sweep` and `wfrun` load the program themselves when it is missing, and
+reset the radio afterwards like the other probes. The ESP32-P4 only reads
+256 bytes per frame back: lr2021-re measured 317 frames/s with one segment
+and 464 frames/s overlapped on its nRF52 board. At the console's 115200 baud
+a frame takes 23 ms on the wire, so use `baud`:
+
+```bash
+python tools/lr2021_waterfall.py COM14 waterfall --seconds 10 --overlap --bw 62500 --plot wf.png
+python tools/lr2021_waterfall.py COM14 sweep 902e6 928e6 25e3 --out band.csv --plot band.png
+```
+
+`wfrun` frames are lr2021-re's: `WFBIN <nseg> <rate> <freq>`, then per frame
+A5 5A, sequence (u16 LE), board time in µs (u32 LE), chip time in µs (u32 LE)
+and 256 half-dB bytes in FFT order (bin 0 = DC, 128..255 negative).
+
 ## Differences from lr2021-re
 
 - The commands run on the ESP32-P4 bridge firmware, not on MeshCore, so

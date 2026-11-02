@@ -15,6 +15,7 @@ commands; this copy brings its findings and tools back here.
 | `analysis/` | Opcode table, register fingerprints, JLI map, response lengths, measurement JSON, SIC report data |
 | `docs/` | The upstream write-ups |
 | `firmware/` | The upstream MeshCore debug console headers, for reference |
+| `firmware/pram/` | The Patch RAM program (sweep, on-chip FFT, benchmarks): source and the checked-in `pram.bin` from upstream commit `2a59dc6e0695a4a837aaf8a736265512a3dca5fe` (2026-11-01). The bridge firmware embeds `pram.bin` for `pram` and `wfrun` ([debug console](../../docs/debug-console.md#programs-on-the-radios-own-cpu)). Rebuilding needs upstream's patched ARC GCC (`build.sh`, `docker/`) |
 | `docker/` | ARC binutils image for disassembling a ROM read from your own chip |
 | `logs/` | Gain sweep register dumps and packet status logs |
 

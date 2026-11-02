@@ -19,11 +19,12 @@ static uint32_t ring_len, ring_start;
 static char summary[320];
 static block_stat stats[512];
 static uint32_t stat_count;
+static uint32_t busy_limit_us = 200000; /* longer while a PRAM sweep runs on the chip */
 
 static int frame(uint8_t *b, size_t n)
 {
     lr2021_iq_dev *d = radio_dev();
-    uint64_t end = d->bus.now_us(d->bus.context) + 200000;
+    uint64_t end = d->bus.now_us(d->bus.context) + busy_limit_us;
     for(;;) {
         int busy = d->bus.busy(d->bus.context);
         if(busy < 0) return LR2021_IQ_IO;
@@ -532,6 +533,190 @@ static int undocprobe_cmd(int argc, char **argv)
     return rr != 0;
 }
 
+/* Programs on the radio's own CPU, from lr2021-re (third_party/lr2021-re/firmware/pram). pram.bin
+ * goes into the 4 KB Patch RAM and adds ActivatePram (0x012D) sub-commands: 1 = spectrum sweep,
+ * 2 = hello, 9 = capture + 256-point FFT + dB on the chip. Nothing here loads Semtech's patch, so
+ * all of PRAM is free. A radio reset clears it; the commands below load it again when needed. */
+extern const uint8_t pram_bin_start[] asm("_binary_pram_bin_start");
+extern const uint8_t pram_bin_end[] asm("_binary_pram_bin_end");
+#define PRAM_HOST 0x801000u /* write-only window; reading it stalls the chip */
+#define PRAM_CPU 0x101000u
+#define PRAM_SWEEP_OUT 0x101C80u
+#define PRAM_FFT_DB 0x807B00u
+static uint32_t pram_word(unsigned i)
+{
+    const uint8_t *p = pram_bin_start + 4 * i;
+    size_t left = (size_t)(pram_bin_end - p);
+    uint32_t w = 0;
+    for(unsigned b = 0; b < 4 && b < left; b++) w |= (uint32_t)p[b] << (8 * b);
+    return w;
+}
+static bool pram_hello(void)
+{
+    const uint8_t p[2] = {2, 0xAB};
+    uint8_t r[6] = {0};
+    return !raw_cmd(0x012D, p, 2, r, 6, NULL) && !memcmp(r, "LRC1", 4);
+}
+/* Call with the bus locked. Standby, write the blob, ActivatePram, read it back. */
+static int pram_load(bool verbose)
+{
+    const unsigned words = (unsigned)((pram_bin_end - pram_bin_start + 3) / 4);
+    const uint8_t stby = 0, act = 0;
+    int e = put(0x0128, &stby, 1);
+    for(unsigned i = 0; !e && i < words; i++) e = mem_write(PRAM_HOST + 4 * i, pram_word(i));
+    if(e) { if(verbose) printf("pram: write failed st=%d\n", e); return e; }
+    /* Activate before reading back: pram_check switches the bank mapping first. */
+    e = put(0x012D, &act, 1);
+    unsigned bad = 0;
+    for(unsigned i = 0; !e && i < words; i += 32) {
+        uint32_t w[32];
+        unsigned n = words - i > 32 ? 32 : words - i;
+        e = mem_read(PRAM_CPU + 4 * i, w, n);
+        for(unsigned j = 0; !e && j < n; j++) bad += w[j] != pram_word(i + j);
+    }
+    if(!e && bad) e = LR2021_IQ_DATA;
+    if(!e && !pram_hello()) e = LR2021_IQ_DATA;
+    if(verbose) printf("pram: %u words activate+verify st=%d mismatched=%u\n", words, e, bad);
+    return e;
+}
+static int pram_ready(void) { return pram_hello() ? 0 : pram_load(false); }
+static int pram_sweep(int argc, char **argv)
+{
+    if(argc < 5 || argc > 7) { puts("usage: pram sweep <start Hz> <stop Hz> <step Hz> [dwell 1000] [avg 4]"); return 1; }
+    uint32_t start = strtoul(argv[2], NULL, 0), stop = strtoul(argv[3], NULL, 0), step = strtoul(argv[4], NULL, 0);
+    uint32_t dwell = argc > 5 ? strtoul(argv[5], NULL, 0) : 1000, avg = argc > 6 ? strtoul(argv[6], NULL, 0) : 4;
+    if(!step || stop < start || !avg || avg > 64 || dwell > 65535 || (stop - start) / step >= 20000) {
+        puts("pram sweep: bad range"); return 1;
+    }
+    const lr2021_iq_hal *h = radio_hal();
+    uint32_t total = (stop - start) / step + 1, done = 0;
+    lock();
+    int e = pram_ready();
+    if(!e) e = h->receive(h->context); /* RSSI follows SetRfFrequency in continuous receive */
+    uint64_t t0 = h->now_us(h->context);
+    busy_limit_us = 5000000;
+    puts("pram sweep: freq_hz,rssi_dbm");
+    while(!e && done < total) {
+        uint32_t n = total - done > 400 ? 400 : total - done, f = start + done * step;
+        const uint8_t p[15] = {1, (uint8_t)(f >> 24), (uint8_t)(f >> 16), (uint8_t)(f >> 8), (uint8_t)f,
+            (uint8_t)(step >> 24), (uint8_t)(step >> 16), (uint8_t)(step >> 8), (uint8_t)step,
+            (uint8_t)(n >> 8), (uint8_t)n, (uint8_t)(dwell >> 8), (uint8_t)dwell, (uint8_t)(avg >> 8), (uint8_t)avg};
+        uint8_t r[2];
+        e = raw_cmd(0x012D, p, sizeof(p), r, 2, NULL);
+        uint32_t got = ((uint32_t)r[0] << 8) | r[1], w[32];
+        if(!e && got != n) e = LR2021_IQ_DATA;
+        for(uint32_t i = 0; !e && i < n; i += 64) {
+            uint32_t k = n - i > 64 ? 64 : n - i;
+            e = mem_read(PRAM_SWEEP_OUT + 2 * i, w, (k + 1) / 2);
+            for(uint32_t j = 0; !e && j < k; j++) {
+                uint32_t v = (w[j / 2] >> (16 * (j & 1))) & 0xFFFF;
+                printf("%lu,%.1f\n", (unsigned long)(f + (i + j) * step), -(double)v / (2.0 * avg));
+            }
+        }
+        done += n;
+    }
+    busy_limit_us = 200000;
+    uint32_t ms = (uint32_t)((h->now_us(h->context) - t0) / 1000);
+    int r = recover();
+    unlock();
+    printf("pram sweep done points=%lu ms=%lu error=%d restore=%d\n", (unsigned long)done, (unsigned long)ms, e, r);
+    return e || r;
+}
+static int pram_cmd(int argc, char **argv)
+{
+    const char *what = argc > 1 ? argv[1] : "";
+    if(!strcmp(what, "sweep")) return pram_sweep(argc, argv);
+    if(argc != 2 || (strcmp(what, "load") && strcmp(what, "hello"))) {
+        puts("usage: pram load | pram hello | pram sweep <start Hz> <stop Hz> <step Hz> [dwell] [avg]");
+        return 1;
+    }
+    lock();
+    int e = !strcmp(what, "load") ? pram_load(true) : (pram_hello() ? 0 : LR2021_IQ_DATA);
+    unlock();
+    printf("pram %s st=%d\n", what, e);
+    return e != 0;
+}
+/* wfrun <nseg 1..10> [frames 0=until x] [overlap 0|1] [baud] [bandwidth Hz]: the chip captures raw
+ * I/Q, runs the FFT and returns 256 half-dB bins per frame; this loop only reads them back and
+ * streams them. Same frames as lr2021-re's console: "WFBIN <nseg> <rate> <freq>", then per frame
+ * A5 5A, seq (u16 LE), t_us (u32 LE), chip_us (u32 LE), 256 x u8 half-dB (bin 0 = DC, 128..255
+ * negative); 'x' stops it, then "wfrun done ...". The 115200 console carries ~40 frames/s; with
+ * [baud] the UART switches after the WFBIN line and back after the last frame. */
+static int wfrun_cmd(int argc, char **argv)
+{
+    uint32_t nseg = argc > 1 ? strtoul(argv[1], NULL, 0) : 1, frames = argc > 2 ? strtoul(argv[2], NULL, 0) : 0;
+    uint32_t ov = argc > 3 ? strtoul(argv[3], NULL, 0) : 0, baud = argc > 4 ? strtoul(argv[4], NULL, 0) : 0;
+    uint32_t bw = argc > 5 ? strtoul(argv[5], NULL, 0) : 0;
+    if(argc < 2 || argc > 6 || !nseg || nseg > 10 || ov > 1 || (ov && nseg != 1) || (baud && (baud < 115200 || baud > 6000000)) ||
+       (bw && bw != 31250 && bw != 62500)) {
+        puts("usage: wfrun <nseg 1..10> [frames] [overlap 0|1, nseg 1] [baud] [bandwidth 31250|62500]");
+        return 1;
+    }
+    lr2021_iq_dev *d = radio_dev();
+    if(bw && bw != d->rx.bandwidth_hz) {
+        lr2021_iq_rx rx = d->rx;
+        rx.bandwidth_hz = bw;
+        int e = radio_apply(&rx, NULL);
+        if(e) { printf("wfrun error bandwidth st=%d\n", e); return 1; }
+    }
+    const lr2021_iq_hal *h = radio_hal();
+    void *c = h->context;
+    const uint8_t stby = 0, raw = 0x0B;
+    lock();
+    int fe = h->fast(c, true);
+    int e = pram_ready();
+    if(!e) e = put(0x0128, &stby, 1);
+    if(!e) e = put(0x0207, &raw, 1);
+    if(e) {
+        if(!fe) h->fast(c, false);
+        int r = recover();
+        unlock();
+        printf("wfrun error setup st=%d restore=%d\n", e, r);
+        return 1;
+    }
+    printf("WFBIN %lu %lu %lu\n", (unsigned long)nseg, (unsigned long)(4 * d->rx.bandwidth_hz), (unsigned long)d->rx.frequency_hz);
+    fflush(stdout);
+    uart_wait_tx_done(CONFIG_ESP_CONSOLE_UART_NUM, pdMS_TO_TICKS(1000));
+    if(baud) { uart_set_baudrate(CONFIG_ESP_CONSOLE_UART_NUM, baud); vTaskDelay(pdMS_TO_TICKS(100)); }
+    static uint8_t out[12 + 256];
+    uint32_t n = 0, sum_chip = 0, sum_read = 0, sum_write = 0, w[32];
+    uint8_t rsp[4] = {0};
+    while(!frames || n < frames) {
+        uint8_t ch;
+        if(uart_read_bytes(CONFIG_ESP_CONSOLE_UART_NUM, &ch, 1, 0) == 1 && ch == 'x') break;
+        uint64_t t0 = h->now_us(c);
+        const uint8_t p[3] = {9, (uint8_t)nseg, (uint8_t)ov};
+        e = raw_cmd(0x012D, p, 3, rsp, 4, NULL);
+        uint64_t t1 = h->now_us(c);
+        if(e || !rsp[1]) { if(!e) e = LR2021_IQ_DATA; break; }
+        for(unsigned half = 0; !e && half < 2; half++) {
+            e = mem_read(PRAM_FFT_DB + 128 * half, w, 32);
+            for(unsigned i = 0; i < 128; i++) out[12 + 128 * half + i] = (uint8_t)(w[i / 4] >> (8 * (i & 3)));
+        }
+        if(e) break;
+        uint64_t t2 = h->now_us(c);
+        uint32_t ts = (uint32_t)t0, chip = (uint32_t)(t1 - t0);
+        out[0] = 0xA5; out[1] = 0x5A; out[2] = (uint8_t)n; out[3] = (uint8_t)(n >> 8);
+        memcpy(out + 4, &ts, 4);
+        memcpy(out + 8, &chip, 4);
+        uart_write_bytes(CONFIG_ESP_CONSOLE_UART_NUM, out, sizeof(out));
+        sum_chip += chip; sum_read += (uint32_t)(t2 - t1); sum_write += (uint32_t)(h->now_us(c) - t2);
+        n++;
+        if((n & 255) == 0) vTaskDelay(1);
+    }
+    if(ov) { const uint8_t s[2] = {9, 0}; raw_cmd(0x012D, s, 2, rsp, 0, NULL); } /* stop the capture left running */
+    uart_wait_tx_done(CONFIG_ESP_CONSOLE_UART_NUM, pdMS_TO_TICKS(5000));
+    if(baud) { vTaskDelay(pdMS_TO_TICKS(100)); uart_set_baudrate(CONFIG_ESP_CONSOLE_UART_NUM, CONFIG_ESP_CONSOLE_UART_BAUDRATE); }
+    if(!fe) h->fast(c, false);
+    int r = recover();
+    unlock();
+    if(baud) vTaskDelay(pdMS_TO_TICKS(600)); /* the host switches back after 0.3 s of quiet */
+    if(e) printf("\nwfrun error status=%d seg=%u frames=%lu restore=%d\n", e, rsp[1], (unsigned long)n, r);
+    else printf("\nwfrun done %lu chip_us %lu read_us %lu write_us %lu restore=%d\n", (unsigned long)n,
+                (unsigned long)(n ? sum_chip / n : 0), (unsigned long)(n ? sum_read / n : 0), (unsigned long)(n ? sum_write / n : 0), r);
+    return e || r;
+}
+
 void debug_register(void)
 {
     const esp_console_cmd_t commands[] = {
@@ -550,6 +735,8 @@ void debug_register(void)
         {.command="agcrssi", .help="GetRssiInst against the 0xF301A8 field and the AGC registers: agcrssi [count] [interval_ms]", .func=agcrssi_cmd},
         {.command="pktstatus", .help="Receive LoRa packets, print all 10 GetLoraPacketStatus bytes: pktstatus [s] [Hz] [bw] [sf] [sync] [gain] [preamble]", .func=pktstatus_cmd},
         {.command="undocprobe", .help="Read-only probes of undocumented opcodes 0x0103, 0x0213, 0x023E, 0x023F", .func=undocprobe_cmd},
+        {.command="pram", .help="lr2021-re's on-chip programs in Patch RAM: pram load | hello | sweep <start> <stop> <step Hz> [dwell] [avg]", .func=pram_cmd},
+        {.command="wfrun", .help="Stream the spectrum the chip computes itself: wfrun <nseg> [frames] [overlap] [baud] [bw]; x stops", .func=wfrun_cmd},
     };
     for(unsigned i = 0; i < sizeof(commands) / sizeof(commands[0]); i++)
         ESP_ERROR_CHECK(esp_console_cmd_register(&commands[i]));
