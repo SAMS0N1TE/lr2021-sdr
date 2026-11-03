@@ -10,12 +10,12 @@ goal and would require substantially more reverse engineering.
 
 ## Results on the board (November 2026)
 
-[Alex Beal](https://beala.substack.com) showed how to run new code on the
-LR2021's own 32 MHz ARCv2 CPU from its 4 KB Patch RAM, with a patched ARC GCC,
-an upload and activate sequence, and working programs
+[Alex Beal](https://beala.substack.com)'s project supplies a patched ARC GCC,
+a Patch RAM upload and activate sequence, and working programs for the
+LR2021's internal CPU
 ([lr2021-re](https://github.com/beala/lr2021-re), MIT; his post
 [Your node doesn't need a microcontroller](https://beala.substack.com/p/your-node-doesnt-need-a-microcontroller)).
-Everything below builds on his loader, toolchain and FIFO interrupt handling.
+The results below use his loader, toolchain and FIFO interrupt handling.
 
 Measured on a LilyGO T-Display-P4 with the LR2021, ROM 1.24:
 

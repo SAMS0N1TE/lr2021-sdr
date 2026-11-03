@@ -216,7 +216,7 @@ Separate +25 kHz and −15 kHz RF-offset tones verify frequency direction in the
 
 ### lr2021-re by Alex Beal
 
-A large part of what this repository knows about the LR2021's insides comes from [Alex Beal](https://beala.substack.com) and his [lr2021-re](https://github.com/beala/lr2021-re) project (MIT). He read out and mapped the chip's ROM, found the 32 MHz ARCv2 CPU inside it and worked out how to run new code from its Patch RAM, and wrote it all up in detail. From his work this repository carries:
+[Alex Beal](https://beala.substack.com)'s [lr2021-re](https://github.com/beala/lr2021-re) project (MIT) builds on this repository and adds his own work on the chip's internal CPU and Patch RAM. From his project this repository carries:
 
 - the on-chip programs behind `pram` and `wfrun`: a spectrum sweep and a capture + 256-point FFT that run on the radio itself ([debug console](docs/debug-console.md#programs-on-the-radios-own-cpu))
 - the ROM, memory map and register notes ([ROM and memory](docs/rom-and-memory.md))
