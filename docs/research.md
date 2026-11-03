@@ -7,6 +7,7 @@ Follow the measurements behind the features, or reproduce an experiment.
 | Topic | Report |
 | --- | --- |
 | Capabilities, rates, and implementation overview | [Technical overview](technical-overview.md) |
+| Programs on the radio's own CPU: FFT, sweep, LoRa scan, down-conversion (with Alex Beal's lr2021-re) | [Custom firmware](custom-firmware.md#results-on-the-board-november-2026) |
 | Raw receive commands and sample layout | [RX protocol](protocol.md) |
 | Sustained reception | [Live-streaming results](live-streaming.md) |
 | Tuning range, sample-rate ceiling, gain table, Bluetooth LE engine | [Receive range and gain](../research/rx-range-and-gain/README.md) |

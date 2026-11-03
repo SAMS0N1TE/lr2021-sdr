@@ -8,6 +8,38 @@ or decimation. Its target is a small RAM-resident extension to the ROM, with the
 after reset. A full replacement of the radio firmware is unnecessary for this
 goal and would require substantially more reverse engineering.
 
+## Results on the board (November 2026)
+
+[Alex Beal](https://beala.substack.com) showed how to run new code on the
+LR2021's own 32 MHz ARCv2 CPU from its 4 KB Patch RAM, with a patched ARC GCC,
+an upload and activate sequence, and working programs
+([lr2021-re](https://github.com/beala/lr2021-re), MIT; his post
+[Your node doesn't need a microcontroller](https://beala.substack.com/p/your-node-doesnt-need-a-microcontroller)).
+Everything below builds on his loader, toolchain and FIFO interrupt handling.
+
+Measured on a LilyGO T-Display-P4 with the LR2021, ROM 1.24:
+
+- **On-chip FFT.** His capture and FFT program runs from the bridge console
+  (`pram`, `wfrun`): 349 spectra/s with no gaps. The radio computes the dB
+  spectrum and the host only reads it.
+- **On-chip sweep.** Wide sweeps (US915, 433, full range) retune on the chip.
+  Rows come about 20% faster than host-timed sweeps (109 ms against 134 ms).
+- **Background LoRa scan.** His channel activity scanner covers up to 32
+  channels on one radio. It ran 26,792 CADs in 60 s with no false stops.
+- **On-chip down-conversion.** A new program built with his toolchain mixes
+  by fs/4 and decimates with a CIC2 inside the radio, using his FIFO
+  ping-pong and IRQ 42. At 1 MS/s with decimation by 8, all 125k pairs/s
+  reach the host with 0 overruns. Without it, a host-drained 1 MS/s stream
+  overflows in milliseconds.
+- **What it saves.** FM on a 1 MHz slice narrowed on the chip costs the
+  ESP32-P4 51% and 30% of its two cores, against 73% and 31% for the
+  narrow stream and 90% and 44% for host down-conversion.
+- **Limits.** Readout is capped at about 145k pairs/s of 60-byte capture-mode
+  SPI frames. A CIC3 at 1 MS/s overloads the chip CPU; it fits at 576k.
+  An NRESET clears Patch RAM, so the host uploads again after every reset.
+- **Open.** P25 does not yet decode from the down-converted stream, so it
+  keeps its own narrow capture.
+
 ## Evidence and limits
 
 Semtech's public [patch driver](https://github.com/Lora-net/usp/blob/master/smtc_rac_lib/radio_drivers/lr20xx_driver/src/lr20xx_patch.c)
@@ -179,7 +211,7 @@ or simulator result cannot validate Semtech-specific peripherals.
    sample counts and explicit overrun detection before calling it continuous.
    Only then evaluate on-chip decimation and paired P25 reception quality.
 
-The sources examined supplied no on-chip application SDK or ready-to-use
-custom ARC capture extension. The working [LakeShark FIFO integration](live-streaming.md)
+Alex Beal's lr2021-re now supplies the toolchain and working Patch RAM
+programs; see [Results on the board](#results-on-the-board-november-2026). The working [LakeShark FIFO integration](live-streaming.md)
 does not require that extension. The included [ESP32-P4 capture firmware](../firmware/esp32p4/README.md)
 provides a standalone console for bounded capture tests.
