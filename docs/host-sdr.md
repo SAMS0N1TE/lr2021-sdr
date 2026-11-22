@@ -93,6 +93,7 @@ answers.
 | `spi_hz=16000000` | local | SPI clock |
 | `tcxo=3.3`, `tcxo_ticks=32768` | local | TCXO voltage (`off`, 1.6 ... 3.3) and start-up delay |
 | `rfsw=8:6,10:0` | local | RF switch table, `dio:modes[:pull]`; modes bits standby, RX LF, TX LF, RX HF, TX HF |
+| `ppm=-37.2` | local | reference error, + when fast; crystal modules such as the [Core2021-XF](hardware.md#waveshare-core2021-xf) need it |
 | `sim=tone` or `sim=counter` | simulator | in-process LR2021 model |
 | `tone=154810000` | simulator | RF of the simulated tone |
 | `tx_checked=true` | any | refuse TX bursts outside the measured contract, see [Transmit](#transmit) |

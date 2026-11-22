@@ -11,7 +11,7 @@ uint64_t lr2021_sim_now_us(lr2021_sim *s)
 { return s->clock ? s->clock(s->clock_context) : s->vtime; }
 static void chip_reset(lr2021_sim *s)
 {
-    s->mode=STBY; s->packet_type=0; s->route=0; s->errors=0; s->irq=0;
+    s->mode=STBY; s->packet_type=0; s->route=0; s->errors=0; s->irq=0; s->tcxo_mode=false;
     s->rx_base=RX_DEFAULT_BASE; s->rx_size=RX_DEFAULT_SIZE; s->tx_base=0x6000; s->tx_size=0xE4;
     s->rx_level=s->tx_level=s->tx_head=0; s->rx_flags=s->tx_flags=0;
     s->have_resp=false; s->cmd_status=OK; s->tx_n=0; s->path=s->boost=s->step=0;
@@ -153,8 +153,14 @@ static uint8_t execute(lr2021_sim *s, uint16_t op, const uint8_t *a, size_t n)
     case 0x011D: r[0]=(uint8_t)(s->tx_level>>8); r[1]=(uint8_t)s->tx_level; respond(s,r,2); return OK;
     case 0x011E: s->rx_level=0; return OK;
     case 0x011F: s->tx_level=s->tx_head=0; return OK;
-    case 0x0120: return n==5 && a[0]<=7 && idle ? OK : FAIL;
-    case 0x0121: case 0x0122: case 0x0206: return n==1 ? OK : PERR;
+    case 0x0120: if(n!=5 || a[0]>7 || !idle)return FAIL; s->tcxo_mode=true; return OK;
+    case 0x0122:
+        if(n!=1)return PERR;
+        if(s->reference && !(s->reference==LR2021_SIM_REF_XTAL && !s->tcxo_mode) &&
+           !(s->reference==LR2021_SIM_REF_TCXO && s->tcxo_mode))
+            s->errors|=LR2021_IQ_ERR_HF_XOSC|LR2021_IQ_ERR_PLL_LOCK;
+        return OK;
+    case 0x0121: case 0x0206: return n==1 ? OK : PERR;
     case 0x0123: return n==6 && idle ? OK : FAIL;
     case 0x0128: s->mode=STBY; return OK;
     case 0x0105: {

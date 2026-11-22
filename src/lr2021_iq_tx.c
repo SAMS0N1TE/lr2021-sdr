@@ -66,7 +66,7 @@ static int put(const lr2021_iq_hal *h, uint16_t op, const uint8_t *a, size_t n)
 { return h->write(h->context,op,a,n); }
 static int setup(const lr2021_iq_hal *h, const lr2021_iq_board *b, const lr2021_iq_tx *t, unsigned n)
 {
-    const uint32_t hz=t->frequency_hz, rate=t->rate_hz;
+    const uint32_t hz=b?lr2021_iq_correct_hz(t->frequency_hz,b->freq_ppb):t->frequency_hz, rate=t->rate_hz;
     const unsigned bytes=2*n;
     const uint8_t type=0x0A; /* OOK */
     const uint8_t freq[4]={(uint8_t)(hz>>24),(uint8_t)(hz>>16),(uint8_t)(hz>>8),(uint8_t)hz};

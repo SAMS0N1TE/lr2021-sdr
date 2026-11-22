@@ -12,7 +12,7 @@ int lrh_parse_board(const lr2021_host_args *a, lr2021_iq_board *b)
 {
     static const char *volts[]={"1.6","1.7","1.8","2.2","2.4","2.7","3.0","3.3"};
     memset(b,0,sizeof(*b));
-    b->tcxo_ticks=a->tcxo_ticks;
+    b->tcxo_ticks=a->tcxo_ticks; b->freq_ppb=a->freq_ppb;
     if(a->tcxo[0] && strcmp(a->tcxo,"off")) {
         unsigned i=0;
         while(i<8 && strcmp(a->tcxo,volts[i]))i++;

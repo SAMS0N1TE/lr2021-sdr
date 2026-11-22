@@ -113,6 +113,7 @@ pub struct lr2021_iq_board {
     pub tcxo: u8, pub tcxo_voltage: u8, pub rfsw_count: u8,
     pub tcxo_ticks: u32,
     pub rfsw: [lr2021_iq_rfsw; 6],
+    pub freq_ppb: i32,
 }
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]

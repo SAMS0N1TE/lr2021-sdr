@@ -68,6 +68,7 @@ int lr2021_host_args_set(lr2021_host_args *a, const char *k, const char *v)
     if(!strcmp(k,"gpiochip"))return copy(a->gpiochip,sizeof(a->gpiochip),v);
     if(!strcmp(k,"tcxo"))return copy(a->tcxo,sizeof(a->tcxo),v);
     if(!strcmp(k,"rfsw"))return copy(a->rfsw,sizeof(a->rfsw),v);
+    if(!strcmp(k,"ppm"))return lr2021_iq_parse_ppm(v,&a->freq_ppb)?-1:0;
     if(!strcmp(k,"format")) {
         if(!strcmp(v,"cs16")){ a->format=LR2021_BRIDGE_CS16; return 0; }
         if(!strcmp(v,"cs12")){ a->format=LR2021_BRIDGE_CS12; return 0; }

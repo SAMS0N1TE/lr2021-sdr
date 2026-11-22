@@ -221,6 +221,40 @@ int main(void)
     /* RX after TX resumes the saved profile. */
     memset(&k,0,sizeof(k)); s=(lr2021_iq_session){20,1024,NULL,NULL,0,0,0,NULL,0,0,0,NULL};
     CHECK(!lr2021_iq_stream_session(&dev.hal,&s,count,&k,&r) && !k.gaps && k.pairs>2000);
-    puts("device, session, live gain, TX burst and recovery tests passed");
+
+    /* Reference correction: a crystal 37.2 ppm slow is programmed 33873 Hz high
+     * at 910.525 MHz; the saved and reported frequency stay nominal. */
+    int32_t ppb=1;
+    CHECK(lr2021_iq_correct_hz(910525000u,-37200)==910558873u && lr2021_iq_correct_hz(915000000u,12345)==914988704u);
+    CHECK(lr2021_iq_correct_hz(915000000u,0)==915000000u && lr2021_iq_correct_hz(915000000u,100001)==915000000u);
+    CHECK(!lr2021_iq_parse_ppm("-37.2",&ppb) && ppb==-37200 && !lr2021_iq_parse_ppm("+3",&ppb) && ppb==3000);
+    CHECK(!lr2021_iq_parse_ppm("0.125",&ppb) && ppb==125 && !lr2021_iq_parse_ppm("-100",&ppb) && ppb==-100000);
+    CHECK(!lr2021_iq_parse_ppm(".5",&ppb) && ppb==500 && !lr2021_iq_parse_ppm("12.",&ppb) && ppb==12000);
+    CHECK(lr2021_iq_parse_ppm("100.001",&ppb) && lr2021_iq_parse_ppm("1.2345",&ppb) && lr2021_iq_parse_ppm("",&ppb));
+    CHECK(lr2021_iq_parse_ppm("-",&ppb) && lr2021_iq_parse_ppm("1e3",&ppb) && lr2021_iq_parse_ppm("1x",&ppb));
+    static lr2021_sim xs; static lr2021_iq_dev xd;
+    lr2021_sim_init(&xs); xs.reference=LR2021_SIM_REF_XTAL;
+    lr2021_iq_bus xbus=lr2021_sim_bus(&xs);
+    lr2021_iq_board crystal={.tcxo=0,.tcxo_voltage=7,.tcxo_ticks=32768,.freq_ppb=-37200};
+    lr2021_iq_rx lora={910525000,62500,0,0,LR2021_IQ_PATH_AUTO,0,0,0};
+    CHECK(!lr2021_iq_dev_open(&xd,&xbus,&crystal,&lora) && xs.freq==910558873u && !xd.errors);
+    CHECK(xd.rx.frequency_hz==910525000u && xd.profile.frequency_hz==910525000u && !xd.xtal_fallback);
+    CHECK(xs.resets==1 && !xs.tcxo_mode);
+
+    /* TCXO asked for on a crystal module: one more reset, then the crystal. */
+    lr2021_sim_init(&xs); xs.reference=LR2021_SIM_REF_XTAL;
+    crystal.tcxo=1;
+    CHECK(!lr2021_iq_dev_open(&xd,&xbus,&crystal,&lora) && xd.xtal_fallback && !xd.board.tcxo);
+    CHECK(xs.resets==2 && !xs.tcxo_mode && !xd.errors && xd.profile.configured);
+    CHECK(!xd.hal.reset(xd.hal.context) && xs.resets==3 && !xs.tcxo_mode); /* later resets go straight to it */
+    /* A TCXO module keeps TCXO mode with one reset. */
+    lr2021_sim_init(&xs); xs.reference=LR2021_SIM_REF_TCXO;
+    CHECK(!lr2021_iq_dev_open(&xd,&xbus,&crystal,&lora) && !xd.xtal_fallback && xd.board.tcxo);
+    CHECK(xs.resets==1 && xs.tcxo_mode);
+    /* Neither starts: back to TCXO as configured. */
+    lr2021_sim_init(&xs); xs.reference=LR2021_SIM_REF_NONE;
+    lr2021_iq_dev_open(&xd,&xbus,&crystal,&lora);
+    CHECK(!xd.xtal_fallback && xd.board.tcxo && xs.resets==3 && xs.tcxo_mode);
+    puts("device, session, live gain, TX burst, recovery, clock fallback and ppm tests passed");
     return 0;
 }

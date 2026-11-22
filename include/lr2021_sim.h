@@ -16,6 +16,7 @@ extern "C" {
  * calibration quality or the SRAM capture route. Not thread-safe except
  * lr2021_sim_now_us in real-time mode. */
 enum { LR2021_SIM_COUNTER=0, LR2021_SIM_TONE=1 };
+enum { LR2021_SIM_REF_ANY=0, LR2021_SIM_REF_XTAL=1, LR2021_SIM_REF_TCXO=2, LR2021_SIM_REF_NONE=3 };
 typedef struct {
     /* clock == NULL selects virtual time: SPI bytes and sleeps advance it. */
     uint64_t (*clock)(void *);
@@ -33,8 +34,12 @@ typedef struct {
     bool stall_tolerant;
     /* Produce RX data at this percentage of the nominal rate (0 = 100). */
     unsigned rate_percent;
+    /* Fitted reference: LR2021_SIM_REF_ANY starts in either mode, NONE in
+     * neither. Calibrate in a mode that does not start sets HF_XOSC_START and
+     * PLL_LOCK. */
+    uint8_t reference;
     /* chip */
-    bool in_reset, reset_seen;
+    bool in_reset, reset_seen, tcxo_mode;
     uint8_t mode, cmd_status, packet_type, path, boost, step, lora_bw, route, route_code;
     uint32_t route_rate;
     uint16_t errors;

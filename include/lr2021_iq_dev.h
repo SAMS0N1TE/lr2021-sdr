@@ -17,6 +17,7 @@ extern "C" {
 #define LR2021_IQ_MAX_HZ 2740000000u
 #define LR2021_IQ_HF_HZ 1500000000u
 #define LR2021_IQ_RFSW_MAX 6
+#define LR2021_IQ_ERR_HF_XOSC 0x0001u  /* 32 MHz reference did not start */
 #define LR2021_IQ_ERR_PLL_LOCK 0x0004u
 #define LR2021_IQ_ERR_IMG_CAL 0x0080u
 enum { LR2021_IQ_PATH_LF=0, LR2021_IQ_PATH_HF=1, LR2021_IQ_PATH_AUTO=2 };
@@ -24,10 +25,16 @@ enum { LR2021_IQ_PATH_LF=0, LR2021_IQ_PATH_HF=1, LR2021_IQ_PATH_AUTO=2 };
 /* modes: bit0 standby, bit1 RX LF, bit2 TX LF, bit3 RX HF, bit4 TX HF.
  * pull: 0 none, 1 down, 2 up, 3 auto (SetDioFunction / SetDioRfSwitchConfig). */
 typedef struct { uint8_t dio, modes, pull; } lr2021_iq_rfsw;
+/* tcxo 0 runs the chip on a crystal (Waveshare Core2021-XF). freq_ppb is the
+ * measured error of the 32 MHz reference, + when it runs fast; every RX and TX
+ * frequency is programmed as hz / (1 + freq_ppb * 1e-9), within
+ * +-LR2021_IQ_FREQ_PPB_MAX. Crystal modules need it on narrow LoRa. */
+#define LR2021_IQ_FREQ_PPB_MAX 100000
 typedef struct {
     uint8_t tcxo, tcxo_voltage, rfsw_count; /* voltage code 0..7 */
     uint32_t tcxo_ticks;                    /* startup delay, 32 MHz periods */
     lr2021_iq_rfsw rfsw[LR2021_IQ_RFSW_MAX];
+    int32_t freq_ppb;
 } lr2021_iq_board;
 /* route 0: LoRa source 2, IQ16 at 4 x bandwidth (BW 31250, 62500, 125000 or
  * 250000 Hz). Routes 1, 2, 3: sources 0, 1 and 6 from an FSK setup whose RX
@@ -63,6 +70,7 @@ typedef struct {
     lr2021_iq_hal hal;
     uint16_t errors;           /* GetErrors after the last configuration */
     bool bus_owned;
+    bool xtal_fallback;        /* TCXO asked for, none started: running on the crystal */
 } lr2021_iq_dev;
 
 /* Nominal source-2 complex pairs/s = 4 x LoRa bandwidth for the four measured
@@ -81,9 +89,18 @@ unsigned lr2021_iq_rx_pair_bytes(const lr2021_iq_rx *);
 unsigned lr2021_iq_path(uint32_t hz, unsigned path);
 int lr2021_iq_rx_check(const lr2021_iq_rx *);
 const char *lr2021_iq_strerror(int);
+/* Synthesizer setting that puts hz on air with a reference ppb fast, rounded
+ * to the nearest hertz; hz unchanged for 0 or out-of-range ppb. */
+uint32_t lr2021_iq_correct_hz(uint32_t hz, int32_t ppb);
+/* "-37.2", "+3", "0": ppm with up to three decimals, into ppb. 0 or
+ * LR2021_IQ_ARGUMENT (also outside +-LR2021_IQ_FREQ_PPB_MAX). */
+int lr2021_iq_parse_ppm(const char *, int32_t *ppb);
 
 /* Command helpers on any HAL. setup runs after a hardware reset: version check
  * (ROM 1.24 only), standby, ClearErrors, TCXO, LDO, fallback and Calibrate.
+ * The device reset (lr2021_iq_dev) adds a clock check: when TCXO mode is set
+ * and the reference does not start (HF_XOSC_START in GetErrors), it resets
+ * again on the crystal, and goes back to TCXO only if the crystal fails too.
  * configure applies a receive configuration and fails on any radio error
  * except IMG_CAL, which is reported in *errors. */
 int lr2021_iq_setup(const lr2021_iq_hal *, const lr2021_iq_board *, unsigned *major, unsigned *minor);

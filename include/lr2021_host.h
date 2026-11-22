@@ -32,6 +32,7 @@ typedef struct {
     char tcxo[8];               /* off, 1.6 .. 3.3 */
     unsigned tcxo_ticks;
     char rfsw[96];              /* dio:modes[:pull],... see lr2021_iq_rfsw */
+    int32_t freq_ppb;           /* ppm=-37.2: reference error, see lr2021_iq_board */
     /* simulator */
     int sim_pattern;            /* 0 counter, 1 tone */
     uint32_t sim_tone_hz;
@@ -50,7 +51,7 @@ typedef struct lr2021_host lr2021_host;
 void lr2021_host_args_init(lr2021_host_args *);
 /* key=value setter shared by SoapySDR kwargs and the Rust crate. Keys:
  * serial, baud, boot_ms, host, port, spidev, gpiochip, reset, busy, spi_hz,
- * tcxo, tcxo_ticks, rfsw, sim (counter|tone), tone, timeout_ms, format
+ * tcxo, tcxo_ticks, rfsw, ppm, sim (counter|tone), tone, timeout_ms, format
  * (cs16|cs12). Unknown keys
  * return 1 (ignored), bad values -1. */
 int lr2021_host_args_set(lr2021_host_args *, const char *key, const char *value);

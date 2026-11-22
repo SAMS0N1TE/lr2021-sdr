@@ -42,6 +42,32 @@ const char *lr2021_iq_strerror(int e)
     }
 }
 
+uint32_t lr2021_iq_correct_hz(uint32_t hz, int32_t ppb)
+{
+    if(!ppb || ppb>LR2021_IQ_FREQ_PPB_MAX || ppb<-LR2021_IQ_FREQ_PPB_MAX)return hz;
+    const int64_t den=1000000000ll+ppb, num=(int64_t)hz*1000000000ll;
+    return (uint32_t)((num+den/2)/den);
+}
+int lr2021_iq_parse_ppm(const char *s, int32_t *ppb)
+{
+    if(!s || !ppb)return LR2021_IQ_ARGUMENT;
+    bool neg=false; unsigned digits=0; int32_t v=0;
+    if(*s=='+' || *s=='-')neg=*s++=='-';
+    for(; *s>='0' && *s<='9'; s++, digits++) {
+        v=v*10+(*s-'0');
+        if(v>LR2021_IQ_FREQ_PPB_MAX/1000)return LR2021_IQ_ARGUMENT;
+    }
+    v*=1000;
+    if(*s=='.')
+        for(int32_t scale=100; *++s>='0' && *s<='9'; scale/=10, digits++) {
+            if(!scale)return LR2021_IQ_ARGUMENT;
+            v+=(*s-'0')*scale;
+        }
+    if(*s || !digits || v>LR2021_IQ_FREQ_PPB_MAX)return LR2021_IQ_ARGUMENT;
+    *ppb=neg?-v:v;
+    return 0;
+}
+
 static int put(const lr2021_iq_hal *h, uint16_t op, const uint8_t *a, size_t n)
 { return h->write(h->context,op,a,n); }
 int lr2021_iq_setup(const lr2021_iq_hal *h, const lr2021_iq_board *b,
@@ -197,9 +223,8 @@ static int receive(void *ctx)
     if(!e)d->profile.receiving=true;
     return e;
 }
-static int reset(void *ctx)
+static int reset_once(lr2021_iq_dev *d)
 {
-    lr2021_iq_dev *d=ctx;
     d->profile.configured=false; d->profile.receiving=false;
     int e=d->bus.reset(d->bus.context,true);
     d->bus.sleep_us(d->bus.context,5000);
@@ -211,11 +236,36 @@ static int reset(void *ctx)
     d->profile.fw_major=major; d->profile.fw_minor=minor; d->profile.lr2021=major==1;
     return e;
 }
+/* LR2021_IQ_DATA when setup failed on the radio or left HF_XOSC_START set. */
+static int clock_check(lr2021_iq_dev *d, int e)
+{
+    uint8_t err[2]={0};
+    if(!e)e=read_cmd(d,0x0110,err,2);
+    return !e && (err[1]&LR2021_IQ_ERR_HF_XOSC) ? LR2021_IQ_DATA : e;
+}
+static int reset(void *ctx)
+{
+    lr2021_iq_dev *d=ctx;
+    int e=reset_once(d);
+    if(!d->board.tcxo)return e;
+    e=clock_check(d,e);
+    if(e!=LR2021_IQ_DATA)return e;
+    /* TCXO mode on a crystal module (Waveshare Core2021-XF) fails to start the
+     * reference. Reset and run on the crystal; if that fails as well, the TCXO
+     * was only slow, so go back to it. */
+    d->board.tcxo=0;
+    e=clock_check(d,reset_once(d));
+    if(e!=LR2021_IQ_DATA) { d->xtal_fallback=!e; return e; }
+    d->board.tcxo=1;
+    return reset_once(d);
+}
 static int configure(lr2021_iq_dev *d, const lr2021_iq_rx *c)
 {
     d->profile.configured=false;
+    lr2021_iq_rx tuned=*c;
+    tuned.frequency_hz=lr2021_iq_correct_hz(c->frequency_hz,d->board.freq_ppb);
     int e=lr2021_iq_board_rfsw(&d->hal,&d->board);
-    if(!e)e=lr2021_iq_configure(&d->hal,c,&d->errors);
+    if(!e)e=lr2021_iq_configure(&d->hal,&tuned,&d->errors);
     if(!e) {
         d->rx=*c;
         lr2021_iq_profile *p=&d->profile;

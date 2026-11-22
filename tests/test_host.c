@@ -133,6 +133,8 @@ int main(void)
     CHECK(!lr2021_host_args_set(&a,"rfsw","6:0,7:0:2,8:2,10:0") && !lrh_parse_board(&a,&b) && b.rfsw_count==4);
     CHECK(!lr2021_host_args_set(&a,"rfsw","4:0") && lrh_parse_board(&a,&b));
     CHECK(!lr2021_host_args_set(&a,"tcxo","3.3") && !lr2021_host_args_set(&a,"rfsw","") && !lrh_parse_board(&a,&b) && b.tcxo_voltage==7);
+    CHECK(!b.freq_ppb && lr2021_host_args_set(&a,"ppm","150")==-1 && !lr2021_host_args_set(&a,"ppm","-37.2"));
+    CHECK(!lrh_parse_board(&a,&b) && b.freq_ppb==-37200 && !lr2021_host_args_set(&a,"ppm","0"));
     lr2021_host *h=lr2021_host_open(&a,err,sizeof(err));
     if(!h)fprintf(stderr,"%s\n",err);
     CHECK(h && lr2021_host_backend(h)==LR2021_HOST_SIM);
