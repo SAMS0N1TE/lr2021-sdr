@@ -82,3 +82,25 @@ config LRIQ_FW_VERSION
     string "Firmware version reported in the bridge HELLO"
     default "0.3.0"
 endmenu
+
+# esp_hosted 3.x (registry, from 2026-11-05) gates its USB dependencies on
+# these options, compared with 1. esp_wifi_remote accepts any esp_hosted,
+# so when the component manager fetches esp_hosted's versions it reads the
+# 3.x rules, finds the options in no Kconfig and stops the build ("Missing
+# required kconfig option after retry"), although main/idf_component.yml
+# pins 2.12.9. Defined here as 0, the rules are false. Remove them when
+# moving to esp_hosted 3.x, which defines its own.
+menu "esp_hosted 3.x dependency switches (unused with 2.12.9)"
+    config ESP_HOSTED_HOST_USB_CDC_ACM_MANIFEST
+        int "esp_hosted 3.x: pull in usb_host_cdc_acm"
+        default 0
+    config ESP_HOSTED_HOST_USB_CHERRYUSB_MANIFEST
+        int "esp_hosted 3.x: pull in cherryusb"
+        default 0
+    config ESP_HOSTED_HOST_USB_RNDIS_MANIFEST
+        int "esp_hosted 3.x: pull in iot_usbh_rndis"
+        default 0
+    config ESP_HOSTED_CP_TINYUSB_MANIFEST
+        int "esp_hosted 3.x: pull in esp_tinyusb"
+        default 0
+endmenu
