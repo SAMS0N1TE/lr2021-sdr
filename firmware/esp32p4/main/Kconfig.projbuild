@@ -56,6 +56,13 @@ config LRIQ_TCXO_TICKS
     int "TCXO startup delay in 32 MHz ticks"
     range 0 2147483647
     default 32768
+config LRIQ_FREQ_PPB
+    int "Reference frequency correction in ppb (+ when the 32 MHz reference runs fast)"
+    range -100000 100000
+    default 0
+    help
+        Crystal modules such as the Waveshare Core2021-XF need a per-unit value.
+        Also set at run time with `board set ppm`.
 config LRIQ_RFSW
     bool "Use LilyGO LR2021 DIO6/7/8/10 RF switch table"
     default y

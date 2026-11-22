@@ -14,10 +14,15 @@ typedef struct {
     uint8_t tcxo, tcxo_voltage, rfsw_count;
     uint32_t tcxo_ticks;
     board_rfsw rfsw[BOARD_RFSW_MAX];
+    int32_t freq_ppb; /* reference error, + when fast; added in NVS version 2 */
 } board_profile;
 typedef int (*board_write)(void *, uint16_t, const uint8_t *, size_t);
+/* Saved profile sizes: version 1 ends before freq_ppb. */
+#define BOARD_PROFILE_V1_SIZE offsetof(board_profile, freq_ppb)
 
 void board_profile_defaults(board_profile *p);
+/* "lilygo" or "core2021-xf"; the frequency correction is kept. */
+const char *board_profile_preset(board_profile *p, const char *name);
 const char *board_profile_validate(const board_profile *p, int uart_tx, int uart_rx);
 const char *board_profile_edit(board_profile *p, int argc, char **argv);
 int board_profile_tcxo(const board_profile *p, board_write write, void *ctx);

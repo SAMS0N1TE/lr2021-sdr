@@ -19,7 +19,9 @@
 #define CONFIG_LRIQ_TCXO_VOLTAGE 7
 #define CONFIG_LRIQ_TCXO_TICKS 32768
 #define CONFIG_LRIQ_RFSW 1
+#define CONFIG_LRIQ_FREQ_PPB 0
 #endif
+#include "lr2021_iq_dev.h"
 
 void board_profile_defaults(board_profile *p)
 {
@@ -48,6 +50,28 @@ void board_profile_defaults(board_profile *p)
     p->rfsw[0]=(board_rfsw){6,0x08,3}; p->rfsw[1]=(board_rfsw){7,0x10,3};
     p->rfsw[2]=(board_rfsw){8,0x06,3}; p->rfsw[3]=(board_rfsw){10,0x18,3};
 #endif
+    p->freq_ppb=CONFIG_LRIQ_FREQ_PPB;
+}
+const char *board_profile_preset(board_profile *p, const char *name)
+{
+    const bool lilygo=!strcmp(name,"lilygo");
+    if(!lilygo && strcmp(name,"core2021-xf")) return "preset: lilygo or core2021-xf";
+    const int32_t ppb=p->freq_ppb;
+    memset(p,0,sizeof(*p));
+    p->irq=p->irq_dio=-1; p->sda=7; p->scl=8;
+    p->tcxo_voltage=7; p->tcxo_ticks=32768; p->freq_ppb=ppb;
+    if(lilygo) {
+        p->xl9535=1; p->reset=5; p->busy=6;
+        p->sclk=2; p->mosi=3; p->miso=4; p->cs=24; p->tcxo=1; p->rfsw_count=4;
+        p->rfsw[0]=(board_rfsw){6,0x08,3}; p->rfsw[1]=(board_rfsw){7,0x10,3};
+        p->rfsw[2]=(board_rfsw){8,0x06,3}; p->rfsw[3]=(board_rfsw){10,0x18,3};
+    } else {
+        /* Waveshare Core2021-XF on an ESP32-P4-NANO: 32 MHz crystal, no TCXO,
+         * IRQ not wired (polled over SPI). The module has no RF switch: each
+         * band has its own antenna pad behind a passive match, so no table. */
+        p->reset=23; p->busy=5; p->sclk=21; p->mosi=22; p->miso=4; p->cs=20;
+    }
+    return NULL;
 }
 static const char *gpio_reason(int pin, int tx, int rx)
 {
@@ -80,6 +104,8 @@ const char *board_profile_validate(const board_profile *p, int tx, int rx)
         for(unsigned j=0;j<i;j++) if(pins[i]==pins[j]) return "GPIO is used by another board signal";
     }
     if(p->tcxo_voltage>7) return "TCXO voltage code must be 0..7";
+    if(p->freq_ppb>LR2021_IQ_FREQ_PPB_MAX || p->freq_ppb<-LR2021_IQ_FREQ_PPB_MAX)
+        return "frequency correction must be -100..100 ppm";
     if(p->rfsw_count>BOARD_RFSW_MAX) return "RF switch table allows up to 6 entries";
     for(unsigned i=0;i<p->rfsw_count;i++) {
         const board_rfsw *r=&p->rfsw[i];
@@ -129,7 +155,14 @@ const char *board_profile_edit(board_profile *p, int argc, char **v)
         if(i==p->rfsw_count) p->rfsw_count++;
         return NULL;
     }
-    if(argc<3 || strcmp(v[0],"set")) return "usage: board [set|rfsw|save|default]";
+    if(argc==2 && !strcmp(v[0],"preset")) return board_profile_preset(p,v[1]);
+    if(argc<3 || strcmp(v[0],"set")) return "usage: board [set|rfsw|preset|save|default]";
+    if(!strcmp(v[1],"ppm")) {
+        int32_t ppb;
+        if(argc!=3 || lr2021_iq_parse_ppm(v[2],&ppb))
+            return "usage: board set ppm <-100..100>, up to 3 decimals, + when the reference runs fast";
+        p->freq_ppb=ppb; return NULL;
+    }
     if(!strcmp(v[1],"reset")) {
         if(argc==3 && !strcmp(v[2],"xl9535")) {
             p->xl9535=1; p->reset_high=0; return NULL;

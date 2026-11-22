@@ -183,9 +183,11 @@ int radio_info(void)
     if(!e) e = dev.hal.read(&dev, 0x0110, err, 2);
     bus_unlock(NULL);
     if(!e) printf("LR2021 ROM %u.%u frequency=%lu bandwidth=%lu gain=%u boost=%u path=%u configured=%d "
-        "errors=%02X%02X spi_khz=%d\n", v[0], v[1], (unsigned long)dev.rx.frequency_hz,
+        "errors=%02X%02X spi_khz=%d clock=%s ppb=%ld\n", v[0], v[1], (unsigned long)dev.rx.frequency_hz,
         (unsigned long)dev.rx.bandwidth_hz, dev.rx.gain_step, dev.rx.boost, dev.rx.path,
-        dev.profile.configured, err[0], err[1], spi_hz / 1000);
+        dev.profile.configured, err[0], err[1], spi_hz / 1000,
+        dev.board.tcxo ? "tcxo" : dev.xtal_fallback ? "crystal (TCXO did not start)" : "crystal",
+        (long)dev.board.freq_ppb);
     return e;
 }
 int radio_init(void)
@@ -227,7 +229,7 @@ int radio_init(void)
     if(!e) e = add_device(spi_hz);
     if(e) return e;
     chip_board = (lr2021_iq_board){.tcxo=board->tcxo, .tcxo_voltage=board->tcxo_voltage,
-        .tcxo_ticks=board->tcxo_ticks, .rfsw_count=board->rfsw_count};
+        .tcxo_ticks=board->tcxo_ticks, .rfsw_count=board->rfsw_count, .freq_ppb=board->freq_ppb};
     for(unsigned i = 0; i < board->rfsw_count && i < LR2021_IQ_RFSW_MAX; i++)
         chip_board.rfsw[i] = (lr2021_iq_rfsw){board->rfsw[i].dio, board->rfsw[i].modes, board->rfsw[i].pull};
     const lr2021_iq_bus bus = {.transfer=bus_transfer, .busy=bus_busy, .reset=bus_reset,

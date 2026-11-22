@@ -1,5 +1,6 @@
 #include "board.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "sdkconfig.h"
 #include "nvs.h"
@@ -33,11 +34,14 @@ int board_load(void)
     else if(!e) {
         uint32_t version=0;
         board_profile saved;
+        memset(&saved,0,sizeof(saved));
         size_t n=sizeof(saved);
         e=nvs_get_u32(h,"version",&version);
-        if(!e && version!=1) e=ESP_ERR_INVALID_VERSION;
+        if(!e && version!=1 && version!=2) e=ESP_ERR_INVALID_VERSION;
         if(!e) e=nvs_get_blob(h,"profile",&saved,&n);
-        if(!e && n!=sizeof(saved)) e=ESP_ERR_INVALID_SIZE;
+        /* Version 1 has no frequency correction: it loads as 0 ppm. */
+        if(!e && n!=(version==1?BOARD_PROFILE_V1_SIZE:sizeof(saved))) e=ESP_ERR_INVALID_SIZE;
+        if(!e && version==1) saved.freq_ppb=0;
         if(!e) {
             const char *reason=validate(&saved);
             if(reason) { printf("board: saved profile refused: %s\n",reason); e=ESP_ERR_INVALID_ARG; }
@@ -62,8 +66,9 @@ static void show(void)
     if(p->irq<0) puts("irq none");
     else printf("irq gpio %d dio %d (reserved; capture uses polling)\n",p->irq,p->irq_dio);
     static const char *volts[]={"1.6","1.7","1.8","2.2","2.4","2.7","3.0","3.3"};
-    printf("tcxo %s voltage_code %u ticks %lu\n",p->tcxo?volts[p->tcxo_voltage]:"off",
-        p->tcxo_voltage,(unsigned long)p->tcxo_ticks);
+    printf("tcxo %s voltage_code %u ticks %lu%s\n",p->tcxo?volts[p->tcxo_voltage]:"off",
+        p->tcxo_voltage,(unsigned long)p->tcxo_ticks,p->tcxo?"":" (crystal)");
+    printf("ppm %s%ld.%03ld\n",p->freq_ppb<0?"-":"+",labs((long)p->freq_ppb)/1000,labs((long)p->freq_ppb)%1000);
     puts("rfsw dio standby rx_lf tx_lf rx_hf tx_hf pull");
     for(unsigned i=0;i<p->rfsw_count;i++) {
         const board_rfsw *r=&p->rfsw[i];
@@ -82,7 +87,7 @@ int board_command(int argc, char **argv)
         nvs_handle_t h;
         int e=nvs_open("board",NVS_READWRITE,&h);
         if(!e) {
-            e=nvs_set_u32(h,"version",1);
+            e=nvs_set_u32(h,"version",2);
             if(!e) e=nvs_set_blob(h,"profile",&pending,sizeof(pending));
             if(!e) e=nvs_commit(h);
             nvs_close(h);

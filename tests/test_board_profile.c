@@ -86,6 +86,24 @@ int main(void)
     board_profile_defaults(&p); p.tcxo_voltage=8; CHECK(board_profile_validate(&p,37,38));
     board_profile_defaults(&p); p.rfsw_count=7; CHECK(board_profile_validate(&p,37,38));
     board_profile_defaults(&p); p.rfsw[0].dio=12; CHECK(board_profile_validate(&p,37,38));
-    puts("board defaults match legacy command bytes; edits and pin guards passed");
+
+    /* Core2021-XF preset on the P4-NANO: crystal, polled IRQ, no RF switch
+     * table, no TCXO command; the correction survives presets. */
+    board_profile_defaults(&p); CHECK(!p.freq_ppb);
+    char *ppm[]={"set","ppm","-37.2"}; CHECK(!edit(&p,3,ppm) && p.freq_ppb==-37200);
+    char *xf[]={"preset","core2021-xf"}; CHECK(!edit(&p,2,xf));
+    CHECK(!p.xl9535 && !p.reset_high && p.reset==23 && p.busy==5 && p.miso==4 && p.cs==20);
+    CHECK(p.sclk==21 && p.mosi==22 && p.irq==-1 && p.irq_dio==-1 && !p.tcxo && !p.rfsw_count);
+    CHECK(p.freq_ppb==-37200);
+    t=(trace){0};
+    CHECK(!board_profile_tcxo(&p,write_cmd,&t) && !board_profile_rfsw(&p,write_cmd,&t) && !t.n);
+    char *lily[]={"preset","lilygo"}; CHECK(!edit(&p,2,lily) && p.freq_ppb==-37200);
+    board_profile stock; board_profile_defaults(&stock); stock.freq_ppb=-37200;
+    CHECK(!memcmp(&p,&stock,sizeof(p)));
+    char *bad[]={"preset","nano"}; CHECK(edit(&p,2,bad));
+    ppm[2]="100.5"; CHECK(edit(&p,3,ppm) && p.freq_ppb==-37200);
+    ppm[2]="+12.125"; CHECK(!edit(&p,3,ppm) && p.freq_ppb==12125);
+    p.freq_ppb=100001; CHECK(board_profile_validate(&p,37,38));
+    puts("board defaults match legacy command bytes; edits, presets, ppm and pin guards passed");
     return 0;
 }

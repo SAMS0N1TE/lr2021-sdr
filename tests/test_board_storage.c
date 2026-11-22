@@ -63,8 +63,17 @@ int main(void)
     CHECK(!board_load() && !memcmp(&stock,board_active(),sizeof(stock)));
     disk.busy=27; CHECK(board_load() && !handles);
     CHECK(!board_command(2,defaults) && !board_command(2,save) && !board_load());
-    version=2; CHECK(board_load() && !handles);
-    version=1; disk_size--; CHECK(board_load() && !handles); disk_size++;
+    CHECK(version==2);
+    version=3; CHECK(board_load() && !handles);
+    version=2; disk_size--; CHECK(board_load() && !handles); disk_size++;
+    /* A version 1 profile (no frequency correction) loads with 0 ppm. */
+    char *xf[]={"board","preset","core2021-xf"}, *ppm[]={"board","set","ppm","-37.2"};
+    CHECK(!board_command(3,xf) && !board_command(4,ppm) && !board_command(2,save));
+    CHECK(!board_load() && board_active()->freq_ppb==-37200 && board_active()->cs==20);
+    version=1; disk_size=BOARD_PROFILE_V1_SIZE;
+    CHECK(!board_load() && !board_active()->freq_ppb && board_active()->cs==20 && !board_active()->tcxo);
+    disk_size=sizeof(disk); CHECK(board_load() && !handles);
+    version=2;
     init_error=-8; CHECK(board_load()); CHECK(board_command(2,save));
     CHECK(!handles);
     puts("board staging, NVS reload, defaults and storage failures passed");

@@ -438,7 +438,8 @@ static int pktstatus_cmd(int argc, char **argv)
     const lr2021_iq_hal *h = radio_hal();
     void *c = h->context;
     const uint8_t type = 0, step = (uint8_t)gain, sw = (uint8_t)sync, path[2] = {0, 0};
-    const uint8_t f[4] = {(uint8_t)(freq >> 24), (uint8_t)(freq >> 16), (uint8_t)(freq >> 8), (uint8_t)freq};
+    const uint32_t tuned = lr2021_iq_correct_hz(freq, radio_board()->freq_ppb);
+    const uint8_t f[4] = {(uint8_t)(tuned >> 24), (uint8_t)(tuned >> 16), (uint8_t)(tuned >> 8), (uint8_t)tuned};
     const uint8_t mod[2] = {(uint8_t)((sf << 4) | (unsigned)code), (uint8_t)(0x10 | (sf >= 11 && bw <= 125000 ? 1 : 0))};
     const uint8_t pkt[4] = {(uint8_t)(preamble >> 8), (uint8_t)preamble, 255, 2};
     const uint8_t all[4] = {0xFF, 0xFF, 0xFF, 0xFF}, forever[3] = {0xFF, 0xFF, 0xFF};

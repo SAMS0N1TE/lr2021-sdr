@@ -56,7 +56,19 @@ profile but have no radio IRQ mapping or handler; capture still polls.
 
 TCXO accepts `off`, or 1.6/1.7/1.8/2.2/2.4/2.7/3.0/3.3 V (codes 0..7).
 `board set tcxo ticks <count>` sets an unsigned 32-bit delay in 32 MHz periods.
-Stock is code 7, 32768 ticks. Off uses the crystal after reboot.
+Stock is code 7, 32768 ticks. Off uses the crystal after reboot. If TCXO is
+on and the reference does not start, the radio is reset and run on the
+crystal; it goes back to TCXO only if the crystal fails too.
+
+`board set ppm <value>` sets the reference error, -100..100 ppm with up to
+three decimals, + when it runs fast. Receive and transmit frequencies are
+corrected by it. Crystal modules need a measured value per unit.
+
+`board preset core2021-xf` stages the Waveshare Core2021-XF on an
+ESP32-P4-NANO (crystal, no RF switch, IRQ polled); `board preset lilygo` the
+LilyGO board. Presets keep the ppm. See
+[Waveshare Core2021-XF](../../docs/hardware.md#waveshare-core2021-xf).
+Profiles saved by older firmware load with 0 ppm.
 
 `board rfsw <dio> <standby> <rx_lf> <tx_lf> <rx_hf> <tx_hf> [pull]` sets
 one of six entries. Levels are 0/1, packed as bits 0..4 in that order. There

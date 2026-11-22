@@ -1,0 +1,18 @@
+# Waveshare Core2021-XF on a Waveshare ESP32-P4-NANO. Use on top of
+# sdkconfig.defaults:
+#   idf.py -B build/core2021 -DSDKCONFIG=build/core2021/sdkconfig \
+#     -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.core2021-xf" build
+# See docs/hardware.md, Waveshare Core2021-XF.
+CONFIG_LRIQ_LILYGO=n
+CONFIG_LRIQ_RESET=23
+CONFIG_LRIQ_BUSY=5
+CONFIG_LRIQ_MISO=4
+CONFIG_LRIQ_CS=20
+CONFIG_LRIQ_SCLK=21
+CONFIG_LRIQ_MOSI=22
+CONFIG_LRIQ_IRQ=-1
+# 32 MHz crystal, no TCXO. No RF switch on the module.
+CONFIG_LRIQ_TCXO=n
+CONFIG_LRIQ_RFSW=n
+# Per unit; 0 until measured. One unit measured -37.2 ppm (-37200).
+CONFIG_LRIQ_FREQ_PPB=0
